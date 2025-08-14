@@ -21,7 +21,7 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/public/diverse-user-avatars.png" />
+                  <AvatarImage src="./public/diverse-user-avatars.png" />
                   <AvatarFallback>A</AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium">{t('user')}</span>

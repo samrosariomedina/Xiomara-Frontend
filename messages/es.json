@@ -28,7 +28,91 @@
         "createClient": "Crear cliente",
         "searchPlaceholder": "Buscar clientes, campañas",
         "empty": "No se han creado clientes",
-        "emptyAction": "Crea un cliente para empezar"
+        "emptyAction": "Crea un cliente para empezar",
+        "contact": "Contacto principal",
+        "creationDate": "Fecha de creación",
+        "campaigns": "Campañas",
+        "createCampaign": "Crear campaña",
+    "creating": "Creando...",
+        "campaignName": "Nombre campaña",
+        "connectedSources": "Fuentes conectadas",
+        "status": "Estado",
+        "active": "Activa",
+        "inactive": "Inactiva",
+        "pending": "Pendiente",
+        "pagination": {
+            "previous": "Página anterior",
+            "next": "Página siguiente"
+        }
+    },
+    "CLIENT_FORM":{
+        "createClient": "Crear Cliente",
+        "tabs": {
+            "general": "Información General",
+            "brand": "Brand Guides",
+            "connect": "Conectar Corresponsales"
+        },
+        "general": {
+            "clientInfo": "Información del cliente",
+            "clientName": "Nombre del cliente",
+            "industry": "Industria",
+            "industries": {
+                "technology": "Tecnología",
+                "health": "Salud",
+                "education": "Educación",
+                "finance": "Finanzas",
+                "retail": "Retail",
+                "manufacturing": "Manufactura"
+            },
+            "logo": "Logo o Imagen corporativa",
+            "addFile": "Agregar archivo",
+            "upload": "Subir",
+            "description": "Descripción",
+            "descriptionPlaceholder": "Describe el cliente..."
+        },
+        "contact": {
+            "title": "Contacto Principal",
+            "fullName": "Nombre completo",
+            "whatsapp": "Número de whatsapp",
+            "whatsappPlaceholder": "+1 (555) 000-0000",
+            "position": "Puesto",
+            "positions": {
+                "ceo": "CEO",
+                "cto": "CTO",
+                "marketing": "Director de Marketing",
+                "sales": "Director de Ventas",
+                "manager": "Gerente",
+                "coordinator": "Coordinador"
+            },
+            "email": "Correo electrónico",
+            "emailPlaceholder": "ejemplo@correo.com"
+        },
+        "correspondents": {
+            "title": "Corresponsales",
+            "uploadCSV": "Subir CSV",
+            "add": "Agregar",
+            "addNew": "Agregar Nuevo",
+            "clientName": "Nombre del cliente",
+            "whatsapp": "Número de whatsapp",
+            "accountType": "Tipo de cuenta",
+            "accountTypes": {
+                "premium": "Premium",
+                "standard": "Standard",
+                "basic": "Básico"
+            },
+            "invitationMethods": "Selecciona cómo quieres enviar la invitación",
+            "sendWhatsapp": "Enviar por whatsapp",
+            "sendEmail": "Enviar por correo",
+            "copyLink": "Copiar el link y compartir"
+        },
+        "actions": {
+            "cancel": "Cancelar",
+            "create": "Crear",
+            "createClient": "Crear"
+        },
+        "brand":{
+            "comingSoon": "Contenido de Brand Guides próximamente..."
+        }
     },
     "NAVBAR":{
         "appName": "Xiomara",

@@ -11,12 +11,15 @@ import { Eye, EyeOff } from "lucide-react"
 import {loginSchema, type LoginInput} from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
+
 
 
 export default function LoginForm() {
 
     const t = useTranslations('LOGIN');
   const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter();
 
    const {
     register,
@@ -30,6 +33,7 @@ export default function LoginForm() {
    async function onSubmit(values: LoginInput) {
     // TODO: Wire up to real auth action
     await new Promise((r) => setTimeout(r, 800));
+    router.push('/clients');
     console.log('Login attempt', values.email);
   }
 

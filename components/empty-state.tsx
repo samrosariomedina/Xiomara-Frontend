@@ -1,7 +1,12 @@
 import { Users } from "lucide-react"
 import { useTranslations } from 'next-intl'
+import { Button } from "@/components/ui/button"
 
-export function EmptyState() {
+interface EmptyStateProps {
+  onAction?: () => void
+}
+
+export function EmptyState({ onAction }: EmptyStateProps) {
   const t = useTranslations('CLIENTS')
   
   return (
@@ -12,7 +17,8 @@ export function EmptyState() {
 
       <h3 className="text-lg font-medium text-gray-900 mb-2">{t('empty')}</h3>
 
-      <p className="text-gray-500 text-sm">{t('emptyAction')}</p>
+      <p className="text-gray-500 text-sm mb-4">{t('emptyAction')}</p>
+      
     </div>
   )
 }
