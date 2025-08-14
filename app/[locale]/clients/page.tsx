@@ -2,6 +2,14 @@ import { Navbar } from "@/components/Navbar"
 import { ClientsHeader } from "@/components/clients-header"
 import { SearchFilters } from "@/components/search-filters"
 import { EmptyState } from "@/components/empty-state"
+import { Metadata } from "next"
+
+
+export const metadata: Metadata = {
+  title: 'Clients | Xiomara',
+  description: 'Clients page for Xiomara'
+}
+
 
 export default function ClientsPage() {
   return (
