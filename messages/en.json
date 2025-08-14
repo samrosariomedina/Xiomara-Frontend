@@ -1,0 +1,62 @@
+{
+    "LOGIN":{
+        "title": "Login",
+        "email": "Email",
+        "emailPlaceholder": "Enter email",
+        "password": "Password",
+        "passwordPlaceholder": "Enter password",
+        "forgotPassword": "Forgot your password?",
+        "loginButton": "Login",
+        "loggingIn": "Logging in...",
+        "noAccount": "I don't have an account yet",
+        "signUp": "Sign Up"
+    },
+    "SIGNUP":{
+        "title": "Create Account",
+        "email": "Email",
+        "emailPlaceholder": "Enter email",
+        "password": "Password",
+        "passwordPlaceholder": "Enter password",
+        "repeatPassword": "Repeat Password",
+        "repeatPasswordPlaceholder": "Repeat password",
+        "createAccountButton": "Create Account",
+        "haveAccount": "I already have an account",
+        "login": "Login"
+    },
+    "CLIENTS":{
+        "title": "Clients",
+        "createClient": "Create Client",
+        "searchPlaceholder": "Search clients, campaigns",
+        "empty": "No clients have been created",
+        "emptyAction": "Create a client to get started"
+    },
+    "NAVBAR":{
+        "appName": "Xiomara",
+        "profile": "Profile",
+        "settings": "Settings",
+        "logout": "Logout",
+        "user": "User"
+    },
+    "FILTERS":{
+        "search": "Search clients, campaigns",
+        "date": "April 2025",
+        "status": "Status",
+        "recent": "Recent",
+        "months": {
+            "january": "January 2025",
+            "february": "February 2025",
+            "march": "March 2025",
+            "april": "April 2025"
+        },
+        "statuses": {
+            "active": "Active",
+            "inactive": "Inactive",
+            "pending": "Pending"
+        },
+        "sortOptions": {
+            "mostRecent": "Most recent",
+            "oldest": "Oldest",
+            "alphabetical": "Alphabetical"
+        }
+    }
+}
