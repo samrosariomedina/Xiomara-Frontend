@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from 'next-intl'
 import { type ClientInput } from '@/lib/schemas'
 import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/formSchemas'
 
 // Import the form component tabs
-import { GeneralInformationForm } from "./GeneralInformationForm"
-import { BrandGuidesForm } from "./BrandGuidesForm"
-import { ConnectCorrespondentsForm } from "./ConnectCorrespondentsForm"
+import { GeneralInformationForm } from "../components/GeneralInformationForm"
+import { BrandGuidesForm } from "../components/BrandGuidesForm"
+import { ConnectCorrespondentsForm } from "../components/ConnectCorrespondentsForm"
 
 interface ClientFormModalProps {
   isOpen: boolean
@@ -23,6 +23,8 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
   const [activeTab, setActiveTab] = useState("general")
   const [isAnimating, setIsAnimating] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Mobile-specific state: track accordion panels
+  const [mobileExpanded, setMobileExpanded] = useState({ general: true, connect: false, brand: false })
   
   // Create separate state for each form's data
   const [generalFormData, setGeneralFormData] = useState<Partial<GeneralInformationInput>>({})
@@ -49,6 +51,9 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
       document.body.style.overflow = "unset"
     }
   }, [isOpen])
+
+  // Track viewport to switch to mobile accordion behaviour
+  // Note: responsive display handled by tailwind classes (sm:hidden / sm:block)
 
   const handleFormSubmit = async () => {
     // Combine all form data
@@ -83,6 +88,8 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
       setIsGeneralFormValid(false)
       setIsConnectFormValid(false)
       setIsBrandFormValid(true)
+  // Reset mobile accordion
+  setMobileExpanded({ general: true, connect: false, brand: false })
       onClose()
     }, 300)
   }
@@ -99,7 +106,7 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
       />
 
       <div
-        className={`fixed top-0 right-0 h-full w-1/2 bg-white shadow-2xl z-50 transform transition-all duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-1/2 bg-white shadow-2xl z-50 transform transition-all duration-300 ease-out ${
           isAnimating ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -128,7 +135,8 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
           <div className="flex-1 overflow-y-auto">
             <div className="px-4">
               {/* --- TABS: General / Brand / Connect --- */}
-              <div>
+              {/* Desktop tabs (hidden on small screens). On mobile we render accordion below */}
+              <div className="hidden sm:block">
                 <div className="flex space-x-8 border-b border-gray-200 justify-around">
                   <button
                     onClick={() => setActiveTab("general")}
@@ -163,29 +171,97 @@ export function ClientFormModal({ isOpen, onClose, onSubmit }: ClientFormModalPr
                 </div>
               </div>
 
+              {/* Mobile accordion: stacked dropdown forms */}
+              <div className="sm:hidden mt-4">
+                {/* General */}
+                <div className="border rounded-lg mb-3 overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50"
+                    onClick={() => setMobileExpanded((s) => ({ ...s, general: !s.general }))}
+                  >
+                    <div className="text-sm font-medium">{t('tabs.general')}</div>
+                    <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.general ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileExpanded.general && (
+                    <div className="px-4 py-3 bg-white">
+                      <GeneralInformationForm
+                        initialData={generalFormData}
+                        onDataChange={setGeneralFormData}
+                        onFormValid={setIsGeneralFormValid}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Connect */}
+                <div className="border rounded-lg mb-3 overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50"
+                    onClick={() => setMobileExpanded((s) => ({ ...s, connect: !s.connect }))}
+                  >
+                    <div className="text-sm font-medium">{t('tabs.connect')}</div>
+                    <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.connect ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileExpanded.connect && (
+                    <div className="px-4 py-3 bg-white">
+                      <ConnectCorrespondentsForm
+                        initialData={connectFormData}
+                        onDataChange={setConnectFormData}
+                        onFormValid={setIsConnectFormValid}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Brand */}
+                <div className="border rounded-lg mb-3 overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50"
+                    onClick={() => setMobileExpanded((s) => ({ ...s, brand: !s.brand }))}
+                  >
+                    <div className="text-sm font-medium">{t('tabs.brand')}</div>
+                    <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.brand ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileExpanded.brand && (
+                    <div className="px-4 py-3 bg-white">
+                      <BrandGuidesForm
+                        initialData={brandFormData}
+                        onDataChange={setBrandFormData}
+                        onFormValid={setIsBrandFormValid}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* --- FORM CONTENT --- */}
-              {/* Render the appropriate tab content based on activeTab */}
-              {activeTab === "general" && (
-                <GeneralInformationForm 
-                  initialData={generalFormData} 
-                  onDataChange={setGeneralFormData}
-                  onFormValid={setIsGeneralFormValid}
-                />
-              )}
-              {activeTab === "brand" && (
-                <BrandGuidesForm 
-                  initialData={brandFormData} 
-                  onDataChange={setBrandFormData}
-                  onFormValid={setIsBrandFormValid}
-                />
-              )}
-              {activeTab === "connect" && (
-                <ConnectCorrespondentsForm 
-                  initialData={connectFormData} 
-                  onDataChange={setConnectFormData}
-                  onFormValid={setIsConnectFormValid}
-                />
-              )}
+              {/* Render the appropriate tab content based on activeTab (desktop only) */}
+              <div className="hidden sm:block">
+                {activeTab === "general" && (
+                  <GeneralInformationForm 
+                    initialData={generalFormData} 
+                    onDataChange={setGeneralFormData}
+                    onFormValid={setIsGeneralFormValid}
+                  />
+                )}
+                {activeTab === "brand" && (
+                  <BrandGuidesForm 
+                    initialData={brandFormData} 
+                    onDataChange={setBrandFormData}
+                    onFormValid={setIsBrandFormValid}
+                  />
+                )}
+                {activeTab === "connect" && (
+                  <ConnectCorrespondentsForm 
+                    initialData={connectFormData} 
+                    onDataChange={setConnectFormData}
+                    onFormValid={setIsConnectFormValid}
+                  />
+                )}
+              </div>
             </div>
           </div>
 

@@ -33,7 +33,18 @@
         "creationDate": "Fecha de creación",
         "campaigns": "Campañas",
         "createCampaign": "Crear campaña",
+        "actions": {
+            "editCampaign": "Editar Campaña",
+            "addSource": "Agregar Fuente",
+            "delete": "Eliminar",
+            "cancel": "Cancelar",
+            "deleting": "Eliminando..."
+        },
     "creating": "Creando...",
+        "confirmDelete": {
+            "title": "Eliminar",
+            "message": "¿Estás seguro que quieres eliminar (nombre de lo que se elimina)? Este proceso no se podrá deshacer"
+        },
         "campaignName": "Nombre campaña",
         "connectedSources": "Fuentes conectadas",
         "status": "Estado",
@@ -141,6 +152,38 @@
             "mostRecent": "Más recientes",
             "oldest": "Más antiguos",
             "alphabetical": "Alfabético"
+        }
+    }
+    ,
+    "DASHBOARD":{
+        "title": "Dashboard Canales",
+        "addSources": "Agregar Fuentes",
+        "months": {
+            "april": "Abril 2025",
+            "march": "Marzo 2025",
+            "february": "Febrero 2025"
+        }
+    }
+    ,
+    "CORRESPONSABLES": {
+        "title": "Corresponsables",
+        "viewAll": "Ver todos",
+        "tabs": {
+            "usuarios": "Usuarios",
+            "fuentes": "Fuentes"
+        },
+        "create": "Crear Corresponsal",
+        "status": {
+            "approved": "Aprobado",
+            "pending": "Pendiente"
+        },
+        "sourcesLabel": "fuentes",
+        "actions": {
+            "more": "Más"
+        },
+        "fuentes": {
+            "imageLabel": "Imagen",
+            "addToCampaign": "Agregar a campaña"
         }
     }
 }

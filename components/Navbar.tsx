@@ -9,7 +9,7 @@ export function Navbar() {
   
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-[86rem] mx-auto flex items-center justify-between">
         <div className="text-xl font-semibold text-gray-900">{t('appName')}</div>
 
         <div className="flex items-center gap-1">
@@ -19,13 +19,18 @@ export function Navbar() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+              {/* trigger: avatar always visible; username hidden on small screens */}
+              <Button aria-label={t('user')} variant="ghost" className="flex items-center gap-2 text-gray-700 ">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="./public/diverse-user-avatars.png" />
+                  {/* Use absolute path to public/ so it resolves correctly regardless of locale */}
+                  {/* The file exists at /public/diverse-user-avatars.png */}
+                  <AvatarImage src="/avatar.svg" alt="user avatar" />
                   <AvatarFallback>A</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{t('user')}</span>
-                <ChevronDown className="h-4 w-4" />
+                {/* hide username on mobile (show only avatar) */}
+                <span className="hidden sm:inline text-sm font-medium">{t('user')}</span>
+                {/* Chevron: hide on mobile to match requirement */}
+                <ChevronDown className="hidden sm:inline h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

@@ -42,7 +42,9 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full",
+        // Use transparent background and no border by default so the single-letter
+        // fallback doesn't render with an unwanted bordered circle.
+        "bg-transparent border-0 flex size-full items-center justify-center rounded-full",
         className
       )}
       {...props}

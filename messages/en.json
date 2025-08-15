@@ -33,7 +33,18 @@
         "creationDate": "Creation date",
         "campaigns": "Campaigns",
         "createCampaign": "Create campaign",
-    "creating": "Creating...",
+        "actions": {
+            "editCampaign": "Edit campaign",
+            "addSource": "Add source",
+            "delete": "Delete",
+            "cancel": "Cancel",
+            "deleting": "Deleting..."
+        },
+        "creating": "Creating...",
+        "confirmDelete": {
+            "title": "Delete",
+            "message": "Are you sure you want to delete {name}? This process cannot be undone."
+        },
         "campaignName": "Campaign name",
         "connectedSources": "Connected sources",
         "status": "Status",
@@ -141,6 +152,38 @@
             "mostRecent": "Most recent",
             "oldest": "Oldest",
             "alphabetical": "Alphabetical"
+        }
+    }
+    ,
+    "DASHBOARD":{
+        "title": "Dashboard Channels",
+        "addSources": "Add Sources",
+        "months": {
+            "april": "April 2025",
+            "march": "March 2025",
+            "february": "February 2025"
+        }
+    }
+    ,
+    "CORRESPONSABLES": {
+        "title": "Corresponsables",
+        "viewAll": "View all",
+        "tabs": {
+            "usuarios": "Users",
+            "fuentes": "Sources"
+        },
+        "create": "Create Correspondent",
+        "status": {
+            "approved": "Approved",
+            "pending": "Pending"
+        },
+        "sourcesLabel": "sources",
+        "actions": {
+            "more": "More"
+        },
+        "fuentes": {
+            "imageLabel": "Image",
+            "addToCampaign": "Add to campaign"
         }
     }
 }

@@ -67,10 +67,10 @@ export function ConnectCorrespondentsForm({
     <div className="space-y-6 mt-4">
       {/* Corresponsales Section */}
       <div className="pl-4 pr-4">
-        <div className="flex items-center justify-between">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           {/* --- CONNECT: CORRESPONDENTS HEADER --- */}
           <h3 className="text-sm font-bold text-gray-900">{t('correspondents.title')}</h3>
-          <div className="flex items-center gap-2">
+          <div className="mt-3 sm:mt-0 flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"

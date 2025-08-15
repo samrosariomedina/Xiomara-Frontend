@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import ClientsPage from '@/pages/clientsPage'
+import DashBoard from "@/pages/DashBoard";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const { locale } = params
-  const title = 'Clients — Xiomara'
-  const description = 'List and manage your clients and their campaigns in Xiomara'
-  const path = `/${locale}/clients`
+  const title = 'Dashboard | Xiomara'
+  const description = 'Overview and metrics for your clients and campaigns.'
+  const path = `/${locale}/dashboard`
 
   return {
     title,
@@ -18,5 +18,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 }
 
 export default function Page() {
-  return <ClientsPage />
+  return <DashBoard />
 }
+
+
