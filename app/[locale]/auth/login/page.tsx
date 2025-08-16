@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import LoginForm from '@/components/pages/LoginForm';
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
-  const { locale } = params;
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
   const title = 'Login | Xiomara';
   const description = 'Sign in to your Xiomara account to access your dashboard.';
   const path = `/${locale}/auth/login`;
