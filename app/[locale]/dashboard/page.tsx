@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import DashBoard from "@/pages/DashBoard";
+import DashBoard from "@/components/pages/DashBoard";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const { locale } = params

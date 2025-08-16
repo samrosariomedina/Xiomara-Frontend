@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import ClientsPage from '@/pages/clientsPage'
+import ClientsPage from '@/components/pages/clientsPage'   
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const { locale } = params

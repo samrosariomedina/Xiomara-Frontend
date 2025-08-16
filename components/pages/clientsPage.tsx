@@ -6,7 +6,7 @@ import { SearchFilters } from "@/components/search-filters"
 import { EmptyState } from "@/components/empty-state"
 import { ClientsList } from "@/components/clients-list"
 import { useState } from "react"
-import { ClientFormModal } from "@/pages/client-form-modals"
+import { ClientFormModal } from "@/components/pages/client-form-modals"
 import { type ClientInput } from "@/lib/schemas"
 
 export default function ClientsPage() {

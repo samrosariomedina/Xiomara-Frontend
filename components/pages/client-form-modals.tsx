@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button"
 import { useTranslations } from 'next-intl'
 import { type ClientInput } from '@/lib/schemas'
 import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/formSchemas'
+import { GeneralInformationForm } from "../GeneralInformationForm"
+import { ConnectCorrespondentsForm } from "../ConnectCorrespondentsForm"
+import { BrandGuidesForm } from "../BrandGuidesForm"
 
 // Import the form component tabs
-import { GeneralInformationForm } from "../components/GeneralInformationForm"
-import { BrandGuidesForm } from "../components/BrandGuidesForm"
-import { ConnectCorrespondentsForm } from "../components/ConnectCorrespondentsForm"
 
 interface ClientFormModalProps {
   isOpen: boolean

@@ -1,10 +1,10 @@
-import { DashboardHeader } from "../components/dashboard-header";
-import { Navbar } from "../components/Navbar";
-import {MetricsCards} from '../components/dashboard-metrics-cards'
-import { CorresponsablesSection } from "../components/dashboard-Corresspondable";
-import { FuentesGeneralesSection } from "../components/dashboard-fuentes";
-import { KnowledgeBaseSection } from "../components/dashboard-knowledge";
-import { MediaListeningSection } from "../components/dashboard-media";
+import { DashboardHeader } from "@/components/dashboard-header";
+import { Navbar } from "@/components/Navbar";
+import {MetricsCards} from '@/components/dashboard-metrics-cards'
+import { CorresponsablesSection } from "@/components/dashboard-Corresspondable";
+import { FuentesGeneralesSection } from "@/components/dashboard-fuentes";
+import { KnowledgeBaseSection } from "@/components/dashboard-knowledge";
+import { MediaListeningSection } from "@/components/dashboard-media";
 
 export default function DashBoard() {
   return (

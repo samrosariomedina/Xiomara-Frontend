@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import SignupForm from '@/pages/SignupForm';
+import SignupForm from '@/components/pages/SignupForm';
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const { locale } = params;
