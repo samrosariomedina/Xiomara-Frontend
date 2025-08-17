@@ -12,6 +12,8 @@ import {loginSchema, type LoginInput} from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from 'next/navigation';
+import { login } from '@/actions/auth';
+import { toast } from "sonner";
 
 
 
@@ -31,15 +33,24 @@ export default function LoginForm() {
   });
 
    async function onSubmit(values: LoginInput) {
-    // TODO: Wire up to real auth action
-    await new Promise((r) => setTimeout(r, 800));
-    router.push('/clients');
-    console.log('Login attempt', values.email);
+    try {
+      const result = await login(values);
+      
+      if (result.success) {
+        toast.success(t("loginSuccess"));
+        router.push('/clients');
+      } else {
+        toast.error(result.error || t("loginFailed"));
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(t("loginError"));
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white shadow-sm p-8 rounded-xl w-full max-w-sm"
+      <div className="bg-gray-50 lg:bg-white lg:shadow-sm p-8 rounded-xl w-full max-w-sm"
       style={{
         width: '390px',
         height: '700px',
@@ -68,9 +79,9 @@ export default function LoginForm() {
               className={cn(
                 "w-full h-10 px-3 py-2 text-sm border rounded-md bg-white transition-colors",
                 "placeholder:text-gray-400",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                "",
                 "hover:border-gray-300",
-                errors.email ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                errors.email ? "border-red-300" : "border-gray-300"
               )}
             />
             {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
@@ -90,9 +101,9 @@ export default function LoginForm() {
                 className={cn(
                   "w-full h-10 px-3 py-2 pr-10 text-sm border rounded-md bg-white transition-colors",
                   "placeholder:text-gray-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                  "",
                   "hover:border-gray-300",
-                  errors.password ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                  errors.password ? "border-red-300" : "border-gray-300"
                 )}
               />
               <button

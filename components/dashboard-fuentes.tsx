@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Search, ChevronDown, MoreVertical, Calendar, ChevronUp } from "lucide-react"
+import { Search, ChevronDown, MoreVertical, Calendar } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import { useState } from "react"
+import { useTranslations } from 'next-intl'
 
 const fuentesData = [
   { id: 1, nombre: "Informe Q1", tipo: "PDF", contenido: "Análisis de mercado Q1", estado: "En uso", creadoPor: "Ana López", ultimaActualizacion: "16/06/2025" },
@@ -23,158 +25,154 @@ const fuentesData = [
 
 export function FuentesGeneralesSection() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const t = useTranslations('FUENTES')
 
   return (
-  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[70vh] md:max-h-[60vh] lg:h-[700px]">
-      {/* Header with toggle functionality */}
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Fuentes Generales</h3>
-          
-          <div className="flex items-center">
-            {/* Desktop "Ver todos" button - hidden on mobile */}
-            <Button variant="link" className="hidden sm:block text-blue-600 text-sm p-0">
-              Ver todos
-            </Button>
-            
-            {/* Mobile dropdown toggle - positioned on the right */}
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="sm:hidden text-gray-500 hover:text-gray-700 ml-4"
-              aria-label={isExpanded ? "Collapse" : "Expand"}
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-5 w-5" />
-              ) : (
-                <ChevronDown className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </div>
+  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0">
+        <SectionHeader
+          title={t('title')}
+          isExpanded={isExpanded}
+          onToggle={() => setIsExpanded(!isExpanded)}
+          actions={(
+            <div className="hidden lg:flex items-center gap-4 h-full">
+              <Button variant="link" className="text-[#192038] underline text-sm p-0">
+                {t('viewAll')}
+              </Button>
+            </div>
+          )}
+        />
+      </div>
+      <>
+    {/* Desktop filtering toolbar - hidden on mobile */}
+    <div className="hidden sm:flex items-center gap-4 px-6 py-2  top-0 z-10 bg-white  ">
+      <div className="flex items-center">
+        <Checkbox id="select-all" className="h-4 w-4" />
+        <ChevronDown className="h-4 w-4 text-gray-500 ml-2" />
       </div>
 
-      {/* Scrollable content area (keeps card height consistent; contents scroll). hide-scrollbar hides native scrollbars */}
-      <div className="flex-1 overflow-y-auto hide-scrollbar">
-        {/* Desktop filtering toolbar - hidden on mobile */}
-        <div className="hidden sm:flex items-center gap-4 px-6 py-3 border-b border-gray-100">
-        <div className="flex items-center">
-          <Checkbox id="select-all" className="h-4 w-4" />
-          <ChevronDown className="h-4 w-4 text-gray-500 ml-2" />
-        </div>
-        
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Buscar Fuentes" className="pl-10 h-9 max-w-xs" />
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1 bg-white border-gray-200"
-          >
-            <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-            <span className="text-sm">Abril 2025</span>
-            <ChevronDown className="h-4 w-4 ml-1" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1 bg-white border-gray-200"
-          >
-            <span className="text-sm">Estado</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1 bg-white border-gray-200"
-          >
-            <span className="text-sm">Recientes</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="relative flex-grow ">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 " />
+  <Input placeholder={t('searchPlaceholder')} className="pl-10 h-9  max-w-xs bg-[#f7f9ff]" />
       </div>
 
-  {/* Desktop view - table layout (hidden on mobile) */}
-  <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left w-6">
-                <Checkbox />
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Nombre</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Tipo</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Contenido</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Estado</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Creado por</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">Última actualización</th>
-              <th className="px-6 py-3 text-left w-6"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {fuentesData.map((fuente) => (
-              <tr key={fuente.id} className="hover:bg-gray-50 border-b border-gray-100">
-                <td className="px-6 py-3">
-                  <Checkbox />
-                </td>
-                <td className="px-6 py-3 text-sm font-medium text-gray-900">{fuente.nombre}</td>
-                <td className="px-6 py-3 text-sm text-gray-600">{fuente.tipo}</td>
-                <td className="px-6 py-3 text-sm text-gray-600">{fuente.contenido}</td>
-                <td className="px-6 py-3">
-                  <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
-                    {fuente.estado}
-                  </Badge>
-                </td>
-                <td className="px-6 py-3 text-sm text-gray-600">{fuente.creadoPor}</td>
-                <td className="px-6 py-3 text-sm text-gray-600">{fuente.ultimaActualizacion}</td>
-                <td className="px-6 py-3">
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex items-center space-x-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1 bg-white border-gray-200"
+        >
+          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+          <span className="text-sm">{t('dateLabel')}</span>
+          <ChevronDown className="h-4 w-4 ml-1" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1 bg-white border-gray-200"
+        >
+          <span className="text-sm">{t('statusLabel')}</span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1 bg-white border-gray-200"
+        >
+          <span className="text-sm">{t('recentLabel')}</span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
       </div>
-      
-  {/* Mobile view - card layout (visible only on mobile and when expanded) */}
-  <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'}`}>
-        <div className="divide-y divide-gray-100">
+    </div>
+    </>
+
+  {/* Scrollable content area (keeps card height consistent; contents scroll). hide-scrollbar hides native scrollbars */}
+  <div className={`${!isExpanded ? 'hidden lg:block' : 'block'} px-2 sm:px-4   flex-1 overflow-y-auto hide-scrollbar min-h-0`}>
+    
+
+    {/* Desktop view - table layout (hidden on mobile) */}
+    <div className="hidden sm:block overflow-x-auto mt-2 ">
+      <table className="w-full">
+        <thead className="bg-gray-50 ">
+          <tr>
+            <th className="px-6 py-3 text-left w-6">
+              <Checkbox />
+            </th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.name')}</th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.type')}</th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.content')}</th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.status')}</th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.createdBy')}</th>
+            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.updatedAt')}</th>
+            <th className="px-6 py-3 text-left w-6"></th>
+          </tr>
+        </thead>
+        <tbody>
           {fuentesData.map((fuente) => (
-            <div key={fuente.id} className="px-4 py-3">
-              <div className="flex items-start">
-                <Checkbox className="mt-1 h-4 w-4 mr-3" />
-                <div className="flex-grow">
-                  <p className="font-medium text-gray-900">{fuente.nombre}</p>
+            <tr key={fuente.id} className="hover:bg-gray-50 border-b border-gray-100">
+              <td className="px-6 py-3">
+                <Checkbox />
+              </td>
+              <td className="px-6 py-3 text-sm font-medium text-gray-900">{fuente.nombre}</td>
+              <td className="px-6 py-3 text-sm text-gray-600">{fuente.tipo}</td>
+              <td className="px-6 py-3 text-sm text-gray-600">{fuente.contenido}</td>
+              <td className="px-6 py-3">
+                <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                  {fuente.estado}
+                </Badge>
+              </td>
+              <td className="px-6 py-3 text-sm text-gray-600">{fuente.creadoPor}</td>
+              <td className="px-6 py-3 text-sm text-gray-600">{fuente.ultimaActualizacion}</td>
+              <td className="px-6 py-3">
+                <button className="text-gray-400 hover:text-gray-600">
+                  <MoreVertical className="h-4 w-4 text-black" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {/* Mobile view - card layout (visible only on mobile and when expanded) */}
+    <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'}`}>
+      <div className="space-y-3 px-3">
+        {fuentesData.map((fuente) => (
+          <div key={fuente.id} className="bg-white border border-gray-100 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <Checkbox className="mt-1 h-4 w-4" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{fuente.nombre}</p>
                   <p className="text-sm text-gray-600">{fuente.contenido}</p>
                   <p className="text-xs text-gray-500 mt-1">{fuente.tipo}</p>
                 </div>
-                <div className="flex flex-col items-end ml-3">
-                  <div className="flex items-center">
-                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
-                      {fuente.estado}
-                    </Badge>
-                    <button className="text-gray-400 ml-3">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                  {fuente.estado}
+                </Badge>
+                <button className="text-gray-400">
+                  <MoreVertical className="h-4 w-4 text-black" />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-        
-        {/* "Ver todos" link at bottom of mobile view */}
-        <div className="p-4 text-center border-t border-gray-100">
-          <Button variant="link" className="text-blue-600 text-sm p-0">
-            Ver todos
-          </Button>
-        </div>
-        </div>
+          </div>
+        ))}
       </div>
-    </Card>
+    </div>
+  </div>
+
+  {/* bottom 'Ver todos' for mobile/md; header shows it on lg
+      placed outside the scroll area so it stays pinned to the card bottom */}
+  <div className={`${isExpanded ? 'block' : 'hidden'} px-4 sm:px-6 py-3 border-t border-gray-100 lg:hidden flex-shrink-0`}>
+      <div className="text-center">
+      <Button variant="link" className="text-[#192038] underline text-sm p-0">
+        {t('viewAll')}
+      </Button>
+    </div>
+  </div>
+</Card>
   )
 }

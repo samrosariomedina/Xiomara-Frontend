@@ -1,54 +1,14 @@
 "use client"
 
-/*
-  dashboard-Corresspondable.tsx
-
-  Purpose:
-  - Renders the "Corresponsables" card used on the dashboard. Shows two tabs (Usuarios / Fuentes).
-  - The current implementation renders the "Usuarios" list only. Each user row includes:
-    - a checkbox, avatar, name, sources count (with globe icon), status badge, timestamp and actions menu.
-
-  How to use / edit:
-  - Top-level styles: edit the className on the <Card> element.
-  - Header: edit the left title and the "Ver todos" Button in the header block.
-  - Tabs: update the two tab button classNames to change active/inactive appearances.
-  - Toolbar (filter + create): update the left (checkbox/dropdown) and right (create button) markup inside the toolbar block.
-  - User rows: each row is a horizontal flex container. To change spacing / border / card appearance update classes in the row container.
-  - Badge colors: conditional classes are applied to the <Badge> element. Change the color tokens there to update approved/pending styles.
-  - Accessibility: ensure the Checkbox components receive proper labels if you change structure.
-
-  Data shape (corresponsables):
-  {
-    id: number,
-    name: string,
-    avatar: string (path to image),
-    status: "Aprobado" | "Pendiente",
-    sources: number,
-    time: string
-  }
-
-  UI change hints (quick map to classNames to edit):
-  - Card container: <Card className="...">  <-- controls card background / border / shadow
-  - Header title: <h2 className="text-base font-medium">  <-- font sizes/weights
-  - Tabs: the two <button> elements with px-6 py-3  <-- active tab uses "text-blue-600 border-b-2 border-blue-600"
-  - Toolbar checkbox + dropdown: Checkbox + <ChevronDown /> near top-left of list
-  - Create button: Button variant="outline" className="... text-blue-600 border-blue-600"
-  - User row container: <div className="flex items-center justify-between py-1"> <-- spacing between columns
-  - Avatar: <Image ... className="w-8 h-8 rounded-full mr-3" />
-  - Name + sources block: adjust text classes inside the nested <div>
-  - Status Badge: <Badge className={`px-2 py-1 text-xs font-medium ...`}>
-
-  If you want me to apply a specific visual tweak (colors, spacing, borders, hover states), tell me which element and the exact target style and I will change classNames accordingly.
-*/
-
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, MoreVertical, Globe, ChevronDown, ChevronUp, LucideImage } from "lucide-react"
+import { Plus, MoreVertical, Globe, ChevronDown, LucideImage } from "lucide-react"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
+import { SectionHeader } from "@/components/ui/section-header"
 
 // Mock data used for the list. Replace with real data or props when wiring to API.
 const corresponsables = [
@@ -72,42 +32,30 @@ export function CorresponsablesSection() {
   const t = useTranslations('CORRESPONSABLES')
 
   return (
-  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[70vh] md:max-h-[60vh] lg:h-[600px] lg:max-h-none">
-      {/* Header: title + "Ver todos" link
-          - Edit title styles here if you want different size/weight
-      */}
-      <div className="px-5 sm:px-6 py-5 sm:py-2 border-b border-gray-200">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base sm:text-md font-semibold text-gray-900">{t('title')}</h3>
-        <div className="flex items-center">
-          {/* "Ver todos" link on desktop - hidden on mobile */}
-          <Button variant="link" className="hidden sm:block text-blue-900 text-sm p-0 h-auto font-medium underline">
-            {t('viewAll')}
-          </Button>
-          {/* Mobile dropdown toggle button */}
-          <button 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="sm:hidden text-gray-500 hover:text-gray-700 ml-2"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-5 w-5" />
-            ) : (
-              <ChevronDown className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-      </div>
-      </div>
+  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
+    <div className="px-4 mt-2 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0">
+      <SectionHeader
+        title={t('title')}
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
+        actions={(
+          <div className="hidden lg:flex items-center gap-4 h-full">
+            <Button variant="link" className="text-[#192038] text-sm p-0 h-auto font-medium underline">
+              {t('viewAll')}
+            </Button>
+          </div>
+        )}
+      />
+    </div>
 
       {/* Tabs
           - Change active/inactive tab appearance by editing classes below
           - Active tab currently uses text-blue-600 + border-b-2
           - Only shown on desktop or when expanded on mobile
       */}
-      <div className={`border-b border-gray-200 ${!isExpanded ? 'hidden sm:block' : 'block'}`}>
+  <div className={`border-b border-gray-200 ${!isExpanded ? 'hidden lg:block' : 'block'}`}>
         {/* Make tabs take equal width: each button gets flex-1 and centered text */}
-        <div className="flex w-full">
+  <div className="flex w-full">
           <button
             onClick={() => setActiveTab("usuarios")}
             role="tab"
@@ -136,28 +84,28 @@ export function CorresponsablesSection() {
       </div>
 
   {/* Scrollable content area (keeps card height consistent; contents scroll). Added hide-scrollbar to keep scroll functional but hide native scrollbars. */}
-  <div className="flex-1 overflow-y-auto hide-scrollbar">
+  <div className={`${!isExpanded ? 'hidden lg:block' : 'block'} px-4 lg:px-6 py-3 lg:py-4 flex-1 overflow-y-auto hide-scrollbar`}>
   {/* Content for the active tab - only visible on desktop or when expanded on mobile */}
       {activeTab === "usuarios" ? (
-        <div className={`p-4 pt-0 ${!isExpanded ? 'hidden sm:block' : 'block'}`}>
+        <div className="p-0">
           {/* Toolbar: left = select / dropdown, right = create button
               - To change the dropdown look: update Checkbox + ChevronDown classes
               - To change Create button: edit Button variant/classes
           */}
           <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center">
-              {/* Select all checkbox - if you add selection logic wire it to state */}
-              <Checkbox id="select-all" className="mr-2 h-4 w-4 rounded border-gray-300" />
-              {/* This ChevronDown is a visual dropdown icon in the original design */}
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </div>
+              <div className="hidden lg:flex items-center">
+                {/* Select all checkbox - visible only on large screens */}
+                <Checkbox id="select-all" className="mr-2 h-4 w-4 rounded border-gray-300" />
+                {/* This ChevronDown is a visual dropdown icon in the original design */}
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </div>
             {/* Create Corresponsal button - update color/size here */}
             <Button
               variant="outline"
-              className="h-8 px-3 py-1 text-sm font-normal text-[#31499F] flex items-center gap-1 rounded-full bg-[#F7F9FF]"
+              className="w-full lg:w-auto h-9 px-3 py-2 text-sm font-semibold text-[#31499F] flex items-center gap-2 rounded-full bg-[#F7F9FF]  border-white mt-2 lg:mt-0 justify-center"
             >
-              <Plus className="h-4 w-4" />
-              {t('create')}
+              <Plus className="h-4 w-4 " />
+              <span className="ml-1">{t('create')}</span>
             </Button>
           </div>
 
@@ -223,11 +171,11 @@ export function CorresponsablesSection() {
         </div>
       ) : (
         /* "Fuentes" Tab Content - based on the image */
-        <div className={`p-4 pt-0 ${!isExpanded ? 'hidden sm:block' : 'block'}`}>
+  <div className={`p-4 pt-0 ${!isExpanded ? 'hidden lg:block' : 'block'}`}>
           {/* Toolbar: left = select / dropdown */}
           <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center">
-              {/* Select all checkbox - if you add selection logic wire it to state */}
+            <div className="hidden lg:flex items-center">
+              {/* Select all checkbox - visible only on large screens */}
               <Checkbox id="select-all-fuentes" className="mr-2 h-4 w-4 rounded border-gray-300" />
               {/* This ChevronDown is a visual dropdown icon in the original design */}
               <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -254,7 +202,7 @@ export function CorresponsablesSection() {
                         </svg>
                       </div>
                       <div>
-                      <p className="block text-sm font-medium">Imagen de campaña publicitaria</p>
+                      <p className="block text-sm font-medium">{t('fuentes.campaignTitle')}</p>
                       <div className="flex  ">
                         {/* Campaign name - matches text in image */}
                         
@@ -269,11 +217,11 @@ export function CorresponsablesSection() {
                   {/* Right side: timestamp + action button */}
                   <div className="flex items-center">
                     {/* Timestamp as in image */}
-                    <span className="text-xs text-gray-500 mr-2">3 mins</span>
+                    <span className="text-xs text-gray-500 mr-2">{t('fuentes.time')}</span>
                     
                     {/* Action menu button */}
                     <button className="text-gray-500">
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-4 w-4 text-black" />
                     </button>
                   </div>
                 </div>
@@ -294,8 +242,8 @@ export function CorresponsablesSection() {
     </div>
   {/* Mobile "Ver todos" link at bottom (only when expanded) */}
   {isExpanded && (
-    <div className="sm:hidden px-4 text-center border-t border-gray-100">
-      <Button variant="link" className="text-blue-600 text-sm p-0">
+    <div className="lg:hidden px-4 text-center border-t border-gray-100">
+      <Button variant="link" className="text-[#192038] underline hover:no-underline text-sm p-0">
         {t('viewAll')}
       </Button>
     </div>

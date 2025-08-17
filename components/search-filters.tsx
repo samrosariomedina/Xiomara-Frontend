@@ -1,11 +1,20 @@
 import { Search, Calendar, Filter, Clock, ChevronDown, Plus } from "lucide-react"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu"
 import { useTranslations } from 'next-intl'
 
 export function SearchFilters() {
   const t = useTranslations('FILTERS')
+  const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined)
   
   return (
     <div className="mb-8">
@@ -27,15 +36,17 @@ export function SearchFilters() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50">
                   <Calendar className="h-4 w-4 mr-2" />
-                  {t('date')}
+                  {selectedMonth ? t(`months.${selectedMonth}`) : t('date')}
                   <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem>{t('months.january')}</DropdownMenuItem>
-              <DropdownMenuItem>{t('months.february')}</DropdownMenuItem>
-              <DropdownMenuItem>{t('months.march')}</DropdownMenuItem>
-              <DropdownMenuItem>{t('months.april')}</DropdownMenuItem>
+              <DropdownMenuRadioGroup value={selectedMonth} onValueChange={(v) => setSelectedMonth(v)}>
+                <DropdownMenuRadioItem value="january">{t('months.january')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="february">{t('months.february')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="march">{t('months.march')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="april">{t('months.april')}</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 

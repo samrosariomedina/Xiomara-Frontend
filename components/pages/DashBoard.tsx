@@ -1,12 +1,15 @@
-import { DashboardHeader } from "@/components/dashboard-header";
-import { Navbar } from "@/components/Navbar";
-import {MetricsCards} from '@/components/dashboard-metrics-cards'
-import { CorresponsablesSection } from "@/components/dashboard-Corresspondable";
-import { FuentesGeneralesSection } from "@/components/dashboard-fuentes";
-import { KnowledgeBaseSection } from "@/components/dashboard-knowledge";
-import { MediaListeningSection } from "@/components/dashboard-media";
+"use client"
 
-export default function DashBoard() {
+import { DashboardHeader } from "../components/dashboard-header";
+import { Navbar } from "../components/Navbar";
+import {MetricsCards} from '../components/dashboard-metrics-cards'
+import { CorresponsablesSection } from "../components/dashboard-Corresspondable";
+import { FuentesGeneralesSection } from "../components/dashboard-fuentes";
+import { KnowledgeBaseSection } from "../components/dashboard-knowledge";
+import { MediaListeningSection } from "../components/dashboard-media";
+import withAuth from "@/lib/withAuth";
+
+function DashBoard() {
   return (
     <>
       <Navbar />
@@ -36,4 +39,6 @@ export default function DashBoard() {
     </>
   )
 }
+
+export default withAuth(DashBoard);
 

@@ -4,3 +4,18 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export function getAuthHeaders() {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('authToken');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+  return {};
+}
+
+export function isAuthenticated() {
+  if (typeof window !== 'undefined') {
+    return !!localStorage.getItem('authToken');
+  }
+  return false;
+}
