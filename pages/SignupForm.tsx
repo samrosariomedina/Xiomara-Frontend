@@ -11,6 +11,9 @@ import { Eye, EyeOff } from "lucide-react"
 import {signupSchema, type SignupInput} from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
+import { signup } from '@/actions/auth';
+import { toast } from "sonner";
 
 export default function SignupForm() {
   const t = useTranslations('SIGNUP');
@@ -26,15 +29,28 @@ export default function SignupForm() {
     defaultValues: {email: '', password: '', repeatPassword: ''}
   });
 
+  const router = useRouter();
+
   async function onSubmit(values: SignupInput) {
-    // TODO: Wire up to real auth action
-    await new Promise((r) => setTimeout(r, 800));
-    console.log('Signup attempt', values.email);
+    try {
+      const result = await signup(values);
+      
+      if (result.success) {
+        toast.success(t("signupSuccess"));
+        // Redirect to login page after successful signup
+        router.push('/auth/login');
+      } else {
+        toast.error(result.error || t("signupFailed"));
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error(t("signupError"));
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white shadow-sm p-8 rounded-lg w-full max-w-sm"
+      <div className="bg-gray-50 lg:bg-white lg:shadow-sm p-8 rounded-lg w-full max-w-sm"
       style={{
         width: '390px',
         height: '700px',
@@ -45,7 +61,7 @@ export default function SignupForm() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Xiomara</h1>
-          <p className="text-gray-500 text-sm font-medium">{t("title")}</p>
+          <p className="text-gray-500 text-md font-medium">{t("title")}</p>
         </div>
 
         {/* Form */}
@@ -63,9 +79,9 @@ export default function SignupForm() {
               className={cn(
                 "w-full h-10 px-3 py-2 text-sm border rounded-md bg-white transition-colors",
                 "placeholder:text-gray-400",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                "",
                 "hover:border-gray-300",
-                errors.email ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                errors.email ? "border-red-300" : "border-gray-300"
               )}
             />
             {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
@@ -85,9 +101,9 @@ export default function SignupForm() {
                 className={cn(
                   "w-full h-10 px-3 py-2 pr-10 text-sm border rounded-md bg-white transition-colors",
                   "placeholder:text-gray-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                  "",
                   "hover:border-gray-300",
-                  errors.password ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                  errors.password ? "border-red-300" : "border-gray-300"
                 )}
               />
               <button
@@ -115,9 +131,9 @@ export default function SignupForm() {
                 className={cn(
                   "w-full h-10 px-3 py-2 pr-10 text-sm border rounded-md bg-white transition-colors",
                   "placeholder:text-gray-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                  "",
                   "hover:border-gray-300",
-                  errors.repeatPassword ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                  errors.repeatPassword ? "border-red-300" : "border-gray-300"
                 )}
               />
               <button

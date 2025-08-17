@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import ClientsPage from '@/pages/clientsPage'
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+type MaybePromise<T> = T | Promise<T>;
+type ParamsLike = { params: MaybePromise<{ locale: string }> };
+
+export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
+  const params = await props.params;
   const { locale } = params
   const title = 'Clients — Xiomara'
   const description = 'List and manage your clients and their campaigns in Xiomara'

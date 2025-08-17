@@ -1,5 +1,5 @@
 {
-    "LOGIN":{
+    "LOGIN": {
         "title": "Iniciar sesión",
         "email": "Email",
         "emailPlaceholder": "Ingresar email",
@@ -9,9 +9,12 @@
         "loginButton": "Iniciar sesión",
         "loggingIn": "Iniciando sesión...",
         "noAccount": "Aún no tengo una cuenta",
-        "signUp": "Registrarse"
+        "signUp": "Registrarse",
+        "loginSuccess": "¡Inicio de sesión exitoso!",
+        "loginFailed": "Error al iniciar sesión. Por favor, intenta de nuevo.",
+        "loginError": "Ocurrió un error durante el inicio de sesión."
     },
-    "SIGNUP":{
+    "SIGNUP": {
         "title": "Crear cuenta",
         "email": "Email",
         "emailPlaceholder": "Ingresar email",
@@ -21,9 +24,12 @@
         "repeatPasswordPlaceholder": "Repetir contraseña",
         "createAccountButton": "Crear cuenta",
         "haveAccount": "Ya tengo una cuenta",
-        "login": "Iniciar sesión"
+        "login": "Iniciar sesión",
+        "signupSuccess": "¡Cuenta creada exitosamente!",
+        "signupFailed": "Error al crear la cuenta. Por favor, intenta de nuevo.",
+        "signupError": "Ocurrió un error durante el registro."
     },
-    "CLIENTS":{
+    "CLIENTS": {
         "title": "Clientes",
         "createClient": "Crear cliente",
         "searchPlaceholder": "Buscar clientes, campañas",
@@ -40,10 +46,10 @@
             "cancel": "Cancelar",
             "deleting": "Eliminando..."
         },
-    "creating": "Creando...",
+        "creating": "Creando...",
         "confirmDelete": {
             "title": "Eliminar",
-            "message": "¿Estás seguro que quieres eliminar (nombre de lo que se elimina)? Este proceso no se podrá deshacer"
+            "message": "¿Estás seguro que quieres eliminar {name}? Este proceso no se podrá deshacer"
         },
         "campaignName": "Nombre campaña",
         "connectedSources": "Fuentes conectadas",
@@ -54,9 +60,16 @@
         "pagination": {
             "previous": "Página anterior",
             "next": "Página siguiente"
-        }
+        },
+        "fetchError": "Error al cargar los clientes",
+        "createError": "Error al crear el cliente",
+        "deleteError": "Error al eliminar el cliente",
+        "clientCreated": "Cliente creado exitosamente",
+        "clientDeleted": "Cliente eliminado exitosamente",
+        "noCampaignsYet": "Aún no hay campañas",
+        "noCampaignsYetShort": "Sin campañas"
     },
-    "CLIENT_FORM":{
+    "CLIENT_FORM": {
         "createClient": "Crear Cliente",
         "tabs": {
             "general": "Información General",
@@ -119,20 +132,28 @@
         "actions": {
             "cancel": "Cancelar",
             "create": "Crear",
-            "createClient": "Crear"
+            "createClient": "Crear",
+            "creating": "Creando..."
         },
-        "brand":{
-            "comingSoon": "Contenido de Brand Guides próximamente..."
+        "validation": {
+            "error": "Error de Validación",
+            "fillRequired": "Por favor complete todos los campos requeridos"
         }
     },
-    "NAVBAR":{
+    "brand": {
+        "comingSoon": "Contenido de Brand Guides próximamente..."
+    },
+    "NAVBAR": {
         "appName": "Xiomara",
         "profile": "Perfil",
         "settings": "Configuración",
         "logout": "Cerrar sesión",
-        "user": "Usuario"
+        "user": "Usuario",
+        "logoutSuccess": "¡Sesión cerrada exitosamente!",
+        "logoutFailed": "Error al cerrar sesión. Por favor, intenta de nuevo.",
+        "logoutError": "Ocurrió un error durante el cierre de sesión."
     },
-    "FILTERS":{
+    "FILTERS": {
         "search": "Buscar clientes, campañas",
         "date": "Abril 2025",
         "status": "Estado",
@@ -153,9 +174,8 @@
             "oldest": "Más antiguos",
             "alphabetical": "Alfabético"
         }
-    }
-    ,
-    "DASHBOARD":{
+    },
+    "DASHBOARD": {
         "title": "Dashboard Canales",
         "addSources": "Agregar Fuentes",
         "months": {
@@ -163,8 +183,13 @@
             "march": "Marzo 2025",
             "february": "Febrero 2025"
         }
-    }
-    ,
+        ,
+        "breadcrumb": {
+            "clientsList": "Listado Clientes",
+            "dashboard": "Dashboard",
+            "client": "Cliente"
+        }
+    },
     "CORRESPONSABLES": {
         "title": "Corresponsables",
         "viewAll": "Ver todos",
@@ -183,7 +208,39 @@
         },
         "fuentes": {
             "imageLabel": "Imagen",
-            "addToCampaign": "Agregar a campaña"
+            "addToCampaign": "Agregar a campaña",
+            "campaignTitle": "Imagen de campaña publicitaria",
+            "time": "3 mins"
         }
+    }
+    ,
+    "FUENTES": {
+        "title": "Fuentes Generales",
+        "viewAll": "Ver todos",
+        "searchPlaceholder": "Buscar Fuentes",
+        "dateLabel": "Abril 2025",
+        "statusLabel": "Estado",
+        "recentLabel": "Recientes",
+        "table": {
+            "name": "Nombre",
+            "type": "Tipo",
+            "content": "Contenido",
+            "status": "Estado",
+            "createdBy": "Creado por",
+            "updatedAt": "Última actualización"
+        }
+    }
+    ,
+    "KNOWLEDGE": {
+        "title": "Knowledge Base",
+        "refresh": "Actualizar",
+        "viewAll": "Ver todos",
+        "lastUpdate": "Última actualización",
+        "type": "Knowledge base"
+    }
+    ,
+    "MEDIA": {
+        "title": "Media listening",
+        "viewAll": "Ver todos"
     }
 }

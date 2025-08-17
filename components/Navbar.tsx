@@ -1,11 +1,54 @@
+"use client"
+
 import { Bell, ChevronDown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useTranslations } from 'next-intl'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { logout } from '@/actions/auth'
+import { toast } from "sonner"
 
 export function Navbar() {
   const t = useTranslations('NAVBAR')
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  
+  const handleLogout = async () => {
+    try {
+      const result = await logout();
+      if (result.success) {
+        toast.success(t('logoutSuccess'));
+        router.push('/auth/login');
+      } else {
+        toast.error(result.error || t('logoutFailed'));
+      }
+    } catch {
+      toast.error(t('logoutError'));
+    }
+  };
+
+  const toggleLocale = () => {
+    try {
+      const seg = (pathname || "/").split('/').filter(Boolean)
+      const current = seg[0] === 'es' ? 'es' : 'en'
+      const next = current === 'en' ? 'es' : 'en'
+
+      let pathWithoutLocale = pathname || '/'
+      if (pathWithoutLocale.startsWith(`/${current}`)) {
+        pathWithoutLocale = pathWithoutLocale.slice(current.length + 1) || '/'
+      }
+
+      const query = searchParams ? `?${searchParams.toString()}` : ''
+      const newPath = `/${next}${pathWithoutLocale}${query}`
+
+      router.push(newPath)
+    } catch {
+      const next = (pathname || '').startsWith('/es') ? 'en' : 'es'
+      router.push(`/${next}`)
+    }
+  }
   
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
@@ -19,24 +62,23 @@ export function Navbar() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {/* trigger: avatar always visible; username hidden on small screens */}
+              {/* User menu trigger */}
               <Button aria-label={t('user')} variant="ghost" className="flex items-center gap-2 text-gray-700 ">
                 <Avatar className="h-8 w-8">
-                  {/* Use absolute path to public/ so it resolves correctly regardless of locale */}
-                  {/* The file exists at /public/diverse-user-avatars.png */}
                   <AvatarImage src="/avatar.svg" alt="user avatar" />
                   <AvatarFallback>A</AvatarFallback>
                 </Avatar>
-                {/* hide username on mobile (show only avatar) */}
                 <span className="hidden sm:inline text-sm font-medium">{t('user')}</span>
-                {/* Chevron: hide on mobile to match requirement */}
                 <ChevronDown className="hidden sm:inline h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>{t('profile')}</DropdownMenuItem>
               <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
-              <DropdownMenuItem>{t('logout')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={toggleLocale}>
+                {((pathname || '/').split('/')[1] === 'es') ? 'English' : 'Español'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>{t('logout')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

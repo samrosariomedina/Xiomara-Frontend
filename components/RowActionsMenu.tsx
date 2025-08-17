@@ -33,7 +33,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   }, [onClose])
 
   const menu = (
-    <div ref={ref} style={{ position: 'fixed', left, top }} className="z-50 w-52 rounded-lg border bg-white shadow-lg p-3">
+    <div ref={ref} style={{ position: 'fixed', left, top }} className="z-50 w-52 rounded-lg  bg-white shadow-lg p-3">
       <button
         className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-800"
         onClick={() => { onEdit?.(); onClose() }}
@@ -52,14 +52,14 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
         <span className="whitespace-nowrap">{t('actions.addSource') || 'Agregar Fuente'}</span>
       </button>
 
-      <div className="my-2 border-t" />
+      <div className="my-2 border-t text-gray-300" />
 
       <button
-        className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-red-600"
+        className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-700"
         onClick={() => { setConfirmOpen(true) }}
         type="button"
       >
-        <Trash2 className="h-5 w-5 text-red-500" />
+        <Trash2 className="h-5 w-5 text-gray-700" />
         <span className="whitespace-nowrap">{t('actions.delete') || 'Eliminar'}</span>
       </button>
     </div>
@@ -91,16 +91,16 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
           type="button"
           aria-label="Close"
           onClick={() => { setConfirmOpen(false); onClose() }}
-          className="absolute top-5 right-5 rounded hover:bg-gray-50"
+          className="absolute top-8 right-8 rounded"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 hover:text-[#ff0000]" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 8.586L15.95 2.636a1 1 0 011.414 1.414L11.414 10l5.95 5.95a1 1 0 01-1.414 1.414L10 11.414l-5.95 5.95A1 1 0 012.636 15.95L8.586 10 2.636 4.05A1 1 0 014.05 2.636L10 8.586z" clipRule="evenodd" />
           </svg>
         </button>
 
         {/* subtle circular icon above title (gray, not blue) */}
           <div className="flex justify-center">
-            <div className="rounded-full bg-white p-5 shadow-sm">
+            <div className="rounded-full bg-[#f7f9ff] p-5 ">
               <X className="h-10 w-10 text-gray-500" />
             </div>
           </div>
@@ -111,7 +111,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
           <div className="mt-10 pt-10 flex items-center justify-center gap-6">
           <button
             type="button"
-            className="min-w-[140px] px-6 py-3 rounded-full bg-[#F7F9FF] text-sm text-[#31499F] shadow-sm"
+            className="min-w-[170px] px-6 py-3 rounded-full bg-[#F7F9FF] hover:bg-[#fff9ff] text-sm text-[#31499F] "
             onClick={() => setConfirmOpen(false)}
             disabled={isProcessing}
           >
@@ -120,7 +120,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
 
           <button
             type="button"
-            className="min-w-[140px] px-6 py-3 rounded-full bg-[#31499F] text-[#F7F9FF] text-sm shadow"
+            className="min-w-[170px] px-6 py-3 rounded-full bg-[#31499F] hover:bg-[#253a7a] text-[#F7F9FF] text-sm "
             onClick={handleConfirm}
             disabled={isProcessing}
           >

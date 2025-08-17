@@ -9,7 +9,10 @@
         "loginButton": "Login",
         "loggingIn": "Logging in...",
         "noAccount": "I don't have an account yet",
-        "signUp": "Sign Up"
+        "signUp": "Sign Up",
+        "loginSuccess": "Login successful!",
+        "loginFailed": "Login failed. Please try again.",
+        "loginError": "An error occurred during login."
     },
     "SIGNUP":{
         "title": "Create Account",
@@ -21,7 +24,10 @@
         "repeatPasswordPlaceholder": "Repeat password",
         "createAccountButton": "Create Account",
         "haveAccount": "I already have an account",
-        "login": "Login"
+        "login": "Login",
+        "signupSuccess": "Account created successfully!",
+        "signupFailed": "Failed to create account. Please try again.",
+        "signupError": "An error occurred during signup."
     },
     "CLIENTS":{
         "title": "Clients",
@@ -54,7 +60,15 @@
         "pagination": {
             "previous": "Previous page",
             "next": "Next page"
-        }
+        },
+        "fetchError": "Failed to fetch clients",
+        "createError": "Failed to create client",
+        "deleteError": "Failed to delete client",
+        "clientCreated": "Client created successfully",
+        "clientDeleted": "Client deleted successfully"
+    ,
+    "noCampaignsYet": "No campaigns yet",
+    "noCampaignsYetShort": "No campaigns"
     },
     "CLIENT_FORM":{
         "createClient": "Create Client",
@@ -119,10 +133,15 @@
         "actions": {
             "cancel": "Cancel",
             "create": "Create",
-            "createClient": "Create"
+            "createClient": "Create",
+            "creating": "Creating..."
         },
         "brand":{
             "comingSoon": "Brand Guides content coming soon..."
+        },
+        "validation": {
+            "error": "Validation Error",
+            "fillRequired": "Please fill all required fields"
         }
     },
     "NAVBAR":{
@@ -130,7 +149,10 @@
         "profile": "Profile",
         "settings": "Settings",
         "logout": "Logout",
-        "user": "User"
+        "user": "User",
+        "logoutSuccess": "Logged out successfully!",
+        "logoutFailed": "Failed to log out. Please try again.",
+        "logoutError": "An error occurred during logout."
     },
     "FILTERS":{
         "search": "Search clients, campaigns",
@@ -163,6 +185,12 @@
             "march": "March 2025",
             "february": "February 2025"
         }
+        ,
+        "breadcrumb": {
+            "clientsList": "Clients list",
+            "dashboard": "Dashboard",
+            "client": "Client"
+        }
     }
     ,
     "CORRESPONSABLES": {
@@ -183,7 +211,39 @@
         },
         "fuentes": {
             "imageLabel": "Image",
-            "addToCampaign": "Add to campaign"
+            "addToCampaign": "Add to campaign",
+            "campaignTitle": "Campaign ad image",
+            "time": "3 mins"
         }
+    }
+    ,
+    "FUENTES": {
+        "title": "General Sources",
+        "viewAll": "View all",
+        "searchPlaceholder": "Search sources",
+        "dateLabel": "April 2025",
+        "statusLabel": "Status",
+        "recentLabel": "Recent",
+        "table": {
+            "name": "Name",
+            "type": "Type",
+            "content": "Content",
+            "status": "Status",
+            "createdBy": "Created by",
+            "updatedAt": "Last update"
+        }
+    }
+    ,
+    "KNOWLEDGE": {
+        "title": "Knowledge Base",
+        "refresh": "Refresh",
+        "viewAll": "View all",
+        "lastUpdate": "Last update",
+        "type": "Knowledge base"
+    }
+    ,
+    "MEDIA": {
+        "title": "Media listening",
+        "viewAll": "View all"
     }
 }

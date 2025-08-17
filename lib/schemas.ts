@@ -18,6 +18,7 @@ export const clientSchema = z.object({
 	clientName: z.string().min(1, 'Client name is required'),
 	industry: z.string().min(1, 'Industry is required'),
 	description: z.string().optional(),
+	logoFile: z.any().optional(), // File object for logo upload
 	contactName: z.string().min(1, 'Contact name is required'),
 	whatsapp: z.string().min(1, 'WhatsApp number is required'),
 	position: z.string().min(1, 'Position is required'),

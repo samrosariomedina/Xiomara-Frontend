@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { MediaPost } from "@/components/ui/media-post"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useState } from "react"
+import { useTranslations } from 'next-intl'
 
 const mediaItems = [
   {
@@ -40,22 +41,25 @@ const mediaItems = [
 
 export function MediaListeningSection() {
   const [isExpanded, setIsExpanded] = useState(false)
+  const t = useTranslations('MEDIA')
 
   const headerActions = (
-    <Button variant="link" className="text-blue-600 text-sm p-0">
-      Ver todos
-    </Button>
+    <div className="hidden lg:flex items-center gap-4 h-full">
+      <Button variant="link" className="text-[#192038] underline text-sm p-0">
+        {t('viewAll')}
+      </Button>
+    </div>
   )
 
   return (
-  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[60vh] md:max-h-[60vh] lg:h-[600px] lg:max-h-none">
+  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
       <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0">
-        <SectionHeader
-          title="Media listening"
-          isExpanded={isExpanded}
-          onToggle={() => setIsExpanded(!isExpanded)}
-          actions={headerActions}
-        />
+          <SectionHeader
+            title={t('title')}
+            isExpanded={isExpanded}
+            onToggle={() => setIsExpanded(!isExpanded)}
+            actions={headerActions}
+          />
       </div>
 
       <div className={`${!isExpanded ? "hidden lg:block" : "block"} px-4 sm:px-6 py-3 sm:py-4 flex-1 overflow-y-auto hide-scrollbar`}>
@@ -63,6 +67,15 @@ export function MediaListeningSection() {
           {mediaItems.map((item) => (
             <MediaPost key={item.id} {...item} />
           ))}
+        </div>
+      </div>
+
+      {/* bottom 'Ver todos' for mobile/md; header shows it on lg */}
+      <div className={`${!isExpanded ? "hidden lg:block" : "block"} px-4 sm:px-6  `}>
+        <div className="text-center lg:hidden">
+            <Button variant="link" className="text-[#192038] underline text-sm p-0">
+              {t('viewAll')}
+            </Button>
         </div>
       </div>
     </Card>

@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { brandGuidesSchema, type BrandGuidesInput } from '@/lib/formSchemas'
-import { useEffect } from "react"
+import { useEffect, forwardRef, useImperativeHandle } from "react"
 
 interface BrandGuidesFormProps {
   onFormValid?: (isValid: boolean) => void;
@@ -12,11 +12,11 @@ interface BrandGuidesFormProps {
   initialData?: Partial<BrandGuidesInput>;
 }
 
-export function BrandGuidesForm({ 
+export const BrandGuidesForm = forwardRef(function BrandGuidesForm({ 
   onFormValid, 
   onDataChange,
   initialData 
-}: BrandGuidesFormProps) {
+}: BrandGuidesFormProps, ref) {
   const t = useTranslations('CLIENT_FORM');
   
   const form = useForm<BrandGuidesInput>({
@@ -47,6 +47,13 @@ export function BrandGuidesForm({
     return () => subscription.unsubscribe();
   }, [watch, onDataChange]);
 
+  useImperativeHandle(ref, () => ({
+    validate: async () => {
+      return await form.trigger();
+    },
+    getValues: () => form.getValues() as BrandGuidesInput
+  }))
+
   return (
     <div className="space-y-4 mt-6">
       <div className="border border-gray-100 rounded-lg p-6 bg-white">
@@ -56,4 +63,4 @@ export function BrandGuidesForm({
       </div>
     </div>
   );
-}
+});
