@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { getClients } from "@/actions/clients"
-import { Client, Campaign } from "./types"
+import { Client, Campaign } from "../types"
 
 export const useClientsData = (initialClients: Client[] = []) => {
   const [localClients, setLocalClients] = useState<Client[]>(initialClients || [])

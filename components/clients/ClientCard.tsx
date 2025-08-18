@@ -8,7 +8,6 @@ import {
   Plus,
   TrendingUp,
   TrendingDown,
-  MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"

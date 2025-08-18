@@ -1,38 +1,57 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { ChevronDown, Plus, Calendar } from "lucide-react"
+import { Plus } from "lucide-react"
+import { usePathname, useRouter } from 'next/navigation'
+import DateDropdown from "@/components/ui/date-dropdown"
 import { useTranslations } from 'next-intl'
+import { SourcesAdministrator } from '@/pages/sources-administrator'
 
 export function DashboardHeader() {
   const t = useTranslations('DASHBOARD')
   const tFilters = useTranslations('FILTERS')
-  const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(tFilters('date'))
-  const ref = useRef<HTMLDivElement | null>(null)
+  const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
+  const pathname = usePathname()
+  const isEs = (pathname || '').split('/').filter(Boolean)[0] === 'es'
+  const router = useRouter()
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (!ref.current) return
-      if (e.target instanceof Node && !ref.current.contains(e.target)) {
-        setOpen(false)
-      }
+  const goToClients = () => {
+    try {
+      const seg = (pathname || "/").split('/').filter(Boolean)
+      const locale = seg[0] === 'es' ? 'es' : 'en'
+      router.push(`/${locale}/clients`)
+    } catch {
+      router.push('/clients')
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }
 
-  const months = [tFilters('months.april'), tFilters('months.march'), tFilters('months.february')]
+  // DateDropdown handles its own click-away and escape handling.
+
+  // Use dataset shape for reuse across the app: { label, value }
+  const months = [
+    { label: tFilters('months.april'), value: 'april' },
+    { label: tFilters('months.march'), value: 'march' },
+    { label: tFilters('months.february'), value: 'february' },
+  ]
 
   return (
-    <div className="bg-white rounded-md px-4 py-4 mb-4">
+    <div className="bg-gray-50 rounded-md px-4 py-4 mb-4">
       {/* Mobile & Medium layout (unchanged) */}
       <div className="lg:hidden">
         <div className="max-w-[86rem] mx-auto flex items-start justify-between">
           <div className="min-w-0 flex-1 mr-4">
-            <div className="text-xs text-gray-600 truncate">
-              <span className="whitespace-nowrap">{t('breadcrumb.clientsList')}</span>
+              <div className="text-xs text-gray-600 truncate">
+              <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClients}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClients() }}
+              >
+                {t('breadcrumb.clientsList')}
+              </span>
               <span className="mx-2">›</span>
               <span className="whitespace-nowrap">{t('breadcrumb.dashboard')}</span>
               <span className="mx-2">›</span>
@@ -47,44 +66,26 @@ export function DashboardHeader() {
                 </h1>
 
                 <div className="ml-4">
-                  <Button className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" aria-label={t('addSources')}>
+                  <Button 
+                    className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" 
+                    aria-label={t('addSources')}
+                    onClick={() => setIsSourcesAdminOpen(true)}
+                  >
                     <Plus className="h-4 w-4" />
-                    <span className="ml-2 lg:hidden">{t('addSources')}</span>
+                    <span className="ml-2 lg:hidden">{isEs ? 'Crear' : 'Create'}</span>
                     <span className="hidden lg:inline ml-2">{t('addSources')}</span>
                   </Button>
                 </div>
               </div>
 
               {/* Date dropdown below title on mobile, inline on lg+ */}
-              <div className="relative mt-3 lg:mt-3 w-full lg:w-auto" ref={ref}>
-                <button
-                  type="button"
-                  aria-expanded={open}
-                  onClick={() => setOpen((s) => !s)}
-                  className="w-full flex justify-between items-center bg-white px-3 py-2 rounded-md shadow-sm space-x-2 text-sm text-gray-700"
-                >
-                  <Calendar className="h-4 w-4 text-gray-600" />
-                  <span>{selected}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-600" />
-                </button>
-
-                {open && (
-                  <div className="absolute left-0 mt-2 w-full lg:w-48 bg-white border border-gray-100 rounded-md shadow-lg z-20">
-                    <ul className="py-1">
-                      {months.map((m) => (
-                        <li key={m}>
-                          <button
-                            type="button"
-                            onClick={() => { setSelected(m); setOpen(false) }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50"
-                          >
-                            {m}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              <div className="relative mt-3 lg:mt-3 w-full lg:w-auto">
+                <DateDropdown
+                  dataset={months}
+                  selected={selected}
+                  onSelect={(v) => setSelected(v)}
+                  showOptions={true}
+                />
               </div>
             </div>
           </div>
@@ -96,7 +97,15 @@ export function DashboardHeader() {
         <div className="max-w-[86rem] mx-auto">
           {/* Breadcrumb row */}
           <div className="text-xs text-gray-600 mb-2">
-            <span className="whitespace-nowrap">{t('breadcrumb.clientsList')}</span>
+            <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClients}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClients() }}
+              >
+                {t('breadcrumb.clientsList')}
+              </span>
             <span className="mx-2">›</span>
             <span className="whitespace-nowrap">{t('breadcrumb.dashboard')}</span>
             <span className="mx-2">›</span>
@@ -112,40 +121,22 @@ export function DashboardHeader() {
               </h1>
 
               {/* Date dropdown sits just to the right of title */}
-              <div className="ml-6" ref={ref}>
-                <button
-                  type="button"
-                  aria-expanded={open}
-                  onClick={() => setOpen((s) => !s)}
-                  className="flex items-center bg-white px-3 py-2 rounded-md shadow-sm space-x-2 text-sm text-gray-700"
-                >
-                  <Calendar className="h-4 w-4 text-gray-600" />
-                  <span>{selected}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-600" />
-                </button>
-
-                {open && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-100 rounded-md shadow-lg z-20">
-                    <ul className="py-1">
-                      {months.map((m) => (
-                        <li key={m}>
-                          <button
-                            type="button"
-                            onClick={() => { setSelected(m); setOpen(false) }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50"
-                          >
-                            {m}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              <div className="ml-6">
+                <DateDropdown
+                  dataset={months}
+                  selected={selected}
+                  onSelect={(v) => setSelected(v)}
+                  showOptions={true}
+                />
               </div>
             </div>
 
             <div className="flex items-center">
-              <Button className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" aria-label={t('addSources')}>
+              <Button 
+                className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" 
+                aria-label={t('addSources')}
+                onClick={() => setIsSourcesAdminOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 <span className="ml-2">{t('addSources')}</span>
               </Button>
@@ -153,6 +144,11 @@ export function DashboardHeader() {
           </div>
         </div>
       </div>
+      
+      <SourcesAdministrator 
+        isOpen={isSourcesAdminOpen} 
+        onClose={() => setIsSourcesAdminOpen(false)} 
+      />
     </div>
   )
 }
