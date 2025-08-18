@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
 import RowActionsMenu from "../RowActionsMenu"
-import { usePagination } from "@/lib/hooks/usePagination"
+import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "../ui/pagination"
 import { ClientsListProps, Client, MenuOpenData } from "./types"
-import { useClientsData } from "./hooks/useClientsData"
+import { useClientsData } from "../../hooks/useClientsData"
 import { ClientCard } from "./ClientCard"
 
 export function ClientsList({ clients = [], onDelete, itemsPerPage = 8 }: ClientsListProps) {

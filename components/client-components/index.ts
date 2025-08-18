@@ -14,4 +14,4 @@ export type {
 } from './types'
 
 // Hooks
-export { useClientsData } from './hooks/useClientsData'
+export { useClientsData } from '../../hooks/useClientsData'
