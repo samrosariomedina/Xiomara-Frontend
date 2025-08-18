@@ -2,7 +2,34 @@
 
 import { useState, useEffect } from "react"
 import { getClients } from "@/actions/clients"
-import { Client, Campaign } from "./types"
+import { Client, Campaign } from "../types"
+
+// Type for folder data from API
+interface FolderData {
+  _id: string
+  title: string
+  timestamp?: string
+  metadata?: {
+    type?: string
+    contact?: {
+      name?: string
+    }
+    logoUrl?: string
+  }
+  children?: Array<{
+    _id: string
+    title: string
+    timestamp?: string
+    files?: {
+      sources?: Array<{
+        type: string
+      }>
+    }
+    metadata?: {
+      status?: string
+    }
+  }>
+}
 
 export const useClientsData = (initialClients: Client[] = []) => {
   const [localClients, setLocalClients] = useState<Client[]>(initialClients || [])
@@ -17,9 +44,8 @@ export const useClientsData = (initialClients: Client[] = []) => {
         const result = await getClients()
         if (result.success) {
           // sort folders by timestamp desc so newest clients show first
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const folders = Array.isArray(result.data)
-            ? result.data.slice().sort((a: any, b: any) => {
+            ? result.data.slice().sort((a: FolderData, b: FolderData) => {
                 // Sort by timestamp descending (newest first)
                 const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
                 const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -27,31 +53,25 @@ export const useClientsData = (initialClients: Client[] = []) => {
               })
             : [];
           console.log('Sorted folders by timestamp (newest first):', 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            folders.map((f: any) => ({ 
+            folders.map((f: FolderData) => ({ 
               title: f.title, 
               timestamp: f.timestamp ? new Date(f.timestamp).toLocaleDateString() : 'none'
             })));
           
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const transformedClients = folders.map((folder: any) => {
+          const transformedClients = folders.map((folder: FolderData) => {
             // If the folder already contains children (real campaigns), use them.
             // Otherwise assign deterministic mock campaign data so the UI shows
             // three kinds of expansion states: none, two campaigns, three campaigns.
             let campaignDetails: Campaign[] = [];
             if (Array.isArray(folder.children) && folder.children.length > 0) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              campaignDetails = folder.children.map((campaign: any) => ({
+              campaignDetails = folder.children.map((campaign) => ({
                 id: campaign._id,
                 name: campaign.title,
                 createdDate: campaign.timestamp ? new Date(campaign.timestamp).toLocaleDateString() : 'Unknown',
                 connectedSources: {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  whatsapp: campaign.files?.sources?.filter((s: any) => s.type === 'whatsapp').length || 0,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  email: campaign.files?.sources?.filter((s: any) => s.type === 'email').length || 0,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  other: campaign.files?.sources?.filter((s: any) => s.type !== 'whatsapp' && s.type !== 'email').length || 0,
+                  whatsapp: campaign.files?.sources?.filter((s) => s.type === 'whatsapp').length || 0,
+                  email: campaign.files?.sources?.filter((s) => s.type === 'email').length || 0,
+                  other: campaign.files?.sources?.filter((s) => s.type !== 'whatsapp' && s.type !== 'email').length || 0,
                 },
                 status: campaign.metadata?.status || 'Activa',
               }));

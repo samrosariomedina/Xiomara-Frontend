@@ -8,11 +8,10 @@ import { type ClientInput } from '@/lib/schemas'
 import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/formSchemas'
 import { toast } from "sonner"
 
-// Import the form component tabs
-import { GeneralInformationForm } from "../components/GeneralInformationForm"
-import { BrandGuidesForm } from "../components/BrandGuidesForm"
-import { ConnectCorrespondentsForm } from "../components/ConnectCorrespondentsForm"
 import { useRef } from 'react'
+import { GeneralInformationForm } from "../GeneralInformationForm"
+import { ConnectCorrespondentsForm } from "../ConnectCorrespondentsForm"
+import { BrandGuidesForm } from "../BrandGuidesForm"
 
 interface ClientFormModalProps {
   isOpen: boolean

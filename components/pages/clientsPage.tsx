@@ -6,7 +6,7 @@ import { SearchFilters } from "@/components/search-filters"
 import { EmptyState } from "@/components/empty-state"
 import { ClientsList } from "@/components/clients-list"
 import { useState, useEffect } from "react"
-import { ClientFormModal } from "@/pages/client-form-modals"
+import { ClientFormModal } from "@/components/pages/client-form-modals"
 import { type ClientInput } from "@/lib/schemas"
 import withAuth from "@/lib/withAuth"
 import { getClients, createClient, deleteClient } from "@/actions/clients"
@@ -14,9 +14,36 @@ import { toast } from "sonner"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"
 import { Pagination } from "@/components/ui/pagination"
+import { Client } from "@/components/clients/types"
+
+// Type for folder data from API
+interface FolderData {
+  _id: string
+  title: string
+  timestamp?: string
+  metadata?: {
+    type?: string
+    contact?: {
+      name?: string
+    }
+  }
+  children?: Array<{
+    _id: string
+    title: string
+    timestamp?: string
+    files?: {
+      sources?: Array<{
+        type: string
+      }>
+    }
+    metadata?: {
+      status?: string
+    }
+  }>
+}
 
 function ClientsPage() {
- const [clients, setClients] = useState<any[]>([])
+ const [clients, setClients] = useState<Client[]>([])
  const [loading, setLoading] = useState(true)
  const [isModalOpen, setIsModalOpen] = useState(false)
  const [currentPage, setCurrentPage] = useState(1)
@@ -43,7 +70,7 @@ function ClientsPage() {
        }
        
        // Filter for folders with metadata.type = 'client'
-       const clientFolders = result.data.filter(folder => 
+       const clientFolders = result.data.filter((folder: FolderData) => 
          folder && folder.metadata && folder.metadata.type === 'client'
        );
        
@@ -55,21 +82,21 @@ function ClientsPage() {
          return;
        }
        
-       const transformedClients = clientFolders.map((folder: any) => ({
+       const transformedClients = clientFolders.map((folder: FolderData) => ({
          id: folder._id,
          name: folder.title,
          contact: folder.metadata?.contact?.name || "",
-         createdDate: new Date(folder.timestamp).toLocaleDateString(),
+         createdDate: folder.timestamp ? new Date(folder.timestamp).toLocaleDateString() : 'Unknown',
          campaigns: folder.children?.length || 0,
          avatar: "/avatar.svg",
-         campaignDetails: folder.children?.map((campaign: any) => ({
+         campaignDetails: folder.children?.map((campaign) => ({
            id: campaign._id,
            name: campaign.title,
-           createdDate: new Date(campaign.timestamp).toLocaleDateString(),
+           createdDate: campaign.timestamp ? new Date(campaign.timestamp).toLocaleDateString() : 'Unknown',
            connectedSources: {
-             whatsapp: campaign.files?.sources?.filter((s: any) => s.type === 'whatsapp').length || 0,
-             email: campaign.files?.sources?.filter((s: any) => s.type === 'email').length || 0,
-             other: campaign.files?.sources?.filter((s: any) => s.type !== 'whatsapp' && s.type !== 'email').length || 0
+             whatsapp: campaign.files?.sources?.filter((s) => s.type === 'whatsapp').length || 0,
+             email: campaign.files?.sources?.filter((s) => s.type === 'email').length || 0,
+             other: campaign.files?.sources?.filter((s) => s.type !== 'whatsapp' && s.type !== 'email').length || 0
            },
            status: campaign.metadata?.status || "Activa"
          })) || []
