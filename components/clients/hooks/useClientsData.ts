@@ -4,33 +4,6 @@ import { useState, useEffect } from "react"
 import { getClients } from "@/actions/clients"
 import { Client, Campaign } from "../types"
 
-// Type for folder data from API
-interface FolderData {
-  _id: string
-  title: string
-  timestamp?: string
-  metadata?: {
-    type?: string
-    contact?: {
-      name?: string
-    }
-    logoUrl?: string
-  }
-  children?: Array<{
-    _id: string
-    title: string
-    timestamp?: string
-    files?: {
-      sources?: Array<{
-        type: string
-      }>
-    }
-    metadata?: {
-      status?: string
-    }
-  }>
-}
-
 export const useClientsData = (initialClients: Client[] = []) => {
   const [localClients, setLocalClients] = useState<Client[]>(initialClients || [])
   const [loading, setLoading] = useState(false)
