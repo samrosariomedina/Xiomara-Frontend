@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
+console.log('BACKEND', BACKEND); 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
