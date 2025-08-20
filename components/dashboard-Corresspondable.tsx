@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
 import { SectionHeader } from "@/components/ui/section-header"
+import { useRouter, useParams } from 'next/navigation'
 
 // Mock data used for the list. Replace with real data or props when wiring to API.
 const corresponsables = [
@@ -30,6 +31,14 @@ export function CorresponsablesSection() {
   const [isExpanded, setIsExpanded] = useState(false)
   // translations scoped to messages/CORRESPONSABLES
   const t = useTranslations('CORRESPONSABLES')
+  const router = useRouter()
+  const params = useParams() as { locale?: string } | undefined
+  const locale = params?.locale
+
+  const goToCorresponsalesList = () => {
+    const path = locale ? `/${locale}/lists/corresponsales-page` : '/lists/corresponsales-page'
+    router.push(path)
+  }
 
   return (
   <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
@@ -40,7 +49,7 @@ export function CorresponsablesSection() {
         onToggle={() => setIsExpanded(!isExpanded)}
         actions={(
           <div className="hidden lg:flex items-center gap-4 h-full">
-            <Button variant="link" className="text-[#192038] text-sm p-0 h-auto font-medium underline">
+            <Button variant="link" className="text-[#192038] text-sm p-0 h-auto font-medium underline cursor-pointer hover:no-underline" onClick={goToCorresponsalesList}>
               {t('viewAll')}
             </Button>
           </div>
@@ -243,7 +252,7 @@ export function CorresponsablesSection() {
   {/* Mobile "Ver todos" link at bottom (only when expanded) */}
   {isExpanded && (
     <div className="lg:hidden px-4 text-center border-t border-gray-100">
-      <Button variant="link" className="text-[#192038] underline hover:no-underline text-sm p-0">
+      <Button variant="link" className="text-[#192038] underline hover:no-underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToCorresponsalesList}>
         {t('viewAll')}
       </Button>
     </div>

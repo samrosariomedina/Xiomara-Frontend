@@ -243,4 +243,36 @@
         "title": "Media listening",
         "viewAll": "Ver todos"
     }
+    ,
+    "CORRESPONSABLES_FORM": {
+        "header": {
+            "viewFullList": "Ver listado completo",
+            "uploadCSV": "Subir CSV",
+            "add": "Agregar"
+        },
+        "empty": {
+            "title": "No se han agregado corresponsales",
+            "subtitle": "Agregar usuarios para comenzar",
+            "addButton": "Agregar Corresponsal"
+        },
+        "form": {
+            "title": "Agregar Nuevo",
+            "clientName": "Nombre del cliente",
+            "whatsapp": "Número de whatsapp",
+            "other": "Nombre",
+            "accountType": "Tipo de cuenta",
+            "selectPlaceholder": "Selecciona",
+            "accountTypes": {
+                "admin": "Admin",
+                "user": "User",
+                "guest": "Guest"
+            },
+            "invitationMethodsTitle": "Selecciona como quieres enviar la invitación",
+            "sendWhatsapp": "Enviar por whatsapp",
+            "sendEmail": "Enviar por correo",
+            "copyLink": "Copiar el link y compartir",
+            "cancel": "Cancelar",
+            "addButton": "Agregar Corresponsal"
+        }
+    }
 }

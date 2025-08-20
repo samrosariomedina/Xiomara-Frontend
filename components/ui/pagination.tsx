@@ -52,12 +52,12 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
   };
 
   return (
-    <div className="flex items-center justify-end space-x-2 mt-8">
+    <div className="w-full px-4 md:px-0 flex items-center justify-center md:justify-end space-x-2 mt-4 md:mt-8">
       {/* First page button */}
       <Button 
         variant="ghost" 
         size="sm" 
-        className="h-8 w-8 p-0"
+        className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
         onClick={() => onPageChange(1)}
         disabled={currentPage === 1}
       >
@@ -69,7 +69,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <Button 
         variant="ghost" 
         size="sm" 
-        className="h-8 w-8 p-0"
+        className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
@@ -84,7 +84,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             variant={currentPage === page ? "default" : "ghost"}
             size="sm"
             className={`h-8 w-8 p-0 ${
-              currentPage === page ? "bg-blue-900 hover:bg-blue-800" : ""
+              currentPage === page ? "bg-blue-900 hover:bg-blue-800" : "bg-white hover:bg-gray-100"
             }`}
             onClick={() => onPageChange(page)}
           >
@@ -101,7 +101,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 w-8 p-0"
+        className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -112,7 +112,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 w-8 p-0"
+        className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
         onClick={() => onPageChange(totalPages)}
         disabled={currentPage === totalPages}
       >

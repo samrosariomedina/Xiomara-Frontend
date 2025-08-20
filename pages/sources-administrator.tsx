@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { ArrowLeft, Plus, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SourceFormTabs } from "@/components/ui/source-form-tabs"
@@ -26,10 +26,11 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
     }>
   >([])
 
-  const handleSubmit = (data: { name: string; file: File | null; url: string; text: string }) => {
+  const handleSubmit = (data: unknown) => {
+    const d = data as any
     const newSource = {
       id: sources.length + 1,
-      name: data.name || "Nuevo Nombre",
+      name: d?.name || "Nuevo Nombre",
       type: "image" as const,
       category: "Marketing",
       timestamp: "Ahora",
@@ -84,11 +85,36 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
   type FormHandle = { submit: () => void; cancel: () => void; open: () => void } | null
   const formRef = useRef<FormHandle>(null)
 
+  // Lock body scroll on desktop when the panel is open
+  useEffect(() => {
+    const lockScroll = () => {
+      // only lock for desktop widths (lg and above ~ 1024px)
+      if (typeof window === "undefined") return
+      if (window.innerWidth >= 1024 && isOpen) {
+        document.body.style.overflow = "hidden"
+        document.documentElement.style.overflow = "hidden"
+      } else {
+        document.body.style.overflow = ""
+        document.documentElement.style.overflow = ""
+      }
+    }
+
+    lockScroll()
+
+    // also listen for resize so behavior updates if viewport changes while open
+    window.addEventListener("resize", lockScroll)
+    return () => {
+      window.removeEventListener("resize", lockScroll)
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+    }
+  }, [isOpen])
+
   return (
     <>
       {/* Backdrop with smooth fade */}
       <div
-        className={`fixed inset-0 bg-black/30 z-40 transition-all duration-300 ease-out ${
+        className={`fixed inset-0 bg-black/30 lg:backdrop-blur-sm z-40 transition-all duration-300 ease-out ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -167,33 +193,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
         </div>
 
         {/* Footer action bar - placed outside scrollable area so it's always visible */}
-        <div className="flex-shrink-0 bg-white border-t">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end">
-            <div className="flex items-center space-x-3">
-              {activeTab === 'fuentes-generales' ? (
-                <>
-                  <button
-                    onClick={() => formRef.current?.cancel?.()}
-                    className="px-6 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => formRef.current?.submit?.()}
-                    className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-6"
-                  >
-                    Agregar Fuentes
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="px-6 bg-[#f7f9ff] text-[#31499f] rounded-full">Cancelar</button>
-                  <button className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-6">Guardar</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        
         </div>
     </>
   )

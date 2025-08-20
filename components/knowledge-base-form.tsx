@@ -10,6 +10,7 @@ import { UrlInput } from "@/components/ui/url-input"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
@@ -30,7 +31,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
   const headerActions = [
     { icon: <Eye className="h-4 w-4" />, label: "Ver listado completo", ariaLabel: "Ver listado completo", onClick: () => {}, variant: "soft" as const },
-    { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: () => setShowForm(true), variant: "outline" as const },
+    { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: () => setShowForm(true), variant: "soft" as const },
   ]
 
   const handleCancel = () => {
@@ -72,7 +73,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
         <HeaderControls title="Knowledge Base" actions={headerActions} />
         <div className="bg-white rounded-lg p-6">
           <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
               <Brain className="h-8 w-8 text-gray-400" />
             </div>
             <p className="text-gray-500 mb-2">No se han agregado artículos</p>
@@ -89,28 +90,33 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
   // form view
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 ">
       <HeaderControls title="Knowledge Base" actions={headerActions} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">Nombre</Label>
+          <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2
+           block">Nombre</Label>
           <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nombre" className="w-full bg-[#f7f9ff]" />
         </div>
 
         <div>
           <Label className="text-sm font-medium text-gray-700 mb-2 block">Tipo de cuenta</Label>
-          <select id="accountType" className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2" value={formData.accountType} onChange={(e) => setFormData({ ...formData, accountType: e.target.value })}>
-            <option value="">Selecciona</option>
-            <option value="kb">KB Type 1</option>
-            <option value="article">Article</option>
-          </select>
+          <Select onValueChange={(value) => setFormData({ ...formData, accountType: value })} defaultValue={formData.accountType}>
+            <SelectTrigger className="w-full bg-[#f7f9ff] border border-gray-200 rounded px-3 py-2 text-sm">
+              <SelectValue placeholder="Selecciona" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="kb">KB Type 1</SelectItem>
+              <SelectItem value="article">Article</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-2 block">Descripción</Label>
-        <textarea className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 min-h-[120px]" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+        <textarea className="w-full focus:outline-none bg-[#f7f9ff] border border-gray-200 rounded px-3 py-2 min-h-[120px]" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
       </div>
 
       {/* Horizontal tabs */}

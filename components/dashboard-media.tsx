@@ -6,6 +6,7 @@ import { MediaPost } from "@/components/ui/media-post"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
+import { useRouter, useParams } from 'next/navigation'
 
 const mediaItems = [
   {
@@ -42,10 +43,18 @@ const mediaItems = [
 export function MediaListeningSection() {
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('MEDIA')
+  const router = useRouter()
+  const params = useParams() as { locale?: string } | undefined
+  const locale = params?.locale
+
+  const goToMediaList = () => {
+    const path = locale ? `/${locale}/lists/media-page` : '/lists/media-page'
+    router.push(path)
+  }
 
   const headerActions = (
     <div className="hidden lg:flex items-center gap-4 h-full">
-      <Button variant="link" className="text-[#192038] underline text-sm p-0">
+      <Button variant="link" className="text-[#192038] underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToMediaList}>
         {t('viewAll')}
       </Button>
     </div>
@@ -73,7 +82,7 @@ export function MediaListeningSection() {
       {/* bottom 'Ver todos' for mobile/md; header shows it on lg */}
       <div className={`${!isExpanded ? "hidden lg:block" : "block"} px-4 sm:px-6  `}>
         <div className="text-center lg:hidden">
-            <Button variant="link" className="text-[#192038] underline text-sm p-0">
+            <Button variant="link" className="text-[#192038] underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToMediaList}>
               {t('viewAll')}
             </Button>
         </div>

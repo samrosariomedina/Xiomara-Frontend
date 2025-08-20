@@ -71,7 +71,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   const headerActions = [
     { icon: <Eye className="h-4 w-4" />, label: "Ver listado completo", ariaLabel: "Ver listado completo", onClick: () => {} , variant: "soft" as const },
-    { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: handleAddMore, variant: "outline" as const },
+    { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: handleAddMore, variant: "soft" as const },
   ]
 
   // expose imperative methods to parent
@@ -97,23 +97,22 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Image 1: Empty state
   if (!showForm && sources.length === 0) {
     return (
-      <div className="space-y-4">
-        <HeaderControls title="Fuentes Generales" actions={headerActions} />
-        <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
-            <FileText className="h-12 w-12 text-gray-400" />
+      <>
+        <HeaderControls title="Knowledge Base" actions={headerActions} />
+        <div className="bg-white rounded-lg p-6">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
+              <FileText className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 mb-2">No se han agregado artículos</p>
+            <p className="text-sm text-gray-400 mb-6">Agregar contenido para comenzar</p>
+            <Button onClick={() => setShowForm(true)} className="bg-[#f7f9ff] hover:bg-gray-50 text-[#31499f] rounded-full inline-flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Agregar fuentes</span>
+            </Button>
           </div>
-          <p className="text-gray-500 mb-2">No se han agregado fuentes</p>
-          <p className="text-sm text-gray-400 mb-6">Agregar archivos para comenzar</p>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-[#f7f9ff] hover:bg-gray-50 text-[#31499f] rounded-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Agregar Fuentes
-          </Button>
         </div>
-      </div>
+      </>
     )
   }
 

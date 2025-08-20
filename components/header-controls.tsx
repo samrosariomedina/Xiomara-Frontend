@@ -57,7 +57,7 @@ export function HeaderControls({ title, actions = [] }: HeaderControlsProps) {
           // outline or solid use the shared Button component for consistent look
           const btnClass =
             a.variant === "solid"
-              ? "bg-[#f7f9ff] hover:bg-[#e7e9ff] text-[#31499f] rounded-full px-3 py-1.5"
+              ? "bg-[#f7f9ff] hover:bg-[#e7e9ff] text-[#31499f] rounded-full px-3 py-1.5 text-sm"
               : "inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#f7f9ff]  text-[#31499f] hover:bg-[#e7e9ff] text-sm"
 
           return (

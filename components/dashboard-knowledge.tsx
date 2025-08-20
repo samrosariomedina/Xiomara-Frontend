@@ -6,6 +6,7 @@ import { MoreVertical, RefreshCw } from "lucide-react"
 import { useState } from "react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useTranslations } from 'next-intl'
+import { useRouter, useParams } from 'next/navigation'
 
 const knowledgeItems = [
   { id: 1, name: "Cómo configurar X", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 horas" },
@@ -23,6 +24,14 @@ const knowledgeItems = [
 export function KnowledgeBaseSection() {
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('KNOWLEDGE')
+  const router = useRouter()
+  const params = useParams() as { locale?: string } | undefined
+  const locale = params?.locale
+
+  const goToKnowledgeList = () => {
+    const path = locale ? `/${locale}/lists/knowledge-page` : '/lists/knowledge-page'
+    router.push(path)
+  }
 
   const headerActions = (
     // show actions only on large screens; md should behave like mobile
@@ -36,7 +45,7 @@ export function KnowledgeBaseSection() {
         <span className="text-[#31499F] text-sm">{t('refresh')}</span>
       </Button>
 
-      <Button variant="link" className="text-[#192038] underline text-sm p-0">
+      <Button variant="link" className="text-[#192038] underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToKnowledgeList}>
         {t('viewAll')}
       </Button>
     </div>
@@ -84,7 +93,7 @@ export function KnowledgeBaseSection() {
           hide this bottom link when the section is collapsed */}
       <div className={`${!isExpanded ? "hidden lg:block" : "block"} px-4 sm:px-6   border-gray-100`}>
         <div className="text-center lg:hidden">
-          <Button variant="link" className="text-[#192038] underline text-sm">
+          <Button variant="link" className="text-[#192038] underline text-sm cursor-pointer hover:no-underline" onClick={goToKnowledgeList}>
             {t('viewAll')}
           </Button>
         </div>

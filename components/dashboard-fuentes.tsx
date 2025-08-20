@@ -9,6 +9,7 @@ import { Search, ChevronDown, MoreVertical, Calendar } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
+import { useRouter, useParams } from 'next/navigation'
 
 const fuentesData = [
   { id: 1, nombre: "Informe Q1", tipo: "PDF", contenido: "Análisis de mercado Q1", estado: "En uso", creadoPor: "Ana López", ultimaActualizacion: "16/06/2025" },
@@ -26,6 +27,14 @@ const fuentesData = [
 export function FuentesGeneralesSection() {
   const [isExpanded, setIsExpanded] = useState(false);
   const t = useTranslations('FUENTES')
+  const router = useRouter()
+  const params = useParams() as { locale?: string } | undefined
+  const locale = params?.locale
+
+  const goToFuentesList = () => {
+    const path = locale ? `/${locale}/lists/funtens-page` : '/lists/funtens-page'
+    router.push(path)
+  }
 
   return (
   <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
@@ -36,7 +45,7 @@ export function FuentesGeneralesSection() {
           onToggle={() => setIsExpanded(!isExpanded)}
           actions={(
             <div className="hidden lg:flex items-center gap-4 h-full">
-              <Button variant="link" className="text-[#192038] underline text-sm p-0">
+              <Button variant="link" className="text-[#192038] underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToFuentesList}>
                 {t('viewAll')}
               </Button>
             </div>
@@ -168,7 +177,7 @@ export function FuentesGeneralesSection() {
       placed outside the scroll area so it stays pinned to the card bottom */}
   <div className={`${isExpanded ? 'block' : 'hidden'} px-4 sm:px-6 py-3 border-t border-gray-100 lg:hidden flex-shrink-0`}>
       <div className="text-center">
-      <Button variant="link" className="text-[#192038] underline text-sm p-0">
+      <Button variant="link" className="text-[#192038] underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToFuentesList}>
         {t('viewAll')}
       </Button>
     </div>
