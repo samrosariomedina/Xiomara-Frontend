@@ -9,6 +9,7 @@ import { FileUpload } from "@/components/ui/file-upload"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { UrlInput } from "@/components/ui/url-input"
 import HeaderControls from "./header-controls"
+import { useTranslations } from 'next-intl'
 import SourcesList from "./sources-list"
 
 interface FormData {
@@ -69,9 +70,11 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     setFormData({ name: "", file: null, url: "", text: "" })
   }
 
+  const t = useTranslations('FUENTES')
+
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: "Ver listado completo", ariaLabel: "Ver listado completo", onClick: () => {} , variant: "soft" as const },
-    { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: handleAddMore, variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => {} , variant: "soft" as const },
+    { icon: <Plus className="h-4 w-4" />, label: t('form.addButton'), ariaLabel: t('form.addButton'), onClick: handleAddMore, variant: "soft" as const },
   ]
 
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
@@ -89,7 +92,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   if (sources.length > 0 && !showForm) {
     return (
       <div className="space-y-2">
-        <HeaderControls title="Fuentes Generales" actions={headerActions} />
+  <HeaderControls title={t('title')} actions={headerActions} />
 
   <SourcesList sources={sources} onKebabClick={(id) => console.log("kebab", id)} />
       </div>
@@ -100,17 +103,17 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   if (!showForm && sources.length === 0) {
     return (
       <>
-        <HeaderControls title="Fuentes Generales" actions={headerActionsPlain} />
+  <HeaderControls title={t('title')} actions={headerActionsPlain} />
         <div className="bg-white rounded-lg p-6">
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
               <FileText className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-gray-500 mb-2">No se han agregado artículos</p>
-            <p className="text-sm text-gray-400 mb-6">Agregar contenido para comenzar</p>
+            <p className="text-gray-500 mb-2">{t('empty.title')}</p>
+            <p className="text-sm text-gray-400 mb-6">{t('empty.subtitle')}</p>
             <Button onClick={() => setShowForm(true)} className="bg-[#f7f9ff] hover:bg-gray-50 text-[#31499f] rounded-full inline-flex items-center space-x-2">
               <Plus className="h-4 w-4" />
-              <span>Agregar fuentes</span>
+              <span>{t('empty.addButton')}</span>
             </Button>
           </div>
         </div>
@@ -121,18 +124,18 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Images 2-4: Form with tabs
     return (
     <div className="space-y-6">
-      <HeaderControls title="Fuentes Generales" actions={headerActionsPlain} />
+  <HeaderControls title={t('title')} actions={headerActionsPlain} />
       {/* Name input */}
       <div>
         <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
-          Nombre
+          {t('form.nameLabel')}
         </Label>
         <Input
           id="name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           className="w-full bg-[#f7f9ff]"
-          placeholder="Ingresa el nombre"
+          placeholder={t('form.namePlaceholder')}
         />
       </div>
 
@@ -149,7 +152,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              Subir Archivo
+              {t('form.uploadTab')}
             </button>
             <button
               type="button"
@@ -160,7 +163,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              Web URL
+              {t('form.urlTab')}
             </button>
             <button
               type="button"
@@ -171,7 +174,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              Texto
+              {t('form.textTab')}
             </button>
           </div>
         </div>
@@ -192,7 +195,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
             <UrlInput
               value={formData.url}
               onChange={(url) => setFormData({ ...formData, url })}
-              placeholder="Add URL"
+              placeholder={t('form.addUrlPlaceholder')}
             />
           </div>
         )}
@@ -209,8 +212,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
             {/* Inline action buttons (no fixed footer) */}
             <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                      <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                       <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">Cancelar</Button>
-                       <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">Agregar Fuentes</Button>
+                       <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
+                       <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{t('form.submit')}</Button>
                      </div>
                    </div>
     </div>

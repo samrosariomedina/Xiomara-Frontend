@@ -37,11 +37,11 @@ export function DashboardHeader() {
   ]
 
   return (
-    <div className="bg-gray-50 rounded-md px-4 py-4 mb-4">
+    <div className="bg-gray-50 rounded-md   mb-4">
       {/* Mobile & Medium layout (unchanged) */}
       <div className="lg:hidden">
         <div className="max-w-[86rem] mx-auto flex items-start justify-between">
-          <div className="min-w-0 flex-1 mr-4">
+          <div className="min-w-0 flex-1 ">
               <div className="text-xs text-gray-600 truncate">
               <span
                 className="whitespace-nowrap cursor-pointer hover:underline"
@@ -65,9 +65,9 @@ export function DashboardHeader() {
                   <span className="ml-3 inline-flex items-center justify-center bg-[#EEF2FF] text-[#31499F] text-xs font-medium px-2 py-0.5 rounded-full">40</span>
                 </h1>
 
-                <div className="ml-4">
+                <div className="">
                   <Button 
-                    className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" 
+                    className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white  py-2 flex items-center" 
                     aria-label={t('addSources')}
                     onClick={() => setIsSourcesAdminOpen(true)}
                   >

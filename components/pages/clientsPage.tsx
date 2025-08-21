@@ -58,10 +58,8 @@ function ClientsPage() {
    setLoading(true)
    try {
      const result = await getClients()
-     console.log('Client result from API:', result); // Debug log
      if (result.success) {
-       // Transform backend data structure to match frontend model
-       console.log('Raw data from backend:', result.data); // Debug log
+       
        
        if (!Array.isArray(result.data)) {
          console.error('Expected array of clients, got:', typeof result.data);
@@ -74,7 +72,7 @@ function ClientsPage() {
          folder && folder.metadata && folder.metadata.type === 'client'
        );
        
-       console.log('Filtered client folders:', clientFolders);
+       
        
        if (clientFolders.length === 0) {
          console.log('No clients found in backend');
@@ -158,7 +156,7 @@ function ClientsPage() {
    setCurrentPage(page)
  }
  
- console.log('Has clients:', hasClients, 'Clients array:', clients);
+
 
  return (
    <div className="min-h-screen bg-[#F7F9FF]">

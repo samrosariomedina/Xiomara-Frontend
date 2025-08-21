@@ -10,7 +10,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, icon: Icon, iconColor = "text-gray-600" }: MetricCardProps) {
   return (
-    <Card className="bg-white border border-gray-200 shadow-sm p-4 sm:p-6">
+    <Card className="bg-white border border-gray-200 shadow-sm  p-6">
       <div className="flex flex-col items-center sm:flex-row sm:items-center sm:space-x-4 text-center sm:text-left">
         <div className={`p-3 rounded-full bg-[#F7F9FF] ${iconColor} flex items-center justify-center`}> 
           <Icon className="h-6 w-6 sm:h-6 sm:w-6" />

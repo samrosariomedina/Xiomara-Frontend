@@ -229,6 +229,23 @@
             "createdBy": "Creado por",
             "updatedAt": "Última actualización"
         }
+        ,
+        "empty": {
+            "title": "No se han agregado artículos",
+            "subtitle": "Agregar contenido para comenzar",
+            "addButton": "Agregar fuentes"
+        },
+        "form": {
+            "nameLabel": "Nombre",
+            "namePlaceholder": "Ingresa el nombre",
+            "uploadTab": "Subir Archivo",
+            "urlTab": "Web URL",
+            "textTab": "Texto",
+            "addUrlPlaceholder": "Add URL",
+            "cancel": "Cancelar",
+            "submit": "Agregar Fuentes",
+            "addButton": "Agregar fuentes"
+        }
     }
     ,
     "KNOWLEDGE": {
@@ -237,6 +254,25 @@
         "viewAll": "Ver todos",
         "lastUpdate": "Última actualización",
         "type": "Knowledge base"
+        ,
+        "empty": {
+            "title": "No se han agregado artículos",
+            "subtitle": "Agregar contenido para comenzar",
+            "addButton": "Agregar"
+        },
+        "form": {
+            "nameLabel": "Nombre",
+            "namePlaceholder": "Nombre",
+            "accountTypeLabel": "Tipo de cuenta",
+            "selectPlaceholder": "Selecciona",
+            "descriptionLabel": "Descripción",
+            "uploadTab": "Subir Archivo",
+            "urlTab": "Web URL",
+            "textTab": "Texto",
+            "addUrlPlaceholder": "Add URL",
+            "cancel": "Cancelar",
+            "submit": "Agregar Fuentes"
+        }
     }
     ,
     "MEDIA": {

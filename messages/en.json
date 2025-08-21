@@ -232,6 +232,23 @@
             "createdBy": "Created by",
             "updatedAt": "Last update"
         }
+        ,
+        "empty": {
+            "title": "No articles added",
+            "subtitle": "Add content to get started",
+            "addButton": "Add sources"
+        },
+        "form": {
+            "nameLabel": "Name",
+            "namePlaceholder": "Enter name",
+            "uploadTab": "Upload File",
+            "urlTab": "Web URL",
+            "textTab": "Text",
+            "addUrlPlaceholder": "Add URL",
+            "cancel": "Cancel",
+            "submit": "Add sources",
+            "addButton": "Add sources"
+        }
     }
     ,
     "KNOWLEDGE": {
@@ -240,6 +257,25 @@
         "viewAll": "View all",
         "lastUpdate": "Last update",
         "type": "Knowledge base"
+        ,
+        "empty": {
+            "title": "No articles added",
+            "subtitle": "Add content to get started",
+            "addButton": "Add"
+        },
+        "form": {
+            "nameLabel": "Name",
+            "namePlaceholder": "Name",
+            "accountTypeLabel": "Account type",
+            "selectPlaceholder": "Select",
+            "descriptionLabel": "Description",
+            "uploadTab": "Upload File",
+            "urlTab": "Web URL",
+            "textTab": "Text",
+            "addUrlPlaceholder": "Add URL",
+            "cancel": "Cancel",
+            "submit": "Add sources"
+        }
     }
     ,
     "MEDIA": {

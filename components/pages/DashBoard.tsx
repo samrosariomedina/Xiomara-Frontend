@@ -14,25 +14,25 @@ function DashBoard() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <DashboardHeader />
+        <div className="max-w-[90rem] mx-auto p-3 pt-5   ">
+         <DashboardHeader />
           <MetricsCards />
 
         {/* Desktop: Side by side cards, Mobile: Stacked accordion */}
         <div className="mt-6 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
           <div className="lg:col-span-1">
-            <CorresponsablesSection />
+             <CorresponsablesSection />
           </div>
           <div className="lg:col-span-1">
-            <KnowledgeBaseSection />
+           <KnowledgeBaseSection />
           </div>
           <div className="lg:col-span-1">
-            <MediaListeningSection /> 
+             <MediaListeningSection />
           </div>
         </div>
 
         <div className="mt-6 lg:mt-8">
-          <FuentesGeneralesSection />
+           <FuentesGeneralesSection />
         </div>
       </div>
     </div>

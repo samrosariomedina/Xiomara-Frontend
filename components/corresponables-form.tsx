@@ -108,10 +108,10 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   // form view
   return (
     <div className="space-y-6">
-  <HeaderControls title={"Corresponsales"} actions={headerActionsPlain } />
+  <HeaderControls title={tMain('title')} actions={headerActionsPlain } />
 
       <div className="bg-white rounded-lg p-3 border border-gray-100">
-        <p className=" pb-1 mb-1  font-semibold">Agregar Nuveo</p>
+    <p className=" pb-1 mb-1  font-semibold">{tForm('form.title')}</p>
         {/* Mobile & medium simplified layout */}
         <div className="lg:hidden space-y-4">
           <div>
@@ -248,8 +248,8 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
       </div>
       <div className="fixed bottom-0 left-0 right-0 m-1 lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                            <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                             <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">Cancelar</Button>
-                             <Button onClick={handleAdd} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">Agregar Fuentes</Button>
+                             <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{tForm('form.cancel')}</Button>
+                             <Button onClick={handleAdd} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{tForm('form.addButton')}</Button>
                            </div>
                          </div>
     </div>
