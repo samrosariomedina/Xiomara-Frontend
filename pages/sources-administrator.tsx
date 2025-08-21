@@ -19,6 +19,23 @@ interface SourceData {
 }
 
 export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorProps) {
+  // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
+  const [visible, setVisible] = useState(isOpen)
+  const [active, setActive] = useState(isOpen)
+
+  useEffect(() => {
+    if (isOpen) {
+      // mount first (initially closed), then enable 'active' on next tick to trigger enter transition
+      setVisible(true)
+      const enter = setTimeout(() => setActive(true), 10)
+      return () => clearTimeout(enter)
+    } else {
+      // start exit animation then unmount after duration
+      setActive(false)
+      const leave = setTimeout(() => setVisible(false), 300)
+      return () => clearTimeout(leave)
+    }
+  }, [isOpen])
   const [activeTab, setActiveTab] = useState("fuentes-generales")
   const [sources, setSources] = useState<
     Array<{
@@ -42,12 +59,15 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
     setSources([...sources, newSource])
   }
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+
+  const renderTabContent = (tabId?: string) => {
+    const tab = tabId || activeTab
+    switch (tab) {
+      
       case "fuentes-generales":
         return (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg ">
+            <div className="bg-white rounded-lg p-4">
               <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} />
             </div>
           </div>
@@ -56,7 +76,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       case "corresponsales":
         return (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg ">
+            <div className="bg-white rounded-lg p-4">
               <CorresponsalesForm onSubmit={handleSubmit} />
             </div>
           </div>
@@ -65,7 +85,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       case "knowledge-base":
         return (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg ">
+            <div className="bg-white rounded-lg p-4">
               <KnowledgeBaseForm onSubmit={handleSubmit} />
             </div>
           </div>
@@ -74,7 +94,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       case "media-listening":
         return (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg ">
+            <div className="bg-white rounded-lg p-4  ">
               <MediaListeningForm onSubmit={handleSubmit} />
             </div>
           </div>
@@ -113,21 +133,21 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!visible) return null
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex">
+  <div className={`fixed inset-0 z-50 flex transition-all duration-300 ${active ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-all duration-300 ${active ? 'opacity-100' : 'opacity-0'}`}
           onClick={onClose}
         />
 
         {/* Panel */}
-        <div className="relative flex w-full flex-col bg-white lg:ml-auto lg:w-[600px]">
+  <div className={`relative flex w-full flex-col bg-white lg:ml-auto lg:w-[600px] transform transition-all duration-300 ${active ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between  px-6 py-4">
             <div className="flex items-center space-x-3">
               <button
                 onClick={onClose}
@@ -137,18 +157,15 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
               </button>
               <div>
                 <h2 className="text-lg font-semibold">Administrador de Fuentes</h2>
-                <p className="text-sm text-gray-500">
-                  Gestiona tus fuentes de información
-                </p>
               </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-hidden">
-            <div className="flex h-full flex-col">
-              {/* Mobile tabs */}
-              <div className="lg:hidden">
+          <div className="flex-1  overflow-auto lg:overflow-hidden hide-scrollbar min-h-0">
+            <div className="flex h-full flex-col min-h-0">
+              {/* Tabs (mobile = accordion, desktop = horizontal tabs + content) */}
+              <div>
                 <SourceFormTabs
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
@@ -158,25 +175,17 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
                       formRef.current.submit()
                     }
                   }}
+                  renderContent={(tabId) => renderTabContent(tabId)}
                 />
-              </div>
-
-              {/* Desktop content */}
-              <div className="hidden lg:block">
-                {renderTabContent()}
               </div>
             </div>
           </div>
-
-         
         </div>
-
-        {/* Footer action bar - placed outside scrollable area so it's always visible */}
-        
-        </div>
+      </div>
     </>
   )
 }
 
 // Add default export
 export default SourcesAdministrator
+

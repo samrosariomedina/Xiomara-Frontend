@@ -2,10 +2,9 @@
 
 import type React from "react"
 
-import { Bell, ChevronDown, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 
 interface DashboardLayoutProps {
   children: React.ReactNode

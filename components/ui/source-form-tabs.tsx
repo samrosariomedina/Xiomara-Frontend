@@ -64,8 +64,8 @@ export function SourceFormTabs({ activeTab, onTabChange, onClose, onSave, render
       </div>
 
       {/* Desktop: Horizontal Tabs */}
-      <div className="hidden lg:block border-b border-gray-200">
-        <div className="flex w-full">
+      <div className="hidden lg:block  h-screen">
+        <div className="flex w-full border-b border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -80,6 +80,12 @@ export function SourceFormTabs({ activeTab, onTabChange, onClose, onSave, render
             </button>
           ))}
         </div>
+        {/* Desktop content area - rendered when a renderContent prop is provided */}
+        {renderContent && (
+          <div className="bg-white ">
+            {renderContent(activeTab)}
+          </div>
+        )}
       </div>
     </>
   )

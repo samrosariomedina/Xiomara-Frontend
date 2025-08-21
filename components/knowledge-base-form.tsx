@@ -33,6 +33,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
     { icon: <Eye className="h-4 w-4" />, label: "Ver listado completo", ariaLabel: "Ver listado completo", onClick: () => {}, variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: () => setShowForm(true), variant: "soft" as const },
   ]
+  const headerActionsPlain: { label: string; onClick?: () => void }[] = []
 
   const handleCancel = () => {
     setFormData({ name: "", accountType: "", description: "", file: null, url: "", text: "" })
@@ -70,7 +71,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
   if (!showForm && sources.length === 0) {
     return (
       <>
-        <HeaderControls title="Knowledge Base" actions={headerActions} />
+        <HeaderControls title="Knowledge Base" actions={headerActionsPlain} />
         <div className="bg-white rounded-lg p-6">
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
@@ -90,10 +91,13 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
   // form view
   return (
-    <div className="space-y-6 ">
-      <HeaderControls title="Knowledge Base" actions={headerActions} />
+    <div className="space-y-6 border ">
+      <HeaderControls title="Knowledge Base" actions={headerActionsPlain} />
+      {/* Constrain form width on desktop so it fits the panel */}
+      <div className=" lg:max-w-[520px] lg:mx-auto">
+        
 
-      <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2
            block">Nombre</Label>
@@ -121,7 +125,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
       {/* Horizontal tabs */}
       <div>
-        <div className="mb-6">
+        <div className="mb-2">
           <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
             <button type="button" onClick={() => setActiveTab("file")} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "file" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
               Subir Archivo
@@ -152,15 +156,14 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
             <RichTextEditor value={formData.text} onChange={(text) => setFormData({ ...formData, text })} />
           </div>
         )}
+        </div>
       </div>
 
-      {/* fixed bottom action bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end">
-          <div className="flex items-center space-x-3">
-            <Button onClick={handleCancel} className="px-6 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">Cancelar</Button>
-            <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-6">Agregar Fuentes</Button>
-          </div>
+      {/* Footer: center the buttons inside the same max width on desktop */}
+      <div className="fixed bottom-0 left-0 right-0 lg:m-3 bg-white sm:bg-transparent rounded-lg shadow-md sm:shadow-none">
+        <div className="max-w-[520px] mx-auto pt-2 flex justify-end gap-3 mb-2 mr-2 px-4 lg:px-0">
+          <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">Cancelar</Button>
+          <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">Agregar Fuentes</Button>
         </div>
       </div>
     </div>

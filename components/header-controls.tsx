@@ -46,10 +46,10 @@ export function HeaderControls({ title, actions = [] }: HeaderControlsProps) {
                 key={key}
                 onClick={a.onClick}
                 aria-label={a.ariaLabel || a.label}
-                className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#f7f9ff] text-[#31499f] text-sm hover:bg-[#eef2ff]"
+                className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#f7f9ff] text-[#31499f] text-sm hover:bg-[#eef2ff] "
               >
                 {a.icon}
-                <span className="hidden sm:inline">{a.label}</span>
+                <span className="hidden sm:inline ">{a.label}</span>
               </button>
             )
           }
@@ -63,7 +63,7 @@ export function HeaderControls({ title, actions = [] }: HeaderControlsProps) {
           return (
             <Button key={key} onClick={a.onClick} className={btnClass} aria-label={a.ariaLabel || a.label} size="sm">
               {a.icon}
-              <span className="hidden sm:inline">{a.label}</span>
+              <span className="hidden sm:inline ">{a.label}</span>
             </Button>
           )
         })}

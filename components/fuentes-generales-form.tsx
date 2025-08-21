@@ -74,6 +74,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     { icon: <Plus className="h-4 w-4" />, label: "Agregar", ariaLabel: "Agregar", onClick: handleAddMore, variant: "soft" as const },
   ]
 
+  const headerActionsPlain: { label: string; onClick?: () => void }[] = []
+
   // expose imperative methods to parent
   useImperativeHandle(ref, () => ({
     submit: handleSubmit,
@@ -98,7 +100,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   if (!showForm && sources.length === 0) {
     return (
       <>
-        <HeaderControls title="Knowledge Base" actions={headerActions} />
+        <HeaderControls title="Fuentes Generales" actions={headerActionsPlain} />
         <div className="bg-white rounded-lg p-6">
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
@@ -118,8 +120,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   // Images 2-4: Form with tabs
     return (
-    <div className="space-y-6 pb-24">
-      <HeaderControls title="Fuentes Generales" actions={headerActions} />
+    <div className="space-y-6">
+      <HeaderControls title="Fuentes Generales" actions={headerActionsPlain} />
       {/* Name input */}
       <div>
         <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
@@ -204,25 +206,13 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
           </div>
         )}
       </div>
-            {/* Action buttons - fixed to bottom of page */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end">
-          <div className="flex items-center space-x-3">
-            <Button
-              onClick={handleCancel}
-              className="px-6 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-6">
-              Agregar Fuentes
-            </Button>
-          </div>
-        </div>
-      </div>
-
-
-  {/* action bar removed — controlled by parent via ref */}
+            {/* Inline action buttons (no fixed footer) */}
+            <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
+                     <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
+                       <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">Cancelar</Button>
+                       <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">Agregar Fuentes</Button>
+                     </div>
+                   </div>
     </div>
   )
 })
