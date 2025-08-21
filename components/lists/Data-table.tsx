@@ -1,30 +1,44 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { Search, ChevronDown, Plus, MoreVertical, Calendar, SlidersHorizontal, RotateCcw } from "lucide-react"
+import { Search, MoreVertical, Plus, Calendar, SlidersHorizontal, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-// DropdownMenu was replaced by Select in this file
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
-import RowActionsMenu from "@/components/RowActionsMenu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "@/components/ui/pagination"
 import { usePagination } from "@/hooks/usePagination"
+import RowActionsMenu from "@/components/RowActionsMenu"
+
+// Define proper types for the data table
+interface TableRow {
+  [key: string]: string | number | boolean | undefined
+  id?: string | number
+  name?: string
+  nombre?: string
+  estado?: string
+  celular?: string
+  fuentesCreadas?: string | number
+  ubicacion?: string
+  ultimaActualizacion?: string
+  tipo?: string
+  categoria?: string
+  contenido?: string
+  creadoPor?: string
+}
 
 export interface Column {
   key: string
   label: string
   width?: string
-  render?: (value: any, row: any) => React.ReactNode
+  render?: (value: unknown, row: TableRow) => React.ReactNode
 }
 
 export interface DataTableProps {
   columns: Column[]
-  data: any[]
+  data: TableRow[]
   searchPlaceholder?: string
   showFilters?: boolean
   showTabs?: boolean
@@ -73,7 +87,7 @@ export function DataTable({
   const [stateFilter, setStateFilter] = useState<string | undefined>("todos")
   const [sortFilter, setSortFilter] = useState<string | undefined>("recientes")
 
-  const openRowMenu = (index: number, row: any, e: React.MouseEvent, actions?: Array<"edit" | "addSource" | "delete">, align?: "left" | "right") => {
+  const openRowMenu = (index: number, row: TableRow, e: React.MouseEvent, actions?: Array<"edit" | "addSource" | "delete">, align?: "left" | "right") => {
     const target = e.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
     setMenuFor(index)
@@ -87,8 +101,8 @@ export function DataTable({
     setMenuFor(null)
     setMenuAnchor(null)
     setMenuItemName("")
-  setMenuActions(undefined)
-  setMenuAlign(undefined)
+    setMenuActions(undefined)
+    setMenuAlign(undefined)
   }
 
   const toggleRowSelection = (index: number) => {
@@ -109,7 +123,7 @@ export function DataTable({
     }
   }
 
-  const renderCellContent = (column: Column, value: any, row: any) => {
+  const renderCellContent = (column: Column, value: unknown, row: TableRow): React.ReactNode => {
     if (column.render) {
       return column.render(value, row)
     }
@@ -124,13 +138,14 @@ export function DataTable({
         Acrobato: "bg-green-100 text-green-800",
       }
 
-      return <Badge className={`${statusColors[value] || "bg-gray-100 text-gray-800"} border-0`}>{value}</Badge>
+      const statusValue = String(value || "")
+      return <Badge className={`${statusColors[statusValue] || "bg-gray-100 text-gray-800"} border-0`}>{statusValue}</Badge>
     }
 
-    return value
+    return String(value || "")
   }
 
-  const renderMobileCard = (row: any, index: number) => {
+  const renderMobileCard = (row: TableRow, index: number) => {
     const statusColors: Record<string, string> = {
       Activo: "bg-green-100 text-green-800",
       Pendiente: "bg-orange-100 text-orange-800",
@@ -151,7 +166,7 @@ export function DataTable({
                     <h3 className="font-medium text-gray-900">{row.nombre}</h3>
                     <p className="text-sm text-gray-600">{row.celular}</p>
                   </div>
-                  <Badge className={`${statusColors[row.estado] || "bg-gray-100 text-gray-800"}  ml-2`}>
+                  <Badge className={`${statusColors[row.estado || ""] || "bg-gray-100 text-gray-800"}  ml-2`}>
                     {row.estado}
                   </Badge>
                 </div>
@@ -188,7 +203,7 @@ export function DataTable({
                     <h3 className="font-medium text-gray-900">{row.nombre}</h3>
                     <p className="text-sm text-gray-500">Descripción corta</p>
                   </div>
-                  <Badge className={`${statusColors[row.estado] || "bg-gray-100 text-gray-800"} border-0 ml-2`}>
+                  <Badge className={`${statusColors[row.estado || ""] || "bg-gray-100 text-gray-800"} border-0 ml-2`}>
                     {row.estado}
                   </Badge>
                 </div>
@@ -222,7 +237,7 @@ export function DataTable({
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium text-gray-900">{row.nombre}</h3>
-                <Badge className={`${statusColors[row.estado] || "bg-gray-100 text-gray-800"} border-0 ml-2`}>
+                <Badge className={`${statusColors[row.estado || ""] || "bg-gray-100 text-gray-800"} border-0 ml-2`}>
                   {row.estado}
                 </Badge>
               </div>

@@ -4,6 +4,33 @@ import { useState, useEffect } from "react"
 import { getClients } from "@/actions/clients"
 import { Client, Campaign } from "../components/client-components/types"
 
+// Define the FolderData type based on the backend response structure
+interface FolderData {
+  _id: string
+  title: string
+  timestamp?: string
+  metadata?: {
+    contact?: {
+      name: string
+    }
+    logoUrl?: string
+    status?: string
+  }
+  children?: Array<{
+    _id: string
+    title: string
+    timestamp?: string
+    metadata?: {
+      status?: string
+    }
+    files?: {
+      sources?: Array<{
+        type: string
+      }>
+    }
+  }>
+}
+
 export const useClientsData = (initialClients: Client[] = []) => {
   const [localClients, setLocalClients] = useState<Client[]>(initialClients || [])
   const [loading, setLoading] = useState(false)
@@ -37,14 +64,14 @@ export const useClientsData = (initialClients: Client[] = []) => {
             // three kinds of expansion states: none, two campaigns, three campaigns.
             let campaignDetails: Campaign[] = [];
             if (Array.isArray(folder.children) && folder.children.length > 0) {
-              campaignDetails = folder.children.map((campaign) => ({
+              campaignDetails = folder.children.map((campaign: any) => ({
                 id: campaign._id,
                 name: campaign.title,
                 createdDate: campaign.timestamp ? new Date(campaign.timestamp).toLocaleDateString() : 'Unknown',
                 connectedSources: {
-                  whatsapp: campaign.files?.sources?.filter((s) => s.type === 'whatsapp').length || 0,
-                  email: campaign.files?.sources?.filter((s) => s.type === 'email').length || 0,
-                  other: campaign.files?.sources?.filter((s) => s.type !== 'whatsapp' && s.type !== 'email').length || 0,
+                  whatsapp: campaign.files?.sources?.filter((s: any) => s.type === 'whatsapp').length || 0,
+                  email: campaign.files?.sources?.filter((s: any) => s.type === 'email').length || 0,
+                  other: campaign.files?.sources?.filter((s: any) => s.type !== 'whatsapp' && s.type !== 'email').length || 0,
                 },
                 status: campaign.metadata?.status || 'Activa',
               }));

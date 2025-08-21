@@ -6,10 +6,12 @@ import { ChevronUp } from "lucide-react"
 interface SourceFormTabsProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  onClose?: () => void
+  onSave?: () => void
   renderContent?: (tabId: string) => React.ReactNode
 }
 
-export function SourceFormTabs({ activeTab, onTabChange, renderContent }: SourceFormTabsProps) {
+export function SourceFormTabs({ activeTab, onTabChange, onClose, onSave, renderContent }: SourceFormTabsProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([activeTab])
   
   const tabs = [

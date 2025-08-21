@@ -1,22 +1,34 @@
 "use client"
 
-import React, { useState } from "react"
+import { useState } from "react"
+import { Plus, Download, Eye, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Users, Download, Plus, Eye } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import HeaderControls from "./header-controls"
 import SourcesList, { SourceItem } from "./sources-list"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslations } from 'next-intl'
 
+interface FormData {
+  name: string
+  whatsapp: string
+  other: string
+  accountType: string
+  invitationMethods: {
+    whatsapp: boolean
+    email: boolean
+    copyLink: boolean
+  }
+}
+
 interface CorresponsalesFormProps {
-  onSubmit?: (data: any) => void
+  onSubmit?: (data: FormData) => void
 }
 
 export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   const [showForm, setShowForm] = useState(false)
   const [sources, setSources] = useState<SourceItem[]>([])
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     name: "",
     whatsapp: "",
     other: "",

@@ -10,7 +10,7 @@ const columns: Column[] = [
     width: "250px",
     render: (value, row) => (
       <div>
-        <div className="font-medium">{value}</div>
+        <div className="font-medium">{String(value || "")}</div>
         <div className="text-sm text-gray-500">Descripción corta</div>
       </div>
     ),

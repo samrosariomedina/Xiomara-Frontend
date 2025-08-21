@@ -3,8 +3,12 @@
 import { Button } from "@/components/ui/button"
 import { Eye } from "lucide-react"
 
+interface MediaListeningData {
+  [key: string]: unknown
+}
+
 interface MediaListeningFormProps {
-  onSubmit: (data: any) => void
+  onSubmit: (data: MediaListeningData) => void
 }
 
 export function MediaListeningForm({ onSubmit }: MediaListeningFormProps) {
