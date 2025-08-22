@@ -94,10 +94,10 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
   // form view
   return (
-    <div className="space-y-6 border ">
+    <div className="space-y-6  ">
       <HeaderControls title={t('title')} actions={headerActionsPlain} />
       {/* Constrain form width on desktop so it fits the panel */}
-      <div className=" lg:max-w-[520px] lg:mx-auto">
+      <div className=" lg:max-w-full lg:mx-auto">
 
         <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

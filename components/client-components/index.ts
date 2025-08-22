@@ -12,6 +12,3 @@ export type {
   CampaignRowProps,
   MenuOpenData 
 } from './types'
-
-// Hooks
-export { useClientsData } from '../../hooks/useClientsData'

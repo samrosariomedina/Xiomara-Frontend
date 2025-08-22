@@ -33,14 +33,14 @@ export function SourceFormTabs({ activeTab, onTabChange, onClose, onSave, render
   return (
     <>
       {/* Mobile & Medium: Accordion Style - Matching the image design */}
-      <div className="lg:hidden">
+      <div className="lg:hidden bg-gray-50 lg:bg-white">
         {tabs.map((tab) => {
           const isExpanded = expandedSections.includes(tab.id)
           return (
-            <div key={tab.id} className="mb-1 last:mb-0">
+            <div key={tab.id} className="mb-1 last:mb-0 p-1.5">
               <button
                 onClick={() => toggleSection(tab.id)}
-                className="w-full flex items-center justify-between px-4 py-4 text-left bg-gray-50 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
+                className="w-full flex items-center justify-between px-4  py-4 text-left bg-white rounded-lg  hover:bg-gray-100 transition-colors"
               >
                 <span className="font-medium text-gray-900 text-base">{tab.label}</span>
                 <ChevronUp 

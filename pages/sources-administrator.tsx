@@ -162,8 +162,8 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
           </div>
 
           {/* Content */}
-          <div className="flex-1  overflow-auto lg:overflow-hidden hide-scrollbar min-h-0">
-            <div className="flex h-full flex-col min-h-0">
+          <div className="flex-1  overflow-auto lg:overflow-hidden hide-scrollbar min-h-0 bg-gray-50 lg:bg-white">
+            <div className="flex h-full flex-col min-h-0 ">
               {/* Tabs (mobile = accordion, desktop = horizontal tabs + content) */}
               <div>
                 <SourceFormTabs

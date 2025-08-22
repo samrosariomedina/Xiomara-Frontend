@@ -131,9 +131,9 @@ export function DataTable({
     // Handle status badges
     if (column.key === "estado" || column.key === "status") {
       const statusColors: Record<string, string> = {
-        Activo: "bg-green-100 text-green-800",
-        Pendiente: "bg-orange-100 text-orange-800",
-        "En uso": "bg-blue-100 text-blue-800",
+        Activo: "bg-[#74DEA4] text-[#192038]",
+        Pendiente: "bg-[#E9C45E] text-[#192038]",
+        "En uso": "bg-[#f7f9ff] text-[#192038]",
         Inactivo: "bg-gray-100 text-gray-800",
         Acrobato: "bg-green-100 text-green-800",
       }
@@ -147,11 +147,11 @@ export function DataTable({
 
   const renderMobileCard = (row: TableRow, index: number) => {
     const statusColors: Record<string, string> = {
-      Activo: "bg-green-100 text-green-800",
-      Pendiente: "bg-orange-100 text-orange-800",
-      "En uso": "bg-blue-100 text-blue-800",
-      Inactivo: "bg-gray-100 text-gray-800",
-      Acrobato: "bg-green-100 text-green-800",
+      Activo: "bg-[#74DEA4] text-[#192038]",
+      Pendiente: "bg-[#E9C45E] text-[#192038]",
+        "En uso": "bg-[#f7f9ff] text-[#192038]",
+        Inactivo: "bg-gray-100 text-gray-800",
+        Acrobato: "bg-green-100 text-green-800",
     }
 
     if (cardType === "corresponsales") {

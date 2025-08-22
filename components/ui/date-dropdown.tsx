@@ -91,7 +91,7 @@ export function DateDropdown({
       </button>
 
       {open && showOptions && (
-        <div className={"absolute left-0 mt-2 w-full lg:w-48 bg-white border border-gray-100 rounded-md shadow-lg z-20 " + (menuClassName ?? "")}>
+        <div className={"absolute  mt-2 w-full lg:w-48 bg-white border border-gray-100 rounded-md shadow-lg z-20 " + (menuClassName ?? "")}>
           <ul className="py-1">
             {/* If a dataset is passed, render dataset items (label/value). Otherwise render simple options strings. */}
             {dataset ? (

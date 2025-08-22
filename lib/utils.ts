@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getAuthHeaders() {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   }
   return {};
@@ -15,7 +15,7 @@ export function getAuthHeaders() {
 
 export function isAuthenticated() {
   if (typeof window !== 'undefined') {
-    return !!localStorage.getItem('authToken');
+    return !!localStorage.getItem('token');
   }
   return false;
 }

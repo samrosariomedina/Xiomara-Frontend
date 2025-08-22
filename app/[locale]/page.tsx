@@ -1,16 +1,13 @@
 import type { Metadata } from 'next'
-import LoginForm from '@/components/pages/LoginForm';
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: 'Xiomara',
   description: 'Welcome to Xiomara. Sign in to access your account.'
 }
 
-export default function Home() {
-
-  return (
-  <div>
-  <LoginForm />
-  </div>
-  );
+export default function Home({ params }: { params: { locale: string } }) {
+  const { locale } = params
+  // Server-side redirect to the locale-aware login page
+  redirect(`/${locale}/auth/login`)
 }

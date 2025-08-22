@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useTranslations } from 'next-intl'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { logout } from '@/actions/auth'
+import { useAuth } from '@/hooks/useAPI'
 import { toast } from "sonner"
 
 export function Navbar() {
@@ -14,20 +14,18 @@ export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { logout } = useAuth()
   
   const handleLogout = async () => {
     try {
-      const result = await logout();
-      if (result.success) {
-        toast.success(t('logoutSuccess'));
-        router.push('/auth/login');
-      } else {
-        toast.error(result.error || t('logoutFailed'));
-      }
-    } catch {
-      toast.error(t('logoutError'));
+      logout() // The useAuth logout doesn't return a promise, it just clears the token
+      toast.success(t('logoutSuccess'))
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error(t('logoutError'))
     }
-  };
+  }
 
   const toggleLocale = () => {
     try {

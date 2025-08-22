@@ -12,10 +12,11 @@ import {signupSchema, type SignupInput} from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from 'next/navigation';
-import { signup } from '@/actions/auth';
+import { useAuth } from '@/hooks/useAPI';
 import { toast } from "sonner";
 
 export default function SignupForm() {
+  const { signup, isLoading } = useAuth();
   const t = useTranslations('SIGNUP');
   const [showPassword, setShowPassword] = useState(false)
   const [showRepeatPassword, setShowRepeatPassword] = useState(false)
@@ -33,18 +34,21 @@ export default function SignupForm() {
 
   async function onSubmit(values: SignupInput) {
     try {
-      const result = await signup(values);
+      const response = await signup({ 
+        email: values.email, 
+        password: values.password, 
+        name: values.email.split('@')[0] // Use email prefix as name
+      });
       
-      if (result.success) {
+      if (response) {
         toast.success(t("signupSuccess"));
-        // Redirect to login page after successful signup
-        router.push('/auth/login');
-      } else {
-        toast.error(result.error || t("signupFailed"));
+        // Redirect to dashboard after successful signup
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Signup error:', error);
-      toast.error(t("signupError"));
+      const errorMessage = error instanceof Error ? error.message : t("signupError");
+      toast.error(errorMessage);
     }
   }
 
@@ -151,10 +155,10 @@ export default function SignupForm() {
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
               className="w-full bg-[#31499F] hover:bg-[#2b3f8f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-12 px-4 rounded-full transition-colors"
             >
-              {isSubmitting ? "Creating..." : t("createAccountButton")}
+              {(isSubmitting || isLoading) ? "Creating..." : t("createAccountButton")}
             </Button>
           </div>
         </form>

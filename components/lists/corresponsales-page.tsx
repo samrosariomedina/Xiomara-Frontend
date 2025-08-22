@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { DashboardLayout } from "./Dashboard-layout"
 import { DataTable, type Column } from "./Data-table"
+import withAuth from "@/lib/withAuth"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -50,7 +51,7 @@ const fuentesData = Array.from({ length: 25 }, (_, i) => ({
   ultimaActualizacion: "16/06/2025",
 }))
 
-export default function CorresponsalesPage() {
+ function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")
 
   const currentColumns = activeTab === "usuarios" ? usuariosColumns : fuentesColumns
@@ -59,7 +60,7 @@ export default function CorresponsalesPage() {
   return (
     <DashboardLayout
       title="Listado Corresponsales"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" }, { label: "Listado Corresponsales" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Corresponsales" }]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable
@@ -80,3 +81,5 @@ export default function CorresponsalesPage() {
     </DashboardLayout>
   )
 }
+
+export default withAuth(CorresponsalesPage)

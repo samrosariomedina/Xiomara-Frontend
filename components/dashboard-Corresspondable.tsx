@@ -41,7 +41,7 @@ export function CorresponsablesSection() {
   }
 
   return (
-  <Card className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
+  <Card className="bg-white border border-gray-200 py-6 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
     <div className="px-4 mt-2 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0">
       <SectionHeader
         title={t('title')}

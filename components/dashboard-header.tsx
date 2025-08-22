@@ -62,7 +62,6 @@ export function DashboardHeader() {
               <div className="flex items-center justify-between">
                 <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate flex items-center">
                   {t('title')}
-                  <span className="ml-3 inline-flex items-center justify-center bg-[#EEF2FF] text-[#31499F] text-xs font-medium px-2 py-0.5 rounded-full">40</span>
                 </h1>
 
                 <div className="">
@@ -94,7 +93,7 @@ export function DashboardHeader() {
 
       {/* Desktop-only layout (lg and above) */}
       <div className="hidden lg:block">
-        <div className="max-w-[86rem] mx-auto">
+        <div className="max-w-[86rem] ">
           {/* Breadcrumb row */}
           <div className="text-xs text-gray-600 mb-2">
             <span
@@ -117,7 +116,6 @@ export function DashboardHeader() {
             <div className="flex items-center min-w-0">
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 truncate flex items-center">
                 {t('title')}
-                <span className="ml-4 inline-flex items-center justify-center bg-[#EEF2FF] text-[#31499F] text-sm font-medium px-3 py-1 rounded-full">40</span>
               </h1>
 
               {/* Date dropdown sits just to the right of title */}

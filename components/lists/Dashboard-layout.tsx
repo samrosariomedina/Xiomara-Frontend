@@ -25,9 +25,18 @@ export function DashboardLayout({ children, title, breadcrumbs, onAddClick }: Da
           {breadcrumbs.map((crumb, index) => (
             <div key={index} className="flex items-center ">
               {index > 0 && <span className="mx-2">›</span>}
-              <span className={index === breadcrumbs.length - 1 ? "text-[#31499f]" : "text-gray-500"}>
-                {crumb.label}
-              </span>
+              {crumb.href ? (
+                <a 
+                  href={crumb.href}
+                  className={`hover:underline ${index === breadcrumbs.length - 1 ? "text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}
+                >
+                  {crumb.label}
+                </a>
+              ) : (
+                <span className={index === breadcrumbs.length - 1 ? "text-[#31499f]" : "text-gray-500"}>
+                  {crumb.label}
+                </span>
+              )}
             </div>
           ))}
         </nav>

@@ -220,6 +220,7 @@
     "FUENTES": {
         "title": "General Sources",
         "viewAll": "View all",
+    "groupBy": "Group by",
         "searchPlaceholder": "Search sources",
         "dateLabel": "April 2025",
         "statusLabel": "Status",

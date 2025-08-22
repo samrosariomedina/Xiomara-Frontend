@@ -217,6 +217,7 @@
     "FUENTES": {
         "title": "Fuentes Generales",
         "viewAll": "Ver todos",
+    "groupBy": "Agrupar por",
         "searchPlaceholder": "Buscar Fuentes",
         "dateLabel": "Abril 2025",
         "statusLabel": "Estado",

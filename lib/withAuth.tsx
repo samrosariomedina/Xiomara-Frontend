@@ -3,30 +3,32 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkAuth } from '@/actions/auth';
+import { useAuth } from '@/hooks/useAPI';
 
 export default function withAuth<P extends object>(
   WrappedComponent: React.ComponentType<P>
 ) {
   return function WithAuth(props: P) {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(true);
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-      async function verifyAuth() {
-        const { authenticated } = await checkAuth();
-        
-        if (!authenticated) {
-          router.push('/auth/login');
-        } else {
-          setIsLoading(false);
+      // Wait a moment for the auth hook to initialize from localStorage
+      const timer = setTimeout(() => {
+        if (!authLoading) {
+          if (!isAuthenticated) {
+            router.push('/auth/login');
+          } else {
+            setIsInitialized(true);
+          }
         }
-      }
+      }, 100);
 
-      verifyAuth();
-    }, [router]);
+      return () => clearTimeout(timer);
+    }, [router, isAuthenticated, authLoading]);
 
-    if (isLoading) {
+    if (authLoading || !isInitialized) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

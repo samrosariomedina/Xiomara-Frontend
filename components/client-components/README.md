@@ -8,11 +8,9 @@ This directory contains a refactored and modular version of the clients list fun
 clients/
 ├── index.ts              # Main export file
 ├── types.ts             # TypeScript types and interfaces
-├── ClientsList.tsx      # Main container component
+├── ClientsList.tsx      # Main container component (receives data via props)
 ├── ClientCard.tsx       # Individual client card component  
 ├── CampaignRow.tsx      # Individual campaign row component
-└── hooks/
-    └── useClientsData.ts # Custom hook for data fetching logic
 ```
 
 ## Components
@@ -20,8 +18,7 @@ clients/
 ### ClientsList
 The main container component that handles:
 - State management for expanded clients and context menus
-- Data fetching coordination
-- Pagination
+- Display of client data received via props
 - Row action menus
 
 ### ClientCard  
@@ -37,12 +34,13 @@ Individual campaign row component within expanded client cards that shows:
 - Connected sources with counters
 - Campaign-specific actions
 
-### useClientsData Hook
-Custom hook that handles:
-- API calls to fetch client data
-- Data transformation from backend format
-- Loading states
-- Mock data generation for testing
+## Data Flow
+
+Data is fetched in the parent component (clientsPage.tsx) using the `useClients` hook from `@/hooks/useAPI`, then passed down as props to ClientsList.
+
+```
+clientsPage.tsx (useClients hook) → ClientsList → ClientCard → CampaignRow
+```
 
 ## Usage
 

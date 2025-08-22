@@ -1,5 +1,6 @@
 "use client"
 
+import withAuth from "@/lib/withAuth"
 import { DashboardLayout } from "./Dashboard-layout"
 import { DataTable, type Column } from "./Data-table"
 
@@ -21,11 +22,11 @@ const data = Array.from({ length: 25 }, (_, i) => ({
   ultimaActualizacion: "16/06/2025",
 }))
 
-export default function FuentesGeneralesPage() {
+ function FuentesGeneralesPage() {
   return (
     <DashboardLayout
       title="Listado Fuentes Generales"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" }, { label: "Listado Fuentes Generales" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href :"/dashboard" }, { label: "Listado Fuentes Generales" }]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable
@@ -39,3 +40,5 @@ export default function FuentesGeneralesPage() {
     </DashboardLayout>
   )
 }
+
+export default withAuth(FuentesGeneralesPage)

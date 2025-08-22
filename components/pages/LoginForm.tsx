@@ -12,16 +12,16 @@ import {loginSchema, type LoginInput} from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from 'next/navigation';
-import { login } from '@/actions/auth';
+import { useAuth } from '@/hooks/useAPI';
 import { toast } from "sonner";
 
 
 
 export default function LoginForm() {
-
     const t = useTranslations('LOGIN');
-  const [showPassword, setShowPassword] = useState(false)
-  const router = useRouter();
+    const [showPassword, setShowPassword] = useState(false)
+    const router = useRouter();
+    const { login, isLoading: authLoading, error: authError } = useAuth();
 
    const {
     register,
@@ -34,17 +34,12 @@ export default function LoginForm() {
 
    async function onSubmit(values: LoginInput) {
     try {
-      const result = await login(values);
-      
-      if (result.success) {
-        toast.success(t("loginSuccess"));
-        router.push('/clients');
-      } else {
-        toast.error(result.error || t("loginFailed"));
-      }
+      await login(values);
+      toast.success(t("loginSuccess"));
+      router.push('/clients');
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(t("loginError"));
+      toast.error(authError || t("loginError"));
     }
   }
 
@@ -128,10 +123,10 @@ export default function LoginForm() {
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || authLoading}
               className="w-full bg-[#31499F] hover:bg-[#2b3f8f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-12 px-4 rounded-full transition-colors"
             >
-              {isSubmitting ? t("loggingIn") : t("loginButton")}
+              {(isSubmitting || authLoading) ? t("loggingIn") : t("loginButton")}
             </Button>
           </div>
         </form>

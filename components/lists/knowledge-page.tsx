@@ -1,5 +1,6 @@
 "use client"
 
+import withAuth from "@/lib/withAuth"
 import { DashboardLayout } from "./Dashboard-layout"
 import { DataTable, type Column } from "./Data-table"
 
@@ -31,11 +32,11 @@ const data = Array.from({ length: 25 }, (_, i) => ({
   ultimaActualizacion: "16/06/2025",
 }))
 
-export default function KnowledgeBasePage() {
+function KnowledgeBasePage() {
   return (
     <DashboardLayout
       title="Listado Knowledge Base"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" }, { label: "Listado Knowledge Base" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Knowledge Base" }]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable
@@ -50,3 +51,4 @@ export default function KnowledgeBasePage() {
     </DashboardLayout>
   )
 }
+export default withAuth(KnowledgeBasePage)

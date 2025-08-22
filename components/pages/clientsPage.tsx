@@ -9,140 +9,98 @@ import { useState, useEffect } from "react"
 import { ClientFormModal } from "@/components/pages/client-form-modals"
 import { type ClientInput } from "@/lib/schemas"
 import withAuth from "@/lib/withAuth"
-import { getClients, createClient, deleteClient } from "@/actions/clients"
+import { useClients, useAuth } from "@/hooks/useAPI"
 import { toast } from "sonner"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"
 import { Pagination } from "@/components/ui/pagination"
 import { Client } from "@/components/clients/types"
 
-// Type for folder data from API
-interface FolderData {
-  _id: string
-  title: string
-  timestamp?: string
-  metadata?: {
-    type?: string
-    contact?: {
-      name?: string
-    }
-  }
-  children?: Array<{
-    _id: string
-    title: string
-    timestamp?: string
-    files?: {
-      sources?: Array<{
-        type: string
-      }>
-    }
-    metadata?: {
-      status?: string
-    }
-  }>
-}
-
 function ClientsPage() {
- const [clients, setClients] = useState<Client[]>([])
- const [loading, setLoading] = useState(true)
+ const { clients: clientsData, isLoading, error, fetchClients, createClient, deleteClient } = useClients()
+ const { token } = useAuth()
  const [isModalOpen, setIsModalOpen] = useState(false)
  const [currentPage, setCurrentPage] = useState(1)
  const itemsPerPage = 8
  const t = useTranslations('CLIENTS')
 
  useEffect(() => {
-   fetchClients()
- }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
- const fetchClients = async () => {
-   setLoading(true)
-   try {
-     const result = await getClients()
-     if (result.success) {
-       
-       
-       if (!Array.isArray(result.data)) {
-         console.error('Expected array of clients, got:', typeof result.data);
-         setClients([]);
-         return;
-       }
-       
-       // Filter for folders with metadata.type = 'client'
-       const clientFolders = result.data.filter((folder: FolderData) => 
-         folder && folder.metadata && folder.metadata.type === 'client'
-       );
-       
-       
-       
-       if (clientFolders.length === 0) {
-         console.log('No clients found in backend');
-         setClients([]);
-         return;
-       }
-       
-       const transformedClients = clientFolders.map((folder: FolderData) => ({
-         id: folder._id,
-         name: folder.title,
-         contact: folder.metadata?.contact?.name || "",
-         createdDate: folder.timestamp ? new Date(folder.timestamp).toLocaleDateString() : 'Unknown',
-         campaigns: folder.children?.length || 0,
-         avatar: "/avatar.svg",
-         campaignDetails: folder.children?.map((campaign) => ({
-           id: campaign._id,
-           name: campaign.title,
-           createdDate: campaign.timestamp ? new Date(campaign.timestamp).toLocaleDateString() : 'Unknown',
-           connectedSources: {
-             whatsapp: campaign.files?.sources?.filter((s) => s.type === 'whatsapp').length || 0,
-             email: campaign.files?.sources?.filter((s) => s.type === 'email').length || 0,
-             other: campaign.files?.sources?.filter((s) => s.type !== 'whatsapp' && s.type !== 'email').length || 0
-           },
-           status: campaign.metadata?.status || "Activa"
-         })) || []
-       }))
-       setClients(transformedClients)
-     } else {
-       toast.error(result.error || t('fetchError'))
-     }
-   } catch (error) {
-     console.error('Error fetching clients:', error)
-     toast.error(t('fetchError'))
-   } finally {
-     setLoading(false)
+   if (token) {
+     fetchClients(token)
    }
- }
+ }, [token, fetchClients]) // Now fetchClients is stable with useCallback
+
+ // Transform ClientData to Client type for the UI
+ const clients: Client[] = clientsData.map((clientData) => {
+   const mockCampaigns = [
+     {
+       id: `campaign-1-${clientData.id}`,
+       name: 'Digital Marketing Campaign',
+       createdDate: new Date(Date.now() - 86400000).toLocaleDateString(),
+       connectedSources: { whatsapp: 3, email: 2, other: 1 },
+       status: 'Activa',
+     },
+     {
+       id: `campaign-2-${clientData.id}`,
+       name: 'Brand Awareness Campaign',  
+       createdDate: new Date(Date.now() - 2 * 86400000).toLocaleDateString(),
+       connectedSources: { whatsapp: 1, email: 4, other: 2 },
+       status: 'Inactiva',
+     }
+   ];
+   
+   return {
+     id: clientData.id || 'unknown',
+     name: clientData.name,
+     contact: clientData.email || '',
+     email: clientData.email,
+     createdDate: new Date().toLocaleDateString(),
+     campaigns: mockCampaigns.length,
+     avatar: "/avatar.svg",
+     campaignDetails: mockCampaigns
+   };
+ })
 
  const openModal = () => setIsModalOpen(true)
  
  const closeModal = () => setIsModalOpen(false)
  
  const handleCreateClient = async (clientData: ClientInput) => {
+   if (!token) {
+     toast.error('Authentication required')
+     return
+   }
+   
    try {
-     const result = await createClient(clientData)
-     if (result.success) {
+     const newClient = await createClient({
+       name: clientData.clientName,
+       email: clientData.email,
+       description: clientData.description
+     }, token)
+     if (newClient) {
        toast.success(t('clientCreated'))
-       fetchClients() // Refresh the list
        closeModal()
-     } else {
-       toast.error(result.error || t('createError'))
      }
    } catch (error) {
-     console.error('Error creating client:', error)
-     toast.error(t('createError'))
+     console.error('Error creating client:', error);
+     const errorMessage = error instanceof Error ? error.message : t('createError');
+     toast.error(errorMessage);
    }
  }
 
  const handleDeleteClient = async (clientId: string) => {
+   if (!token) {
+     toast.error('Authentication required')
+     return
+   }
+   
    try {
-     const result = await deleteClient(clientId)
-     if (result.success) {
-       toast.success(t('clientDeleted'))
-       fetchClients() // Refresh the list
-     } else {
-       toast.error(result.error || t('deleteError'))
-     }
+     await deleteClient(clientId, token)
+     toast.success(t('clientDeleted'))
    } catch (error) {
-     console.error('Error deleting client:', error)
-     toast.error(t('deleteError'))
+     console.error('Error deleting client:', error);
+     const errorMessage = error instanceof Error ? error.message : t('deleteError');
+     toast.error(errorMessage);
    }
  }
  
@@ -166,7 +124,7 @@ function ClientsPage() {
          <ClientsHeader onCreateClient={openModal} />
          <SearchFilters />
          
-         {loading ? (
+         {isLoading ? (
            <div className="flex justify-center items-center h-64">
              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#31499F]"></div>
            </div>
