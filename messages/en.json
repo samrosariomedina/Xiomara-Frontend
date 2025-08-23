@@ -72,6 +72,10 @@
     },
     "CLIENT_FORM":{
         "createClient": "Create Client",
+        "form": {
+            "cancel": "Cancel",
+            "submit": "Submit"
+        },
         "tabs": {
             "general": "General Information",
             "brand": "Brand Guides",
@@ -94,6 +98,7 @@
             "upload": "Upload",
             "description": "Description",
             "descriptionPlaceholder": "Describe the client..."
+            
         },
         "contact": {
             "title": "Main Contact",
@@ -163,7 +168,15 @@
             "january": "January 2025",
             "february": "February 2025",
             "march": "March 2025",
-            "april": "April 2025"
+            "april": "April 2025",
+            "may": "May 2025",
+            "june": "June 2025",
+            "july": "July 2025",
+            "august": "August 2025",
+            "september": "September 2025",
+            "october": "October 2025",
+            "november": "November 2025",
+            "december": "December 2025"
         },
         "statuses": {
             "active": "Active",

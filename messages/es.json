@@ -71,6 +71,10 @@
     },
     "CLIENT_FORM": {
         "createClient": "Crear Cliente",
+        "form": {
+            "cancel": "Cancelar",
+            "submit": "Enviar"
+        },
         "tabs": {
             "general": "Información General",
             "brand": "Brand Guides",

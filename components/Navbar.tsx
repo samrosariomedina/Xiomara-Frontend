@@ -18,7 +18,7 @@ export function Navbar() {
   
   const handleLogout = async () => {
     try {
-      logout() // The useAuth logout doesn't return a promise, it just clears the token
+      await logout() // Call the logout function from useAuth
       toast.success(t('logoutSuccess'))
       router.push('/auth/login')
     } catch (error) {

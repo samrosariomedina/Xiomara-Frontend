@@ -1,5 +1,5 @@
-import KnowledgeBasePage from "@/components/lists/knowledge-page";
-import { Navbar } from "@/components/Navbar";
+import KnowledgeBasePage from "@/pages/listsknowledgePage";
+import { Navbar } from "@/components/navbar";
 
 export default function KnowledgeListPage(){
    return ( 

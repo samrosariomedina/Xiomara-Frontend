@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import SignupForm from '@/components/pages/SignupForm';
+import SignupForm from '@/pages/signupPage';
 
 export async function generateMetadata(props: { params: { locale: string } } | { params: Promise<{ locale: string }> }): Promise<Metadata> {
   // `params` can be a promise-like value in Next.js metadata flow,

@@ -1,5 +1,5 @@
-import CorresponsalesPage from "@/components/lists/corresponsales-page";
-import { Navbar } from "@/components/Navbar";
+import CorresponsalesPage from "@/pages/listscorresponsalesPage";
+import { Navbar } from "@/components/navbar";
 
 export default function CorresponsalesListPage(){
    return ( 

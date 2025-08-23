@@ -1,5 +1,5 @@
-import FuentesGeneralesPage from "@/components/lists/funtens-page";
-import { Navbar } from "@/components/Navbar";
+import FuentesGeneralesPage from "@/pages/listsfuentesPage";
+import { Navbar } from "@/components/navbar";
 
 export default function FuntensListPage(){
    return ( 
