@@ -5,11 +5,15 @@ import { Plus, ImageIcon, Mic, Send, Edit, Copy,  Paperclip } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PostEditor from './contentEnginePage-postEdit'
+import EditForm from './contentEnginePage-editForm'
 
 export default function ChatCard() {
     const [hasContent, setHasContent] = useState(false)
     const [showPostEditor, setShowPostEditor] = useState(false)
+    const [showEditForm, setShowEditForm] = useState(false)
     const [selectedPlatform, setSelectedPlatform] = useState('')
+    const [contentTitle, setContentTitle] = useState('Título Resumen')
+    const [contentText, setContentText] = useState(`<p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p><p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p>`)
 
     const handleAddSources = () => {
         setHasContent(true)
@@ -18,6 +22,15 @@ export default function ChatCard() {
     const handleSocialMediaClick = (platform: string) => {
         setSelectedPlatform(platform)
         setShowPostEditor(true)
+    }
+
+    const handleEditClick = () => {
+        setShowEditForm(true)
+    }
+
+    const handleSaveContent = (title: string, content: string) => {
+        setContentTitle(title)
+        setContentText(content)
     }
 
     return (
@@ -48,33 +61,20 @@ export default function ChatCard() {
                         {/* Content Summary */}
                         <div className="bg-gray-50 rounded-lg p-4">
                             <div className="flex flex-col items-start justify-between mb-3">
-                                <h4 className="text-base font-semibold text-gray-900">Título Resumen</h4>
+                                <h4 className="text-base font-semibold text-gray-900">{contentTitle}</h4>
                                 <span className="text-sm text-gray-500">3 fuentes</span>
                             </div>
                             
                             <div className=" text-sm text-gray-700 leading-relaxed">
-                                <p>
-                                    Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. 
-                                    Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit 
-                                    sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis 
-                                    nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi 
-                                    elementum.
-                                </p>
-                                
-                                <p>
-                                    Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. 
-                                    Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit 
-                                    sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis 
-                                    nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi 
-                                    elementum.
-                                </p>
-                                
-                               
+                                <div dangerouslySetInnerHTML={{ __html: contentText }} />
                             </div>
                             
                             {/* Action buttons for content */}
                             <div className="flex items-center justify-end gap-2 mt-4">
-                                <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+                                <button 
+                                    onClick={handleEditClick}
+                                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                                >
                                     <Edit className="h-4 w-4 text-gray-500" />
                                 </button>
                                 <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
@@ -203,6 +203,15 @@ export default function ChatCard() {
                 isOpen={showPostEditor}
                 onClose={() => setShowPostEditor(false)}
                 platform={selectedPlatform}
+            />
+
+            {/* Edit Form Modal */}
+            <EditForm 
+                isOpen={showEditForm}
+                onClose={() => setShowEditForm(false)}
+                onSave={handleSaveContent}
+                initialTitle={contentTitle}
+                initialContent={contentText}
             />
         </div>
     )
