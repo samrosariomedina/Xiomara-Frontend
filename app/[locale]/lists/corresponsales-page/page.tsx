@@ -1,4 +1,4 @@
-import CorresponsalesPage from "@/pages/listscorresponsalesPage";
+import CorresponsalesPage from "@/components/pages/listscorresponsalesPage";
 import { Navbar } from "@/components/navbar";
 
 export default function CorresponsalesListPage(){

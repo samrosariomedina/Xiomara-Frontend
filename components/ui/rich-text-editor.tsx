@@ -147,13 +147,6 @@ export function RichTextEditor({
     setTimeout(updateActiveFormats, 0)
   }
 
-  const triggerChange = () => {
-    const editor = textAreaRef.current
-    if (editor) {
-      onChange(editor.innerHTML)
-      setTimeout(updateActiveFormats, 0)
-    }
-  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Ctrl/Cmd shortcuts - let execCommand handle formatting

@@ -11,7 +11,7 @@ interface SourceFormTabsProps {
   renderContent?: (tabId: string) => React.ReactNode
 }
 
-export function SourceFormTabs({ activeTab, onTabChange, onClose, onSave, renderContent }: SourceFormTabsProps) {
+export function SourceFormTabs({ activeTab, onTabChange,  renderContent }: SourceFormTabsProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([activeTab])
   
   const tabs = [

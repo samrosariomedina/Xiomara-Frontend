@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import { Upload, X, File, Image as ImageIcon, CloudUpload } from "lucide-react"
+import {  X, File, Image as ImageIcon, CloudUpload } from "lucide-react"
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void

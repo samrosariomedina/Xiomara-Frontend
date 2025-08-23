@@ -1,4 +1,4 @@
-import KnowledgeBasePage from "@/pages/listsknowledgePage";
+import KnowledgeBasePage from "@/components/pages/listsknowledgePage";
 import { Navbar } from "@/components/navbar";
 
 export default function KnowledgeListPage(){

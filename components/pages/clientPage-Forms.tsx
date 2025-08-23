@@ -1,17 +1,14 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import { ArrowLeft, Loader2, ChevronDown, AlertCircle } from "lucide-react"
+import { ArrowLeft, ChevronDown} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from 'next-intl'
 import { type ClientInput } from '@/lib/schemas'
-import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/formSchemas'
-import { toast } from "sonner"
+import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/schemas'
 
 import { useRef } from 'react'
-import { GeneralInformationForm } from "../components/clientsForm-generalInformation"
-import { ConnectCorrespondentsForm } from "../components/clientsForm-connectCorrespondents.tsx"
-import { BrandGuidesForm } from "../components/clientsForm-brandGuide"
+import { GeneralInformationForm } from "../clientsForm-generalInformation"
+import { ConnectCorrespondentsForm } from "../clientsForm-connectCorrespondents.tsx"
+import { BrandGuidesForm } from "../clientsForm-brandGuide"
 
 interface ClientFormModalProps {
   isOpen: boolean
@@ -274,3 +271,5 @@ export function ClientFormModal({ isOpen, onClose }: ClientFormModalProps) {
     </>
   )
 }
+
+export default ClientFormModal

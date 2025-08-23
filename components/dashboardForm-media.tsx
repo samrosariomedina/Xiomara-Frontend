@@ -11,7 +11,7 @@ interface MediaListeningFormProps {
   onSubmit: (data: MediaListeningData) => void
 }
 
-export function MediaListeningForm({ onSubmit }: MediaListeningFormProps) {
+export function MediaListeningForm({  }: MediaListeningFormProps) {
   return (
     <>
       <div className="mb-6">

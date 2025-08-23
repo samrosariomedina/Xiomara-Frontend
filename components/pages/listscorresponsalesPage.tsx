@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { DashboardLayout } from "../components/lists-dashboard-layout"
-import { DataTable, type Column } from "../components/lists-tableData"
+import { DashboardLayout } from "../lists-dashboard-layout"
+import { DataTable, type Column } from "../lists-tableData"
 import withAuth from "@/lib/withAuth"
 
 const usuariosColumns: Column[] = [

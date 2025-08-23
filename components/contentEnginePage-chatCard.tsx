@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Plus, ImageIcon, Mic, Send, Edit, Copy, Clipboard, Paperclip } from 'lucide-react'
+import { Plus, ImageIcon, Mic, Send, Edit, Copy,  Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PostEditor from './contentEnginePage-postEdit'

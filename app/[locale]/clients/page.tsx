@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import ClientsPage from '@/pages/clientsPage'   
+import ClientsPage from '@/components/pages/clientsPage'   
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };

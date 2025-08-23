@@ -1,15 +1,15 @@
 "use client"
 
 import withAuth from "@/lib/withAuth"
-import { DashboardLayout } from "../components/lists-dashboard-layout"
-import { DataTable, type Column } from "../components/lists-tableData"
+import { DashboardLayout } from "../lists-dashboard-layout"
+import { DataTable, type Column } from "../lists-tableData"
 
 const columns: Column[] = [
   {
     key: "nombre",
     label: "Nombre",
     width: "250px",
-    render: (value, row) => (
+    render: (value) => (
       <div>
         <div className="font-medium">{String(value || "")}</div>
         <div className="text-sm text-gray-500">Descripción corta</div>
@@ -23,7 +23,7 @@ const columns: Column[] = [
   { key: "ultimaActualizacion", label: "Última actualización", width: "150px" },
 ]
 
-const data = Array.from({ length: 25 }, (_, i) => ({
+const data = Array.from({ length: 25 }, () => ({
   nombre: "Nombre",
   tipo: "PDF",
   categoria: "Marketing",

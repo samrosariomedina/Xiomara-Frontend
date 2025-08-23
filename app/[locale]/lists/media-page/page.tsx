@@ -1,4 +1,4 @@
-import MediaListeningPage from "@/pages/listsmediaPage";
+import MediaListeningPage from "@/components/pages/listsmediaPage";
 import { Navbar } from "@/components/navbar";
 
 export default function MediaListPage(){

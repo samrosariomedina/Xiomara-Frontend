@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, ChevronDown, Calendar } from "lucide-react"
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { SourcesAdministrator } from '@/pages/dashboardPage-Forms'
+import { SourcesAdministrator } from '@/components/pages/dashboardPage-Forms'
 import {
   DropdownMenu,
   DropdownMenuContent,

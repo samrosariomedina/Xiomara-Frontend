@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Toaster } from "sonner";
@@ -44,7 +44,7 @@ export default async function RootLayout({
   const { locale } = await params;
 
   // Validate locale
-  if (!hasLocale(routing.locales, locale)) {
+  if (!routing.locales.includes(locale as 'en' | 'es')) {
     notFound();
   }
 

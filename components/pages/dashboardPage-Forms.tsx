@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import { SourceFormTabs } from "@/components/ui/source-form-tabs"

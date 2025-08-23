@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import HeaderControls from "./ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "./ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
-import { corresponsablesSchema, validateForm, type CorresponsablesInput } from '@/lib/schemas'
+import { corresponsablesSchema, validateForm } from '@/lib/schemas'
 
 interface FormData {
   name: string

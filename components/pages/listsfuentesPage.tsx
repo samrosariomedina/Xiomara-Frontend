@@ -1,8 +1,8 @@
 "use client"
 
 import withAuth from "@/lib/withAuth"
-import { DashboardLayout } from "../components/lists-dashboard-layout"
-import { DataTable, type Column } from "../components/lists-tableData"
+import { DashboardLayout } from "../lists-dashboard-layout"
+import { DataTable, type Column } from "../lists-tableData"
 
 const columns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -13,7 +13,7 @@ const columns: Column[] = [
   { key: "ultimaActualizacion", label: "Última actualización", width: "150px" },
 ]
 
-const data = Array.from({ length: 25 }, (_, i) => ({
+const data = Array.from({ length: 25 }, () => ({
   nombre: "Nombre",
   tipo: "PDF",
   contenido: "Lorem ipsum dolor sit",
@@ -22,11 +22,11 @@ const data = Array.from({ length: 25 }, (_, i) => ({
   ultimaActualizacion: "16/06/2025",
 }))
 
-function MediaListeningPage() {
+ function FuentesGeneralesPage() {
   return (
     <DashboardLayout
-      title="Listado Media Listening"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Media Listening" }]}
+      title="Listado Fuentes Generales"
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href :"/dashboard" }, { label: "Listado Fuentes Generales" }]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable
@@ -40,4 +40,5 @@ function MediaListeningPage() {
     </DashboardLayout>
   )
 }
-export default withAuth(MediaListeningPage)
+
+export default withAuth(FuentesGeneralesPage)

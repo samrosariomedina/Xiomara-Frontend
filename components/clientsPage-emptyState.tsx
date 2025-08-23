@@ -5,7 +5,7 @@ interface EmptyStateProps {
   onAction?: () => void
 }
 
-export function EmptyState({ onAction }: EmptyStateProps) {
+export function EmptyState({ }: EmptyStateProps) {
   const t = useTranslations('CLIENTS')
   
   return (

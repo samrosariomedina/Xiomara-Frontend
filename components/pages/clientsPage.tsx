@@ -4,8 +4,8 @@ import { Navbar } from "@/components/navbar"
 import { ClientsHeader } from "@/components/clientsPage-header"
 import { EmptyState } from "@/components/clientsPage-emptyState"
 import { ClientsList } from "@/components/clientsPage-cardWrapper"
-import { useState, useEffect, useMemo } from "react"
-import { ClientFormModal } from "@/pages/clientPage-Forms"
+import { useState,  useMemo } from "react"
+import { ClientFormModal } from "@/components/pages/clientPage-Forms"
 import { type ClientInput } from "@/lib/schemas"
 import withAuth from "@/lib/withAuth"
 import { useClients, useAuth } from "@/hooks/useAPI"
@@ -16,18 +16,13 @@ import { Pagination } from "@/components/ui/pagination"
 import { Client } from "@/utils/types"
 
 function ClientsPage() {
- const { clients: clientsData, isLoading, fetchClients, createClient, deleteClient } = useClients()
+ const { clients: clientsData, isLoading,  createClient, deleteClient } = useClients()
  const { token } = useAuth()
  const [isModalOpen, setIsModalOpen] = useState(false)
  const [currentPage, setCurrentPage] = useState(1)
  const itemsPerPage = 8
  const t = useTranslations('CLIENTS')
 
- useEffect(() => {
-   if (token) {
-     fetchClients(token)
-   }
- }, [token, fetchClients])
 
  // Transform ClientData to Client type for the UI - memoized to prevent unnecessary re-renders
  const clients: Client[] = useMemo(() => {

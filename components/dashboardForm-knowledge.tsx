@@ -11,7 +11,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
-import { knowledgeBaseSchema, validateForm, type KnowledgeBaseInput } from '@/lib/schemas'
+import { knowledgeBaseSchema, validateForm } from '@/lib/schemas'
 import {
   DropdownMenu,
   DropdownMenuContent,
