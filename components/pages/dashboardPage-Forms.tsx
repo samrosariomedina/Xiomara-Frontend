@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react"
+"use client"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { ArrowLeft } from "lucide-react"
 import { SourceFormTabs } from "@/components/ui/source-form-tabs"
 import { FuentesGeneralesForm } from "@/components/dashboardForm-fuentes"
 import { CorresponsalesForm } from "@/components/dashboardForm-corresponables"
 import { KnowledgeBaseForm } from "@/components/dashboardForm-knowledge"
 import { MediaListeningForm } from "@/components/dashboardForm-media"
+import { toast } from "sonner"
 
 interface SourcesAdministratorProps {
   isOpen: boolean
@@ -34,6 +36,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       return () => clearTimeout(leave)
     }
   }, [isOpen])
+  // Local state management
   const [activeTab, setActiveTab] = useState("fuentes-generales")
   const [sources, setSources] = useState<
     Array<{
@@ -44,18 +47,37 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       timestamp: string
     }>
   >([])
+  // Loading state for form submission
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (data: unknown) => {
-    const d = data as SourceData
-    const newSource = {
-      id: sources.length + 1,
-      name: d?.name || "Nuevo Nombre",
-      type: "image" as const,
-      category: "Marketing",
-      timestamp: "Ahora",
+  const handleSubmit = useCallback(async (data: unknown) => {
+    try {
+      setIsSubmitting(true)
+      const d = data as SourceData
+      
+      // Validate data before processing
+      if (!d?.name) {
+        toast.error('Name is required')
+        return
+      }
+      
+      const newSource = {
+        id: sources.length + 1,
+        name: d.name,
+        type: "image" as const,
+        category: "Marketing",
+        timestamp: new Date().toISOString(),
+      }
+      
+      setSources(prev => [...prev, newSource])
+      toast.success('Source added successfully')
+    } catch (error) {
+      console.error('Submit error:', error)
+      toast.error('Failed to add source')
+    } finally {
+      setIsSubmitting(false)
     }
-    setSources([...sources, newSource])
-  }
+  }, [sources.length])
 
 
   const renderTabContent = (tabId?: string) => {
@@ -111,7 +133,6 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
   useEffect(() => {
     const lockScroll = () => {
       // only lock for desktop widths (lg and above ~ 1024px)
-      if (typeof window === "undefined") return
       if (window.innerWidth >= 1024 && isOpen) {
         document.body.style.overflow = "hidden"
         document.documentElement.style.overflow = "hidden"
@@ -125,7 +146,6 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
 
     // Cleanup function to restore scroll when component unmounts or isOpen changes
     return () => {
-      if (typeof window === "undefined") return
       document.body.style.overflow = ""
       document.documentElement.style.overflow = ""
     }

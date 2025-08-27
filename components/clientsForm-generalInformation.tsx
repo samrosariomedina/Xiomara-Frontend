@@ -40,11 +40,11 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
     resolver: zodResolver(generalInformationSchema),
     defaultValues: initialData || {
       clientName: "",
-      industry: "",
+      industry: "tecnologia",
       description: "",
       contactName: "",
       whatsapp: "",
-      position: "",
+      position: "ceo",
       email: "",
     },
     mode: "onChange"
@@ -153,6 +153,7 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
                 className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                   errors.clientName ? "border-red-300" : ""
                 }`}
+                suppressHydrationWarning
               />
               {errors.clientName && (
                 <p className="text-xs text-red-500 mt-1">{errors.clientName.message as string}</p>
@@ -319,6 +320,7 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
                   className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                     errors.contactName ? "border-red-300" : ""
                   }`}
+                  suppressHydrationWarning
                 />
                 {errors.contactName && (
                   <p className="text-xs text-red-500 mt-1">{errors.contactName.message as string}</p>
@@ -335,6 +337,7 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
                     errors.whatsapp ? "border-red-300" : ""
                   }`}
                   placeholder={t('contact.whatsappPlaceholder')}
+                  suppressHydrationWarning
                 />
                 {errors.whatsapp && (
                   <p className="text-xs text-red-500 mt-1">{errors.whatsapp.message as string}</p>
@@ -419,6 +422,7 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
                     errors.email ? "border-red-300" : ""
                   }`}
                   placeholder={t('contact.emailPlaceholder')}
+                  suppressHydrationWarning
                 />
                 {errors.email && (
                   <p className="text-xs text-red-500 mt-1">{errors.email.message as string}</p>
@@ -428,13 +432,7 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
           </div>
         </div>
       </div>
-      {/* Inline action buttons (no fixed footer) */}
-                  <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
-                           <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                             <Button  className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
-                             <Button  className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{t('form.submit')}</Button>
-                           </div>
-                         </div>
+
     </div>
   );
 });

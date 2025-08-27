@@ -59,7 +59,7 @@ export default function FuentesCard() {
                 <span className="absolute inset-y-0 left-2 md:left-3 flex items-center pointer-events-none">
                   <Search className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
                 </span>
-                <Input placeholder="Buscar Fuentes" className="pl-8 md:pl-10 bg-[#f7f9ff] border-gray-200 text-xs md:text-sm h-8 md:h-10" />
+                <Input placeholder="Buscar Fuentes" className="pl-8 md:pl-10 bg-[#f7f9ff] border-gray-200 text-xs md:text-sm h-8 md:h-10" suppressHydrationWarning />
               </div>
             </div>
             <button className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 text-gray-600" aria-label="filters">

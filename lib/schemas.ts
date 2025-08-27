@@ -8,29 +8,41 @@ export const loginSchema = z.object({
 export const signupSchema = z.object({
 	email: z.string().min(1, 'Email is required').email('Invalid email'),
 	password: z.string().min(8, 'Password must be at least 8 characters'),
-	repeatPassword: z.string().min(1, 'Please confirm your password')
+	repeatPassword: z.string().min(1, 'Please confirm your password'),
+	name: z.string().optional()
 }).refine((data) => data.password === data.repeatPassword, {
 	message: "Passwords don't match",
 	path: ["repeatPassword"],
 });
 
+export const forgotPasswordSchema = z.object({
+	email: z.string().min(1, 'Email is required').email('Invalid email')
+});
+
+// Client Schema - combines all form data
 export const clientSchema = z.object({
 	clientName: z.string().min(1, 'Client name is required'),
 	industry: z.string().min(1, 'Industry is required'),
 	description: z.string().optional(),
-	logoFile: z.any().optional(), // File object for logo upload
+	logoFile: z.instanceof(File).optional().nullable(), // File object for logo upload
 	contactName: z.string().min(1, 'Contact name is required'),
-	whatsapp: z.string().min(1, 'WhatsApp number is required'),
+	whatsapp: z.string()
+		.min(1, 'WhatsApp number is required')
+		.regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
 	position: z.string().min(1, 'Position is required'),
 	email: z.string().min(1, 'Email is required').email('Invalid email'),
 	corresponsalClientName: z.string().optional(),
-	corresponsalWhatsapp: z.string().optional(),
+	corresponsalWhatsapp: z.string()
+		.optional()
+		.refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
+			message: 'WhatsApp number can only contain digits and +()-',
+		}),
 	corresponsalClientName2: z.string().optional(),
-	accountType: z.string().optional(),
+	accountType: z.enum(['premium', 'standard', 'basic']).optional(),
 	invitationMethods: z.object({
-		whatsapp: z.boolean().optional(),
-		email: z.boolean().optional(),
-		copyLink: z.boolean().optional()
+		whatsapp: z.boolean().default(false),
+		email: z.boolean().default(false),
+		copyLink: z.boolean().default(false)
 	}).optional()
 });
 // Utility function for form validation
@@ -50,15 +62,19 @@ export const validateForm = <T>(schema: z.ZodSchema<T>, data: unknown) => {
 // General Information Form Schema
 export const generalInformationSchema = z.object({
   clientName: z.string().min(1, 'Client name is required'),
-  industry: z.string().min(1, 'Industry is required'),
+  industry: z.enum(['tecnologia', 'salud', 'educacion', 'finanzas', 'retail', 'manufactura'], {
+    message: 'Please select a valid industry'
+  }),
   description: z.string().optional(),
   contactName: z.string().min(1, 'Contact name is required'),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
     .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
-  position: z.string().min(1, 'Position is required'),
+  position: z.enum(['ceo', 'cto', 'marketing', 'ventas', 'gerente', 'coordinador'], {
+    message: 'Please select a valid position'
+  }),
   email: z.string().min(1, 'Email is required').email('Invalid email'),
-  logoFile: z.any().optional(), // For file upload
+  logoFile: z.instanceof(File).optional().nullable(), // For file upload
 });
 
 // Connect Correspondents Form Schema
@@ -70,11 +86,11 @@ export const connectCorrespondentsSchema = z.object({
       message: 'WhatsApp number can only contain digits and +()-',
     }),
   corresponsalClientName2: z.string().optional(),
-  accountType: z.string().optional(),
+  accountType: z.enum(['premium', 'standard', 'basic']).optional(),
   invitationMethods: z.object({
-    whatsapp: z.boolean().optional(),
-    email: z.boolean().optional(),
-    copyLink: z.boolean().optional()
+    whatsapp: z.boolean(),
+    email: z.boolean(),
+    copyLink: z.boolean()
   }).optional()
 });
 
@@ -152,6 +168,7 @@ export const knowledgeBaseSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
 
 export type GeneralInformationInput = z.infer<typeof generalInformationSchema>;

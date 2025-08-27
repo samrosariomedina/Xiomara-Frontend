@@ -23,7 +23,8 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const t = useTranslations('CLIENTS')
-  const [viewportWidth, setViewportWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024)
+  const [viewportWidth, setViewportWidth] = useState<number>(1024)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -36,15 +37,20 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   }, [onClose])
 
   useEffect(() => {
+    // Mark as client-side to prevent hydration mismatch
+    setIsClient(true)
+    // Set initial viewport width on client side
+    setViewportWidth(window.innerWidth)
+    
     const onResize = () => setViewportWidth(window.innerWidth)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  const isMobile = viewportWidth < 768
+  const isMobile = isClient && viewportWidth < 768
 
   // compute adjusted left for right-aligned menus on medium/desktop to avoid overflow
   const computeLeft = () => {
-    if (isMobile) return 0
+    if (!isClient || isMobile) return 0
     const menuApproxWidth = 220
     let adjusted = left
     if (align === 'right') adjusted = left - menuApproxWidth + 24 // nudge so menu appears to the left of button

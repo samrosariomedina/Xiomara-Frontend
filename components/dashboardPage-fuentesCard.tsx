@@ -98,7 +98,7 @@ export function FuentesGeneralesSection() {
 
       <div className="relative flex-grow ">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 " />
-  <Input placeholder={t('searchPlaceholder')} className="pl-10 h-9  max-w-xs bg-[#f7f9ff]" />
+  <Input placeholder={t('searchPlaceholder')} className="pl-10 h-9  max-w-xs bg-[#f7f9ff]" suppressHydrationWarning />
       </div>
 
       <div className="flex items-center space-x-3">

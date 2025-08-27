@@ -16,17 +16,14 @@ export default function EditForm({
     isOpen, 
     onClose, 
     onSave, 
-    initialTitle = "Título Resumen", 
     initialContent = "" 
 }: EditFormProps) {
-    const [title, setTitle] = useState(initialTitle)
     const [content, setContent] = useState(initialContent)
     const [isAnimating, setIsAnimating] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
             setIsAnimating(true)
-            setTitle(initialTitle)
             setContent(initialContent)
             // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden'
@@ -38,7 +35,7 @@ export default function EditForm({
         return () => {
             document.body.style.overflow = 'unset'
         }
-    }, [isOpen, initialTitle, initialContent])
+    }, [isOpen, initialContent])
 
     const handleClose = () => {
         setIsAnimating(false)
@@ -48,7 +45,7 @@ export default function EditForm({
     }
 
     const handleSave = () => {
-        onSave(title, content)
+        onSave("", content)
         handleClose()
     }
 
@@ -92,16 +89,6 @@ export default function EditForm({
                 {/* Content */}
                 <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
                     <div className="space-y-4 sm:space-y-6">
-                        {/* Title Input */}
-                        <div className="space-y-2">
-                            <Input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Título Resumen"
-                                className="w-full text-base sm:text-lg font-medium border-none shadow-none p-0 focus-visible:ring-0"
-                                style={{ background: 'transparent' }}
-                            />
-                        </div>
 
                         {/* Content Editor */}
                         <div className="space-y-2">

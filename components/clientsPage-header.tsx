@@ -43,6 +43,7 @@ export function ClientsHeader({ onCreateClient }: ClientsHeaderProps) {
           <Input
             placeholder={tFilters('search')}
             className="pl-10 bg-white border-gray-200 text-gray-600 placeholder:text-gray-400"
+            suppressHydrationWarning
           />
         </div>
 

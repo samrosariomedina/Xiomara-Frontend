@@ -89,7 +89,8 @@ export function SimpleRichTextEditor({
     if (!editor) return
     
     const emojis = ['😀', '😃', '😄', '😁', '😊', '😉', '👍', '👎', '❤️', '🎉', '🔥', '⭐', '💡', '✨']
-    const emoji = emojis[Math.floor(Math.random() * emojis.length)]
+    // Use a fixed emoji to prevent hydration mismatch
+    const emoji = emojis[0]
     
     editor.focus()
     document.execCommand('insertText', false, emoji)

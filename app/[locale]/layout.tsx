@@ -5,6 +5,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Toaster } from "sonner";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ClientOnly } from "@/components/providers/ClientOnly";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,21 +25,21 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/xiomara.svg',
-        type: 'image/svg+xml',
+        url: "/xiomara.svg",
+        type: "image/svg+xml",
       },
       {
-        url: '/favicon.ico',
-        type: 'image/x-icon',
-      }
+        url: "/favicon.ico",
+        type: "image/x-icon",
+      },
     ],
-    apple: '/xiomara.svg',
+    apple: "/xiomara.svg",
   },
 };
 
 export default async function RootLayout({
   children,
-  params
+  params,
 }: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
@@ -44,7 +47,7 @@ export default async function RootLayout({
   const { locale } = await params;
 
   // Validate locale
-  if (!routing.locales.includes(locale as 'en' | 'es')) {
+  if (!routing.locales.includes(locale as "en" | "es")) {
     notFound();
   }
 
@@ -55,9 +58,15 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
+          <QueryProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+            <ClientOnly>
+              <Toaster position="top-right" />
+            </ClientOnly>
+          </QueryProvider>
         </NextIntlClientProvider>
-        <Toaster position="top-right" />
       </body>
     </html>
   );

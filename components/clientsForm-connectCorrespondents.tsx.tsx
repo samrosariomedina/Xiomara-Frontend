@@ -38,7 +38,7 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
       corresponsalClientName: "",
       corresponsalWhatsapp: "",
       corresponsalClientName2: "",
-      accountType: "",
+      accountType: undefined,
       invitationMethods: {
         whatsapp: false,
         email: false,
@@ -133,6 +133,7 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
                  className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                   errors.corresponsalClientName ? "border-red-300" : ""
                 }`}
+                suppressHydrationWarning
               />
               {errors.corresponsalClientName && (
                 <p className="text-xs text-red-500 mt-1">{errors.corresponsalClientName.message as string}</p>
@@ -145,10 +146,11 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
               <Input
                 id="corresponsalWhatsapp"
                 {...register("corresponsalWhatsapp")}
-                 className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
+                 className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
                   errors.corresponsalWhatsapp ? "border-red-300" : ""
                 }`}
                 placeholder={t('contact.whatsappPlaceholder')}
+                suppressHydrationWarning
               />
               {errors.corresponsalWhatsapp && (
                 <p className="text-xs text-red-500 mt-1">{errors.corresponsalWhatsapp.message as string}</p>
@@ -168,6 +170,7 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
                  className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                   errors.corresponsalClientName2 ? "border-red-300" : ""
                 }`}
+                suppressHydrationWarning
               />
               {errors.corresponsalClientName2 && (
                 <p className="text-xs text-red-500 mt-1">{errors.corresponsalClientName2.message as string}</p>
@@ -260,12 +263,7 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
           </div>
         </div>
       </div>
-       <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
-                           <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                             <Button  className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
-                             <Button  className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{t('form.submit')}</Button>
-                           </div>
-                         </div>
+
     </div>
   );
 });

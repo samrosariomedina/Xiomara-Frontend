@@ -4,7 +4,7 @@ import { useState } from "react"
 import ChatCard from "@/components/contentEnginePage-chatCard"
 import FuentesCard from "@/components/contentEnginePage-fuentesCard"
 import OutputCard from "@/components/contentEnginePage-outputCard"
-import { Navbar } from "@/components/navbar"
+import { Navbar } from "@/components/Navbar"
 
 export default function ContentEnginePage(){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')

@@ -30,14 +30,14 @@ export function ClientCard({
     {
       id: 'test-1',
       name: 'Test Campaign 1',
-      createdDate: new Date().toLocaleDateString(),
+      createdDate: '2024-01-15',
       connectedSources: { whatsapp: 2, email: 1, other: 0 },
       status: 'Activa',
     },
     {
       id: 'test-2',
       name: 'Test Campaign 2',
-      createdDate: new Date().toLocaleDateString(),
+      createdDate: '2024-01-10',
       connectedSources: { whatsapp: 1, email: 2, other: 1 },
       status: 'Inactiva',
     }

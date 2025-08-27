@@ -1,13 +1,11 @@
-"use client"
 
 import { DashboardHeader } from "@/components/dashboardPage-header";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/Navbar";
 import {MetricsCards} from '@/components/dashboardPage-metricsCards'
 import { CorresponsablesSection } from "@/components/dashboardPage-corresspondableCard";
 import { FuentesGeneralesSection } from "@/components/dashboardPage-fuentesCard";
 import { KnowledgeBaseSection } from "@/components/dashboardPage-knowledgeCard";
 import { MediaListeningSection } from "@/components/dashboardPage-mediaCard";
-import withAuth from "@/lib/withAuth";
 
 function DashBoard() {
   return (
@@ -40,5 +38,5 @@ function DashBoard() {
   )
 }
 
-export default withAuth(DashBoard);
+export default DashBoard;
 

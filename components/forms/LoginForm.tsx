@@ -1,58 +1,73 @@
 "use client"
 
-import {useTranslations} from 'next-intl';
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useTranslations } from 'next-intl'
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff } from "lucide-react"
-import {loginSchema, type LoginInput} from '@/lib/schemas';
-import { cn } from '@/lib/utils';
-import { Link } from '@/i18n/navigation';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAPI';
-import { toast } from "sonner";
-
-
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { Link } from '@/i18n/navigation'
+import { cn } from '@/lib/utils'
+import { loginSchema, type LoginInput } from '@/lib/schemas'
+import { loginAction } from '@/actions/auth'
 
 export default function LoginForm() {
-    const t = useTranslations('LOGIN');
-    const [showPassword, setShowPassword] = useState(false)
-    const router = useRouter();
-    const { login, isLoading: authLoading } = useAuth();
+  const t = useTranslations('LOGIN')
+  const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
 
-   const {
+  const {
     register,
     handleSubmit,
-    formState: {errors, isSubmitting}
+    formState: { errors, isSubmitting }
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {email: '', password: ''}
-  });
+    defaultValues: { email: '', password: '' }
+  })
 
-   async function onSubmit(values: LoginInput) {
-    try {
-      await login(values);
-      toast.success(t("loginSuccess"));
-      router.push('/clients');
-    } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error instanceof Error ? error.message : t("loginError");
-      toast.error(errorMessage);
+  // TanStack Query mutation for login
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginInput) => {
+      const result = await loginAction(credentials)
+      if (!result.success) {
+        throw new Error(result.error || 'Login failed')
+      }
+      return result
+    },
+    onSuccess: () => {
+      toast.success(t("loginSuccess"))
+      router.push('/clients')
+      router.refresh() // Refresh to update server components
+    },
+    onError: (error: Error) => {
+      toast.error(error.message, {
+        icon: <AlertCircle className="h-4 w-4" />
+      })
     }
+  })
+
+  const onSubmit = async (values: LoginInput) => {
+    await loginMutation.mutateAsync(values)
   }
+
+  const isLoading = isSubmitting || loginMutation.isPending
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-gray-50 lg:bg-white lg:shadow-sm p-8 rounded-xl w-full max-w-sm"
-      style={{
-        width: '390px',
-        height: '700px',
-        justifyContent: 'center',
-        alignContent: 'center'
-      }}
+      <div 
+        className="bg-gray-50 lg:bg-white lg:shadow-sm p-8 rounded-xl w-full max-w-sm"
+        style={{
+          width: '390px',
+          height: '700px',
+          justifyContent: 'center',
+          alignContent: 'center'
+        }}
       >
         {/* Header */}
         <div className="text-center mb-8">
@@ -72,11 +87,12 @@ export default function LoginForm() {
               type="email"
               placeholder={t("emailPlaceholder")}
               {...register("email")}
+              disabled={isLoading}
               className={cn(
                 "w-full h-10 px-3 py-2 text-sm border rounded-md bg-white transition-colors",
                 "placeholder:text-gray-400",
-                "",
                 "hover:border-gray-300",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
                 errors.email ? "border-red-300" : "border-gray-300"
               )}
             />
@@ -94,18 +110,20 @@ export default function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 placeholder={t("passwordPlaceholder")}
                 {...register("password")}
+                disabled={isLoading}
                 className={cn(
                   "w-full h-10 px-3 py-2 pr-10 text-sm border rounded-md bg-white transition-colors",
                   "placeholder:text-gray-400",
-                  "",
                   "hover:border-gray-300",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
                   errors.password ? "border-red-300" : "border-gray-300"
                 )}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isLoading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -115,19 +133,29 @@ export default function LoginForm() {
 
           {/* Forgot Password Link */}
           <div className="text-right">
-            <a href="#" className="text-xs text-gray-600 hover:text-blue-800 transition-colors font-medium">
+            <Link 
+              href="/auth/forgot-password"
+              className="text-xs text-gray-600 hover:text-blue-800 transition-colors font-medium"
+            >
               {t("forgotPassword")}
-            </a>
+            </Link>
           </div>
 
           {/* Login Button */}
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={isSubmitting || authLoading}
-              className="w-full bg-[#31499F] hover:bg-[#2b3f8f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-12 px-4 rounded-full transition-colors"
+              disabled={isLoading}
+              className="w-full bg-[#31499F] hover:bg-[#2b3f8f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-12 px-4 rounded-full transition-colors flex items-center justify-center gap-2"
             >
-              {(isSubmitting || authLoading) ? t("loggingIn") : t("loginButton")}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t("loggingIn")}</span>
+                </>
+              ) : (
+                t("loginButton")
+              )}
             </Button>
           </div>
         </form>
@@ -138,7 +166,8 @@ export default function LoginForm() {
           <Link href="/auth/signup">
             <Button
               variant="outline"
-              className="w-full border border-[#31499F] text-[#31499F] hover:bg-[#eef1ff] font-semibold h-12 px-4 rounded-full transition-colors bg-white"
+              disabled={isLoading}
+              className="w-full border border-[#31499F] text-[#31499F] hover:bg-[#eef1ff] font-semibold h-12 px-4 rounded-full transition-colors bg-white disabled:opacity-50"
             >
               {t("signUp")}
             </Button>

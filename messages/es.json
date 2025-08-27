@@ -29,6 +29,20 @@
         "signupFailed": "Error al crear la cuenta. Por favor, intenta de nuevo.",
         "signupError": "Ocurrió un error durante el registro."
     },
+    "FORGOT_PASSWORD": {
+        "title": "Olvidé mi contraseña",
+        "email": "Email",
+        "emailPlaceholder": "Ingresa tu dirección de email",
+        "sendResetLink": "Enviar enlace de restablecimiento",
+        "sending": "Enviando...",
+        "backToLogin": "Volver al inicio de sesión",
+        "emailSent": "¡Enlace de restablecimiento enviado! Revisa tu email."
+    },
+    "AUTH": {
+        "logoutSuccess": "Sesión cerrada exitosamente",
+        "logoutError": "Error durante el cierre de sesión",
+        "logoutFailed": "Error al cerrar sesión"
+    },
     "CLIENTS": {
         "title": "Clientes",
         "createClient": "Crear cliente",
@@ -66,6 +80,8 @@
         "deleteError": "Error al eliminar el cliente",
         "clientCreated": "Cliente creado exitosamente",
         "clientDeleted": "Cliente eliminado exitosamente",
+        "deleteConfirm": "¿Estás seguro de que quieres eliminar este cliente?",
+        "deleteSuccess": "Cliente eliminado exitosamente",
         "noCampaignsYet": "Aún no hay campañas",
         "noCampaignsYetShort": "Sin campañas"
     },
@@ -142,7 +158,12 @@
         "validation": {
             "error": "Error de Validación",
             "fillRequired": "Por favor complete todos los campos requeridos"
-        }
+        },
+        "clientCreated": "¡Cliente creado exitosamente!",
+        "creating": "Creando...",
+        "sourceAdded": "Fuente agregada exitosamente",
+        "sourceError": "Error al agregar fuente",
+        "nameRequired": "El nombre es requerido"
     },
     "brand": {
         "comingSoon": "Contenido de Brand Guides próximamente..."

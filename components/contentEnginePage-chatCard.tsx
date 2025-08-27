@@ -12,7 +12,6 @@ export default function ChatCard() {
     const [showPostEditor, setShowPostEditor] = useState(false)
     const [showEditForm, setShowEditForm] = useState(false)
     const [selectedPlatform, setSelectedPlatform] = useState('')
-    const [contentTitle, setContentTitle] = useState('Título Resumen')
     const [contentText, setContentText] = useState(`<p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p><p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p>`)
 
     const handleAddSources = () => {
@@ -29,7 +28,6 @@ export default function ChatCard() {
     }
 
     const handleSaveContent = (title: string, content: string) => {
-        setContentTitle(title)
         setContentText(content)
     }
 
@@ -60,10 +58,7 @@ export default function ChatCard() {
                     <div className="flex-1 flex flex-col space-y-6 overflow-y-auto">
                         {/* Content Summary */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="flex flex-col items-start justify-between mb-3">
-                                <h4 className="text-base font-semibold text-gray-900">{contentTitle}</h4>
-                                <span className="text-sm text-gray-500">3 fuentes</span>
-                            </div>
+                           
                             
                             <div className=" text-sm text-gray-700 leading-relaxed">
                                 <div dangerouslySetInnerHTML={{ __html: contentText }} />
@@ -165,7 +160,7 @@ export default function ChatCard() {
                 )}
                 <footer className="mt-6">
                 <div className="flex items-center gap-3 bg-[#f7f9ff] rounded-full px-4 py-3">
-                    <Input placeholder="Type message" className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" />
+                    <Input placeholder="Type message" className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" suppressHydrationWarning />
                     <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
                         <ImageIcon className="h-4 w-4" />
                     </button>
@@ -210,7 +205,6 @@ export default function ChatCard() {
                 isOpen={showEditForm}
                 onClose={() => setShowEditForm(false)}
                 onSave={handleSaveContent}
-                initialTitle={contentTitle}
                 initialContent={contentText}
             />
         </div>
