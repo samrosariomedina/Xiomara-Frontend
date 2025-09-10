@@ -7,19 +7,27 @@ import { useState } from "react"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useTranslations } from 'next-intl'
 import { useRouter, useParams } from 'next/navigation'
+import { EmptyKnowledgeBase } from "@/components/icons/icons"
 
-const knowledgeItems = [
-  { id: 1, name: "Cómo configurar X", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 horas" },
-  { id: 2, name: "Guía de usuario Y", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 horas" },
-  { id: 3, name: "FAQ Z", type: "Knowledge base", lastUpdate: "Última actualización", time: "5 horas" },
-  { id: 4, name: "Procedimiento de soporte", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 día" },
-  { id: 5, name: "Onboarding cliente", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 días" },
-  { id: 6, name: "Política de privacidad", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 semana" },
-  { id: 7, name: "Checklist de lanzamiento", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 semanas" },
-  { id: 8, name: "Plantilla reportes", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 mes" },
-  { id: 9, name: "Manual técnico", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 meses" },
-  { id: 10, name: "Glosario", type: "Knowledge base", lastUpdate: "Última actualización", time: "6 meses" },
-]
+// const knowledgeItems = [
+//   { id: 1, name: "Cómo configurar X", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 horas" },
+//   { id: 2, name: "Guía de usuario Y", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 horas" },
+//   { id: 3, name: "FAQ Z", type: "Knowledge base", lastUpdate: "Última actualización", time: "5 horas" },
+//   { id: 4, name: "Procedimiento de soporte", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 día" },
+//   { id: 5, name: "Onboarding cliente", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 días" },
+//   { id: 6, name: "Política de privacidad", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 semana" },
+//   { id: 7, name: "Checklist de lanzamiento", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 semanas" },
+//   { id: 8, name: "Plantilla reportes", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 mes" },
+//   { id: 9, name: "Manual técnico", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 meses" },
+//   { id: 10, name: "Glosario", type: "Knowledge base", lastUpdate: "Última actualización", time: "6 meses" },
+// ]
+const knowledgeItems: Array<{
+  id: number;
+  name: string;
+  type: string;
+  lastUpdate: string;
+  time: string;
+}> = [] // Empty state
 
 export function KnowledgeBaseSection() {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -65,29 +73,41 @@ export function KnowledgeBaseSection() {
 
 
       <div className={`${!isExpanded ? "hidden lg:block" : "block"} px-4 sm:px-6 sm:py-4 flex-1 overflow-y-auto hide-scrollbar`}> 
-  <div className="space-y-3 sm:space-y-4">
-          {knowledgeItems.map((item) => (
-            <div key={item.id} className="bg-white border border-gray-100 rounded-lg p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-200" />
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-semibold">NC</div>
-                <div>
-      <p className="text-xs text-gray-400">{item.name}</p>
-      <p className="text-sm font-medium text-gray-900">{t('type')}</p>
+        {knowledgeItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <EmptyKnowledgeBase className="mb-4" />
+            <p className="text-sm text-gray-500 text-center mb-2">
+              {t('emptyState')}
+            </p>
+            <p className="text-xs text-gray-400 text-center">
+              {t('emptySubtitle')}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {knowledgeItems.map((item) => (
+              <div key={item.id} className="bg-white border border-gray-100 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" className="w-4 h-4 rounded border-gray-200" />
+                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-semibold">NC</div>
+                  <div>
+        <p className="text-xs text-gray-400">{item.name}</p>
+        <p className="text-sm font-medium text-gray-900">{t('type')}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">{t('lastUpdate')}</p>
+                    <p className="text-sm font-medium text-start text-gray-900">{item.time}</p>
+                  </div>
+
+                  <MoreVertical className="h-4 w-4" />
                 </div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">{t('lastUpdate')}</p>
-                  <p className="text-sm font-medium text-start text-gray-900">{item.time}</p>
-                </div>
-
-                <MoreVertical className="h-4 w-4" />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
       {/* bottom link for mobile/md; header contains 'Ver todos' on lg
           hide this bottom link when the section is collapsed */}

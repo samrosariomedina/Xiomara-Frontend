@@ -90,6 +90,9 @@ export const generalInformationSchema = z.object({
 // Individual correspondent schema
 const correspondentSchema = z.object({
   clientName: z.string().min(1, 'Client name is required'),
+  email: z.string()
+    .min(1, 'Email is required')
+    .email('Invalid email format'),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
     .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),

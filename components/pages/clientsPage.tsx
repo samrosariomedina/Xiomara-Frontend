@@ -3,7 +3,7 @@
 import { ClientsHeader } from "@/components/clientsPage-header"
 import { EmptyState } from "@/components/clientsPage-emptyState"
 import { ClientsList } from "@/components/clientsPage-cardWrapper"
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { ClientFormModal } from "@/components/pages/clientPage-Forms"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"
@@ -77,6 +77,12 @@ function ClientsPage({ initialClients }: ClientsPageProps) {
 
   const itemsPerPage = 8
 
+  // Use ref to store latest clientsData to avoid dependency issues
+  const clientsDataRef = useRef(clientsData)
+  useEffect(() => {
+    clientsDataRef.current = clientsData
+  }, [clientsData])
+
   // Transform ClientResponse to Client type for the UI - memoized to prevent unnecessary re-renders
   const clients: Client[] = useMemo(() => {
     return clientsData.map((clientData: ClientResponse) => {
@@ -117,8 +123,8 @@ function ClientsPage({ initialClients }: ClientsPageProps) {
   }, [])
 
   const openEditModal = useCallback((client: Client) => {
-    // Find the original client data from clientsData
-    const originalClient = clientsData.find((c: ClientResponse) => c._id === client.id)
+    // Find the original client data from clientsData using ref
+    const originalClient = clientsDataRef.current.find((c: ClientResponse) => c._id === client.id)
     if (originalClient) {
       setEditClient({
         id: String(client.id),
@@ -132,7 +138,7 @@ function ClientsPage({ initialClients }: ClientsPageProps) {
       })
     }
     setIsModalOpen(true)
-  }, [clientsData])
+  }, []) // No dependencies needed since we use ref
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false)

@@ -154,6 +154,7 @@
             "add": "Agregar",
             "addNew": "Agregar Nuevo",
             "clientName": "Nombre del cliente",
+            "email": "Correo electrónico",
             "whatsapp": "Número de whatsapp",
             "accountType": "Tipo de cuenta",
             "accountTypes": {
@@ -164,7 +165,9 @@
             "invitationMethods": "Selecciona cómo quieres enviar la invitación",
             "sendWhatsapp": "Enviar por whatsapp",
             "sendEmail": "Enviar por correo",
-            "copyLink": "Copiar el link y compartir"
+            "copyLink": "Copiar el link y compartir",
+            "createCorresponsables": "Crear Corresponsables",
+            "emptyState": "No se han agregado corresponsales"
         },
         "actions": {
             "cancel": "Cancelar",
@@ -174,7 +177,12 @@
         },
         "validation": {
             "error": "Error de Validación",
-            "fillRequired": "Por favor complete todos los campos requeridos"
+            "fillRequired": "Por favor complete todos los campos requeridos",
+            "switchToGeneral": "Por favor cambia a la pestaña de Información General para crear el cliente",
+            "useCreateButton": "Por favor usa el botón \"Crear Corresponsables\" para crear corresponsables, o cambia a la pestaña de Información General para crear el cliente primero",
+            "createClientFirst": "Por favor crea un cliente primero completando la pestaña de Información General",
+            "fillConnectFields": "Por favor complete todos los campos requeridos en el formulario de Conectar Corresponsales",
+            "addCorrespondent": "Por favor agrega al menos un corresponsal"
         },
         "clientCreated": "¡Cliente creado exitosamente!",
         "clientUpdated": "¡Cliente actualizado exitosamente!",
@@ -254,8 +262,12 @@
             "imageLabel": "Imagen",
             "addToCampaign": "Agregar a campaña",
             "campaignTitle": "Imagen de campaña publicitaria",
-            "time": "3 mins"
-        }
+            "time": "3 mins",
+            "emptyState": "No hay fuentes disponibles",
+            "emptySubtitle": "Agregar corresponsales para ver sus fuentes"
+        },
+        "emptyState": "No se han agregado corresponsales",
+        "emptySubtitle": "Agregar usuarios para poder ver las fuentes"
     }
     ,
     "FUENTES": {
@@ -273,7 +285,9 @@
             "status": "Estado",
             "createdBy": "Creado por",
             "updatedAt": "Última actualización"
-        }
+        },
+        "emptyState": "No se han agregado fuentes",
+        "emptySubtitle": "Agregar archivos para comenzar"
         ,
         "empty": {
             "title": "No se han agregado artículos",
@@ -298,7 +312,9 @@
         "refresh": "Actualizar",
         "viewAll": "Ver todos",
         "lastUpdate": "Última actualización",
-        "type": "Knowledge base"
+        "type": "Knowledge base",
+        "emptyState": "No se han agregado elementos de knowledge base",
+        "emptySubtitle": "Crea una knowledge base para empezar"
         ,
         "empty": {
             "title": "No se han agregado artículos",
@@ -322,7 +338,9 @@
     ,
     "MEDIA": {
         "title": "Media listening",
-        "viewAll": "Ver todos"
+        "viewAll": "Ver todos",
+        "emptyState": "No se han agregado media listeners",
+        "emptySubtitle": "Configura el primero para recolectar información"
     }
     ,
     "CORRESPONSABLES_FORM": {

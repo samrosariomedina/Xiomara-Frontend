@@ -21,6 +21,7 @@ import Image from "next/image"
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
+  reset: () => void
 }
 
 interface GeneralInformationFormProps {
@@ -62,6 +63,13 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
     getValues: () => {
       const values = form.getValues() as GeneralInformationInput;
       return { ...values, logoFile: selectedFile };
+    },
+    reset: () => {
+      form.reset();
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }))
   

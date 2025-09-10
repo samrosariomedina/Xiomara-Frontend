@@ -17,8 +17,7 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { connectCorrespondentsSchema, type ConnectCorrespondentsInput } from '@/lib/schemas'
 import { forwardRef, useImperativeHandle, useState, useRef } from "react"
-import { useMutation } from "@tanstack/react-query"
-import { createCorresponsalesFromCSVAction } from "@/actions/clients"
+import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { toast } from "sonner"
 
 interface ConnectCorrespondentsFormProps {
@@ -28,6 +27,7 @@ interface ConnectCorrespondentsFormProps {
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
+  reset: () => void
 }
 
 export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespondentsInput>, ConnectCorrespondentsFormProps>(function ConnectCorrespondentsForm({
@@ -39,25 +39,11 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   const [selectedCsvFile, setSelectedCsvFile] = useState<File | null>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
-  // CSV upload mutation
-  const csvUploadMutation = useMutation({
-    mutationFn: ({ folderId, csvFile, enabled }: { folderId: string, csvFile: File, enabled: boolean }) =>
-      createCorresponsalesFromCSVAction(folderId, csvFile, enabled),
-    onSuccess: (result) => {
-      if (result.success) {
-        toast.success(`Successfully created ${result.data.length} corresponsales from CSV`);
-        setSelectedCsvFile(null);
-        if (csvFileInputRef.current) {
-          csvFileInputRef.current.value = '';
-        }
-      }
-    },
-    onError: (error: unknown) => {
-      console.error('CSV upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload CSV';
-      toast.error(errorMessage);
-    }
-  });
+  // Use corresponsables hook
+  const { 
+    createCorresponsablesFromCSV, 
+    isCreatingFromCSV 
+  } = useCorresponsables(folderId || undefined);
 
   const form = useForm<ConnectCorrespondentsInput>({
     resolver: zodResolver(connectCorrespondentsSchema),
@@ -65,6 +51,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       correspondents: [
         {
           clientName: "",
+          email: "",
           whatsapp: "",
           accountType: "basic" as const,
           invitationMethods: {
@@ -91,6 +78,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   const addCorrespondent = () => {
     append({
       clientName: "",
+      email: "",
       whatsapp: "",
       accountType: "basic" as const,
       invitationMethods: {
@@ -121,27 +109,43 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
 
   const handleCsvUpload = async () => {
     if (!selectedCsvFile) {
-      toast.error('Please select a CSV file first');
       return;
     }
 
     if (!folderId) {
-      toast.error('Please create a client first before uploading CSV');
       return;
     }
 
-    await csvUploadMutation.mutateAsync({
-      folderId,
-      csvFile: selectedCsvFile,
-      enabled: true
-    });
+    try {
+      await createCorresponsablesFromCSV({
+        folderId,
+        csvFile: selectedCsvFile,
+        enabled: true
+      });
+      
+      // Clear the selected file after successful upload
+      setSelectedCsvFile(null);
+      if (csvFileInputRef.current) {
+        csvFileInputRef.current.value = '';
+      }
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('CSV upload failed:', error);
+    }
   };
 
   useImperativeHandle(ref, () => ({
     validate: async () => {
       return await form.trigger();
     },
-    getValues: () => form.getValues() as ConnectCorrespondentsInput
+    getValues: () => form.getValues() as ConnectCorrespondentsInput,
+    reset: () => {
+      form.reset();
+      setSelectedCsvFile(null);
+      if (csvFileInputRef.current) {
+        csvFileInputRef.current.value = '';
+      }
+    }
   }))
 
   return (
@@ -157,11 +161,11 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
               size="sm"
               type="button"
               onClick={handleCsvUploadClick}
-              disabled={csvUploadMutation.isPending}
+              disabled={isCreatingFromCSV}
               className="flex-1 lg:flex-none text-xs h-8 px-3 bg-[#F7F9FF] hover:bg-gray-50 text-[#31499F] rounded-full flex items-center justify-center border border-white disabled:opacity-50"
             >
               <Upload className="h-3 w-3 mr-1.5" />
-              {csvUploadMutation.isPending ? 'Uploading...' : t('correspondents.uploadCSV')}
+              {isCreatingFromCSV ? 'Uploading...' : t('correspondents.uploadCSV')}
             </Button>
 
             {/* CSV file status and upload button */}
@@ -173,10 +177,10 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                   size="sm"
                   type="button"
                   onClick={handleCsvUpload}
-                  disabled={csvUploadMutation.isPending || !folderId}
+                  disabled={isCreatingFromCSV || !folderId}
                   className="text-xs h-6 px-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                 >
-                  {csvUploadMutation.isPending ? 'Uploading...' : 'Upload'}
+                  {isCreatingFromCSV ? 'Uploading...' : 'Upload'}
                 </Button>
               </div>
             )}
@@ -247,6 +251,30 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                   )}
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor={`correspondents.${index}.email`} className="text-xs text-gray-700 font-medium">
+                    {t('correspondents.email')}
+                  </Label>
+                  <Input
+                    id={`correspondents.${index}.email`}
+                    type="email"
+                    {...register(`correspondents.${index}.email`)}
+                    className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
+                      errors.correspondents?.[index]?.email ? "border-red-300" : ""
+                    }`}
+                    placeholder={t('contact.emailPlaceholder')}
+                    suppressHydrationWarning
+                  />
+                  {errors.correspondents?.[index]?.email && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.correspondents[index]?.email?.message as string}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Second row */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
                     {t('correspondents.whatsapp')}
                   </Label>
@@ -265,10 +293,6 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                     </p>
                   )}
                 </div>
-              </div>
-
-              {/* Second row */}
-              <div className="grid lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor={`correspondents.${index}.accountType`} className="text-xs text-gray-700 font-medium">
                     {t('correspondents.accountType')}
@@ -356,6 +380,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           </div>
         ))}
       </div>
+
 
     </div>
   );

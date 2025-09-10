@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl'
 import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/schemas'
 import { toast } from "sonner"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { createClientAction, createCorresponsalesAction, editClientAction } from "@/actions/clients"
+import { createClientAction, editClientAction } from "@/actions/clients"
+import { useCorresponsables } from "@/hooks/useCorresponsables"
 
 import { useRef } from 'react'
 import { GeneralInformationForm } from "../clientsForm-generalInformation"
@@ -31,6 +32,7 @@ interface ClientFormModalProps {
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
+  reset: () => void
 }
 
 export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModalProps) {
@@ -77,18 +79,11 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
     }
   })
 
-  // Create corresponsales mutation
-  const createCorresponsalesMutation = useMutation({
-    mutationFn: ({ folderId, data }: { folderId: string, data: Record<string, unknown> }) =>
-      createCorresponsalesAction(folderId, data as never),
-    onError: (error: unknown) => {
-      console.error('Corresponsales creation error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create corresponsales'
-      toast.error(errorMessage)
-    }
-  })
 
   const [createdFolderId, setCreatedFolderId] = useState<string | null>(null)
+  
+  // Use corresponsables hook
+  const { createCorresponsables, isCreating: isCreatingCorresponsables } = useCorresponsables(createdFolderId || undefined)
 
   // Form refs - child forms will manage their own states
   const generalFormRef = useRef<ChildFormRef<GeneralInformationInput> | null>(null)
@@ -108,6 +103,11 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       setTimeout(() => {
         setIsAnimating(true)
       }, 10)
+      
+      // Reset to general tab when opening fresh (not in edit mode)
+      if (!editClient) {
+        setActiveTab("general")
+      }
     } else {
       document.body.style.overflow = "unset"
       document.body.style.paddingRight = ""
@@ -118,7 +118,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       document.body.style.overflow = "unset"
       document.body.style.paddingRight = ""
     }
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, editClient])
 
   // Track viewport to switch to mobile accordion behaviour
   // Note: responsive display handled by tailwind classes (md:hidden / md:block)
@@ -131,26 +131,70 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       setCreatedFolderId(null)
       // Reset mobile accordion
       setMobileExpanded({ general: true, connect: false, brand: false })
+      // Reset all forms
+      generalFormRef.current?.reset()
+      connectFormRef.current?.reset()
+      brandFormRef.current?.reset()
       onClose()
     }, 300)
   }, [onClose])
 
   const handleSubmit = useCallback(async () => {
     try {
-      // Only validate general form (required), others are optional
-      const generalValid = await generalFormRef.current?.validate()
+      // Validate based on the current active tab
+      if (activeTab === "general") {
+        // Only validate general form when on general tab
+        const generalValid = await generalFormRef.current?.validate()
 
-      if (!generalValid) {
-        toast.error(t('validation.fillRequired') || 'Please fill all required fields in General Information')
+        if (!generalValid) {
+          toast.error(t('validation.fillRequired') || 'Please fill all required fields in General Information')
+          return
+        }
+      } else if (activeTab === "connect") {
+        // For connect tab, try to create corresponsables if we have a folder ID
+        // In edit mode, use editClient.id; in create mode, use createdFolderId
+        const folderId = editClient ? editClient.id : createdFolderId
+        
+        if (!folderId) {
+          toast.error(t('validation.createClientFirst') || 'Please create a client first by filling out the General Information tab')
+          return
+        }
+
+        // Validate connect form
+        const connectValid = await connectFormRef.current?.validate()
+        if (!connectValid) {
+          toast.error(t('validation.fillConnectFields') || 'Please fill all required fields in the Connect Correspondents form')
+          return
+        }
+
+        // Get connect form data and create corresponsables
+        const connectData = connectFormRef.current?.getValues() as ConnectCorrespondentsInput || {}
+        if (!connectData.correspondents || connectData.correspondents.length === 0) {
+          toast.error(t('validation.addCorrespondent') || 'Please add at least one correspondent')
+          return
+        }
+
+        try {
+          await createCorresponsables({
+            folderId: folderId,
+            correspondents: connectData.correspondents
+          })
+          toast.success('Corresponsables created successfully!')
+          handleClose()
+          return
+        } catch (error) {
+          console.error('Failed to create corresponsables:', error)
+          toast.error('Failed to create corresponsables')
+          return
+        }
+      } else if (activeTab === "brand") {
+        // For brand tab, just show info message
+        toast.info(t('validation.switchToGeneral') || 'Please switch to General Information tab to create the client.')
         return
       }
 
-      // Connect form is optional - validate but don't block submission
-      await connectFormRef.current?.validate()
-
-      // Get all form data with proper typing
+      // Get only general form data - corresponsables are handled separately
       const generalData = generalFormRef.current?.getValues() as GeneralInformationInput || {}
-      const connectData = connectFormRef.current?.getValues() as ConnectCorrespondentsInput || {}
 
       if (editClient) {
         // Edit mode - update existing client
@@ -168,7 +212,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
           return
         }
       } else {
-        // Create mode - create new client
+        // Create mode - create new client ONLY
         const clientData = {
           ...generalData,
           logoFile: generalData.logoFile || undefined
@@ -180,23 +224,8 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
           return
         }
 
-        // If corresponsales data is provided, create the listeners
-        if (connectData.corresponsalClientName && connectData.corresponsalWhatsapp) {
-          await createCorresponsalesMutation.mutateAsync({
-            folderId: clientResult.data._id,
-            data: {
-              corresponsalClientName: connectData.corresponsalClientName,
-              corresponsalWhatsapp: connectData.corresponsalWhatsapp,
-              corresponsalClientName2: connectData.corresponsalClientName2,
-              accountType: connectData.accountType,
-              invitationMethods: connectData.invitationMethods || {
-                whatsapp: false,
-                email: false,
-                copyLink: false
-              }
-            }
-          })
-        }
+        // Set the created folder ID for potential corresponsables creation later
+        setCreatedFolderId(clientResult.data._id)
       }
 
       // Show success message and close
@@ -205,7 +234,8 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       console.error('Submit error:', error)
       toast.error(error instanceof Error ? error.message : (t('validation.error') || 'An error occurred during submission'))
     }
-  }, [createClientMutation, editClientMutation, createCorresponsalesMutation, editClient, t, handleClose])
+  }, [createClientMutation, editClientMutation, editClient, t, handleClose, activeTab, createdFolderId, createCorresponsables])
+
 
   if (!isOpen) return null
 
@@ -298,22 +328,20 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                      <div className="text-sm font-medium">{t('tabs.general')}</div>
                      <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.general ? 'rotate-180' : ''}`} />
                    </button>
-                   {mobileExpanded.general && (
-                     <div className="px-4 py-3 bg-white">
-                       <GeneralInformationForm
-                         ref={generalFormRef}
-                         initialValues={editClient ? {
-                           clientName: editClient.name,
-                           industry: editClient.industry as "tecnologia" | "salud" | "educacion" | "finanzas" | "retail" | "manufactura",
-                           description: editClient.description,
-                           contactName: editClient.contactName,
-                           whatsapp: editClient.whatsapp,
-                           position: editClient.position as "ceo" | "cto" | "marketing" | "ventas" | "gerente" | "coordinador",
-                           email: editClient.email
-                         } : undefined}
-                       />
-                     </div>
-                   )}
+                   <div className={`px-4 py-3 bg-white ${mobileExpanded.general ? 'block' : 'hidden'}`}>
+                     <GeneralInformationForm
+                       ref={generalFormRef}
+                       initialValues={editClient ? {
+                         clientName: editClient.name,
+                         industry: editClient.industry as "tecnologia" | "salud" | "educacion" | "finanzas" | "retail" | "manufactura",
+                         description: editClient.description,
+                         contactName: editClient.contactName,
+                         whatsapp: editClient.whatsapp,
+                         position: editClient.position as "ceo" | "cto" | "marketing" | "ventas" | "gerente" | "coordinador",
+                         email: editClient.email
+                       } : undefined}
+                     />
+                   </div>
                  </div>
 
                  {/* Connect */}
@@ -326,14 +354,12 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                      <div className="text-sm font-medium">{t('tabs.connect')}</div>
                      <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.connect ? 'rotate-180' : ''}`} />
                    </button>
-                   {mobileExpanded.connect && (
-                     <div className="px-4 py-3 bg-white">
-                       <ConnectCorrespondentsForm
-                         ref={connectFormRef}
-                         folderId={createdFolderId}
-                       />
-                     </div>
-                   )}
+                   <div className={`px-4 py-3 bg-white ${mobileExpanded.connect ? 'block' : 'hidden'}`}>
+                     <ConnectCorrespondentsForm
+                       ref={connectFormRef}
+                       folderId={editClient ? editClient.id : createdFolderId}
+                     />
+                   </div>
                  </div>
 
                  {/* Brand */}
@@ -346,20 +372,18 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                      <div className="text-sm font-medium">{t('tabs.brand')}</div>
                      <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.brand ? 'rotate-180' : ''}`} />
                    </button>
-                   {mobileExpanded.brand && (
-                     <div className="px-4 py-3 bg-white">
-                       <BrandGuidesForm
-                         ref={brandFormRef}
-                       />
-                     </div>
-                   )}
+                   <div className={`px-4 py-3 bg-white ${mobileExpanded.brand ? 'block' : 'hidden'}`}>
+                     <BrandGuidesForm
+                       ref={brandFormRef}
+                     />
+                   </div>
                  </div>
                </div>
 
                {/* --- FORM CONTENT --- */}
-               {/* Render the appropriate tab content based on activeTab (desktop/md and up) */}
+               {/* Render all forms but only show the active one (desktop/md and up) */}
                <div className="hidden md:block">
-                 {activeTab === "general" && (
+                 <div className={activeTab === "general" ? "block" : "hidden"}>
                    <GeneralInformationForm
                      ref={generalFormRef}
                      initialValues={editClient ? {
@@ -372,18 +396,18 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                        email: editClient.email
                      } : undefined}
                    />
-                 )}
-                 {activeTab === "brand" && (
+                 </div>
+                 <div className={activeTab === "brand" ? "block" : "hidden"}>
                    <BrandGuidesForm
                      ref={brandFormRef}
                    />
-                 )}
-                 {activeTab === "connect" && (
+                 </div>
+                 <div className={activeTab === "connect" ? "block" : "hidden"}>
                    <ConnectCorrespondentsForm
                      ref={connectFormRef}
-                     folderId={createdFolderId}
+                     folderId={editClient ? editClient.id : createdFolderId}
                    />
-                 )}
+                 </div>
                </div>
 
                {/* Buttons positioned below form content */}
@@ -398,11 +422,15 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                  <Button
                    onClick={handleSubmit}
                    className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
-                   disabled={createClientMutation.isPending || editClientMutation.isPending}
+                   disabled={createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables}
                  >
-                   {createClientMutation.isPending || editClientMutation.isPending 
+                   {createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables
                      ? (editClient ? (t('updating') || 'Updating...') : (t('creating') || 'Creating...'))
-                     : (editClient ? (t('form.update') || 'Update') : (t('form.submit') || 'Submit'))
+                     : activeTab === "general" 
+                       ? (editClient ? (t('form.update') || 'Update') : (t('form.submit') || 'Submit'))
+                     : activeTab === "connect"
+                       ? (t('correspondents.createCorresponsables') || 'Create Corresponsables')
+                       : (t('form.submit') || 'Submit')
                    }
                  </Button>
                </div>

@@ -16,19 +16,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { EmptyFuentesGenerales } from "./icons/icons"
 
-const fuentesData = [
-  { id: 1, nombre: "Informe Q1", tipo: "PDF", contenido: "Análisis de mercado Q1", estado: "En uso", creadoPor: "Ana López", ultimaActualizacion: "16/06/2025" },
-  { id: 2, nombre: "Presentación Campaña", tipo: "PPT", contenido: "Material creativo campaña", estado: "En uso", creadoPor: "Carlos Ruiz", ultimaActualizacion: "10/06/2025" },
-  { id: 3, nombre: "Dataset Usuarios", tipo: "CSV", contenido: "Segmentación usuarios", estado: "En uso", creadoPor: "María Gómez", ultimaActualizacion: "01/06/2025" },
-  { id: 4, nombre: "Brief Producto", tipo: "DOCX", contenido: "Especificaciones del producto", estado: "En uso", creadoPor: "Luis Fernández", ultimaActualizacion: "22/05/2025" },
-  { id: 5, nombre: "Imagen Campaña 1", tipo: "IMG", contenido: "Banner principal", estado: "En uso", creadoPor: "Sofía Martínez", ultimaActualizacion: "16/04/2025" },
-  { id: 6, nombre: "Audio Spot", tipo: "MP3", contenido: "Spot radio 30s", estado: "En uso", creadoPor: "Jorge Díaz", ultimaActualizacion: "03/04/2025" },
-  { id: 7, nombre: "Guía de Estilo", tipo: "PDF", contenido: "Lineamientos de marca", estado: "En uso", creadoPor: "Lucía Pérez", ultimaActualizacion: "12/03/2025" },
-  { id: 8, nombre: "Reporte SEO", tipo: "PDF", contenido: "Keywords rendimiento", estado: "En uso", creadoPor: "Andrés Soto", ultimaActualizacion: "28/02/2025" },
-  { id: 9, nombre: "Notas de Prensa", tipo: "DOCX", contenido: "Lanzamiento producto", estado: "En uso", creadoPor: "Valentina Rivas", ultimaActualizacion: "14/02/2025" },
-  { id: 10, nombre: "Resumen Anual", tipo: "PDF", contenido: "Resultados 2024", estado: "En uso", creadoPor: "Miguel Torres", ultimaActualizacion: "01/01/2025" },
-]
+// const fuentesData = [
+//   { id: 1, nombre: "Informe Q1", tipo: "PDF", contenido: "Análisis de mercado Q1", estado: "En uso", creadoPor: "Ana López", ultimaActualizacion: "16/06/2025" },
+//   { id: 2, nombre: "Presentación Campaña", tipo: "PPT", contenido: "Material creativo campaña", estado: "En uso", creadoPor: "Carlos Ruiz", ultimaActualizacion: "10/06/2025" },
+//   { id: 3, nombre: "Dataset Usuarios", tipo: "CSV", contenido: "Segmentación usuarios", estado: "En uso", creadoPor: "María Gómez", ultimaActualizacion: "01/06/2025" },
+//   { id: 4, nombre: "Brief Producto", tipo: "DOCX", contenido: "Especificaciones del producto", estado: "En uso", creadoPor: "Luis Fernández", ultimaActualizacion: "22/05/2025" },
+//   { id: 5, nombre: "Imagen Campaña 1", tipo: "IMG", contenido: "Banner principal", estado: "En uso", creadoPor: "Sofía Martínez", ultimaActualizacion: "16/04/2025" },
+//   { id: 6, nombre: "Audio Spot", tipo: "MP3", contenido: "Spot radio 30s", estado: "En uso", creadoPor: "Jorge Díaz", ultimaActualizacion: "03/04/2025" },
+//   { id: 7, nombre: "Guía de Estilo", tipo: "PDF", contenido: "Lineamientos de marca", estado: "En uso", creadoPor: "Lucía Pérez", ultimaActualizacion: "12/03/2025" },
+//   { id: 8, nombre: "Reporte SEO", tipo: "PDF", contenido: "Keywords rendimiento", estado: "En uso", creadoPor: "Andrés Soto", ultimaActualizacion: "28/02/2025" },
+//   { id: 9, nombre: "Notas de Prensa", tipo: "DOCX", contenido: "Lanzamiento producto", estado: "En uso", creadoPor: "Valentina Rivas", ultimaActualizacion: "14/02/2025" },
+//   { id: 10, nombre: "Resumen Anual", tipo: "PDF", contenido: "Resultados 2024", estado: "En uso", creadoPor: "Miguel Torres", ultimaActualizacion: "01/01/2025" },
+// ]
+const fuentesData: Array<{
+  id: number;
+  nombre: string;
+  tipo: string;
+  contenido: string;
+  estado: string;
+  creadoPor: string;
+  ultimaActualizacion: string;
+}> = [] // Empty state
 
 export function FuentesGeneralesSection() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -180,80 +190,94 @@ export function FuentesGeneralesSection() {
 
   {/* Scrollable content area (keeps card height consistent; contents scroll). hide-scrollbar hides native scrollbars */}
   <div className={`${!isExpanded ? 'hidden lg:block' : 'block'} px-2 sm:px-4   flex-1 overflow-y-auto hide-scrollbar min-h-0`}>
-    
+    {fuentesData.length === 0 ? (
+      <div className="flex flex-col items-center justify-center py-12 px-4">
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center">
+          <EmptyFuentesGenerales className="mb-4" />
+          <p className="text-sm text-gray-500 text-center mb-2">
+            {t('emptyState')}
+          </p>
+          <p className="text-xs text-gray-400 text-center">
+            {t('emptySubtitle')}
+          </p>
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* Desktop view - table layout (hidden on mobile) */}
+        <div className="hidden sm:block overflow-x-auto mt-2 ">
+          <table className="w-full">
+            <thead className="bg-gray-50 ">
+              <tr>
+                <th className="px-6 py-3 text-left w-6">
+                  <Checkbox />
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.name')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.type')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.content')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.status')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.createdBy')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.updatedAt')}</th>
+                <th className="px-6 py-3 text-left w-6"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {fuentesData.map((fuente) => (
+                <tr key={fuente.id} className="hover:bg-gray-50 border-b border-gray-100">
+                  <td className="px-6 py-3">
+                    <Checkbox />
+                  </td>
+                  <td className="px-6 py-3 text-sm font-medium text-gray-900">{fuente.nombre}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.tipo}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.contenido}</td>
+                  <td className="px-6 py-3">
+                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                      {fuente.estado}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.creadoPor}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.ultimaActualizacion}</td>
+                  <td className="px-6 py-3">
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <MoreVertical className="h-4 w-4 text-black" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-    {/* Desktop view - table layout (hidden on mobile) */}
-    <div className="hidden sm:block overflow-x-auto mt-2 ">
-      <table className="w-full">
-        <thead className="bg-gray-50 ">
-          <tr>
-            <th className="px-6 py-3 text-left w-6">
-              <Checkbox />
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.name')}</th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.type')}</th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.content')}</th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.status')}</th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.createdBy')}</th>
-            <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.updatedAt')}</th>
-            <th className="px-6 py-3 text-left w-6"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {fuentesData.map((fuente) => (
-            <tr key={fuente.id} className="hover:bg-gray-50 border-b border-gray-100">
-              <td className="px-6 py-3">
-                <Checkbox />
-              </td>
-              <td className="px-6 py-3 text-sm font-medium text-gray-900">{fuente.nombre}</td>
-              <td className="px-6 py-3 text-sm text-gray-600">{fuente.tipo}</td>
-              <td className="px-6 py-3 text-sm text-gray-600">{fuente.contenido}</td>
-              <td className="px-6 py-3">
-                <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
-                  {fuente.estado}
-                </Badge>
-              </td>
-              <td className="px-6 py-3 text-sm text-gray-600">{fuente.creadoPor}</td>
-              <td className="px-6 py-3 text-sm text-gray-600">{fuente.ultimaActualizacion}</td>
-              <td className="px-6 py-3">
-                <button className="text-gray-400 hover:text-gray-600">
-                  <MoreVertical className="h-4 w-4 text-black" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        {/* Mobile view - card layout (visible only on mobile and when expanded) */}
+        <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'}`}>
+          <div className="space-y-3 px-3">
+            {fuentesData.map((fuente) => (
+              <div key={fuente.id} className="bg-white border border-gray-100 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <Checkbox className="mt-1 h-4 w-4" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{fuente.nombre}</p>
+                      <p className="text-sm text-gray-600">{fuente.contenido}</p>
+                      <p className="text-xs text-gray-500 mt-1">{fuente.tipo}</p>
+                    </div>
+                  </div>
 
-    {/* Mobile view - card layout (visible only on mobile and when expanded) */}
-    <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'}`}>
-      <div className="space-y-3 px-3">
-        {fuentesData.map((fuente) => (
-          <div key={fuente.id} className="bg-white border border-gray-100 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-start gap-3">
-                <Checkbox className="mt-1 h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{fuente.nombre}</p>
-                  <p className="text-sm text-gray-600">{fuente.contenido}</p>
-                  <p className="text-xs text-gray-500 mt-1">{fuente.tipo}</p>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                      {fuente.estado}
+                    </Badge>
+                    <button className="text-gray-400">
+                      <MoreVertical className="h-4 w-4 text-black" />
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
-                  {fuente.estado}
-                </Badge>
-                <button className="text-gray-400">
-                  <MoreVertical className="h-4 w-4 text-black" />
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      </>
+    )}
   </div>
 
   {/* bottom 'Ver todos' for mobile/md; header shows it on lg

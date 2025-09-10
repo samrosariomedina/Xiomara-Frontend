@@ -11,6 +11,7 @@ interface BrandGuidesFormProps {
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
+  reset: () => void
 }
 
 export const BrandGuidesForm = forwardRef<ChildFormRef<BrandGuidesInput>, BrandGuidesFormProps>(function BrandGuidesForm(
@@ -24,7 +25,10 @@ export const BrandGuidesForm = forwardRef<ChildFormRef<BrandGuidesInput>, BrandG
     validate: async () => {
       return true; // Always valid since it's not implemented
     },
-    getValues: () => ({}) as BrandGuidesInput
+    getValues: () => ({}) as BrandGuidesInput,
+    reset: () => {
+      // Nothing to reset since it's not implemented
+    }
   }))
 
   return (

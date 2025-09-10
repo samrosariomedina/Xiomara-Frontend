@@ -4,25 +4,25 @@ import { Users,  FileText, Ear,  Globe } from "lucide-react"
 const metrics = [
   {
     title: "Corresponsales",
-    value: "20",
+    value: "0",
     icon: Users,
     iconColor: "text-gray-600",
   },
   {
     title: "Media listeners",
-    value: "10",
+    value: "0",
     icon: Ear,
     iconColor: "text-gray-600",
   },
   {
     title: "Knowledge base",
-    value: "100",
+    value: "0",
     icon: Globe,
     iconColor: "text-gray-600",
   },
   {
     title: "Generales",
-    value: "100",
+    value: "0",
     icon: FileText,
     iconColor: "text-gray-600",
   },

@@ -155,6 +155,7 @@
             "add": "Add",
             "addNew": "Add New",
             "clientName": "Client name",
+            "email": "Email",
             "whatsapp": "WhatsApp number",
             "accountType": "Account type",
             "accountTypes": {
@@ -165,7 +166,9 @@
             "invitationMethods": "Select how you want to send the invitation",
             "sendWhatsapp": "Send via WhatsApp",
             "sendEmail": "Send via email",
-            "copyLink": "Copy the link and share"
+            "copyLink": "Copy the link and share",
+            "createCorresponsables": "Create Corresponsables",
+            "emptyState": "No correspondents have been added"
         },
         "actions": {
             "cancel": "Cancel",
@@ -178,7 +181,12 @@
         },
         "validation": {
             "error": "Validation Error",
-            "fillRequired": "Please fill all required fields"
+            "fillRequired": "Please fill all required fields",
+            "switchToGeneral": "Please switch to General Information tab to create the client",
+            "useCreateButton": "Please use the \"Create Corresponsables\" button to create corresponsables, or switch to General Information tab to create the client first",
+            "createClientFirst": "Please create a client first by filling out the General Information tab",
+            "fillConnectFields": "Please fill all required fields in the Connect Correspondents form",
+            "addCorrespondent": "Please add at least one correspondent"
         },
         "clientCreated": "Client created successfully!",
         "clientUpdated": "Client updated successfully!",
@@ -265,8 +273,12 @@
             "imageLabel": "Image",
             "addToCampaign": "Add to campaign",
             "campaignTitle": "Campaign ad image",
-            "time": "3 mins"
-        }
+            "time": "3 mins",
+            "emptyState": "No sources available",
+            "emptySubtitle": "Add correspondents to see their sources"
+        },
+        "emptyState": "No correspondents have been added",
+        "emptySubtitle": "Add users to be able to see the sources"
     }
     ,
     "FUENTES": {
@@ -284,7 +296,9 @@
             "status": "Status",
             "createdBy": "Created by",
             "updatedAt": "Last update"
-        }
+        },
+        "emptyState": "No sources have been added",
+        "emptySubtitle": "Add files to get started"
         ,
         "empty": {
             "title": "No articles added",
@@ -309,7 +323,9 @@
         "refresh": "Refresh",
         "viewAll": "View all",
         "lastUpdate": "Last update",
-        "type": "Knowledge base"
+        "type": "Knowledge base",
+        "emptyState": "No knowledge base items have been added",
+        "emptySubtitle": "Create a knowledge base to get started"
         ,
         "empty": {
             "title": "No articles added",
@@ -333,7 +349,9 @@
     ,
     "MEDIA": {
         "title": "Media listening",
-        "viewAll": "View all"
+        "viewAll": "View all",
+        "emptyState": "No media listeners have been added",
+        "emptySubtitle": "Configure the first one to collect information"
     }
     ,
     "CORRESPONSABLES_FORM": {
