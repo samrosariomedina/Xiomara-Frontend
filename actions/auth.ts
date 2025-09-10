@@ -37,24 +37,27 @@ export async function loginAction(credentials: LoginInput) {
     } else {
       throw new Error('Authentication failed');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
-    
-    if (error.response?.status === 403) {
-      return {
-        success: false,
-        error: 'Invalid email or password'
-      };
-    } else if (error.response?.status === 400) {
-      return {
-        success: false,
-        error: 'Please provide valid email and password'
-      };
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 403) {
+        return {
+          success: false,
+          error: 'Invalid email or password'
+        };
+      } else if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Please provide valid email and password'
+        };
+      }
     }
-    
+
     return {
       success: false,
-      error: error.message || 'Login failed. Please try again.'
+      error: error instanceof Error ? error.message : 'Login failed. Please try again.'
     };
   }
 }
@@ -75,24 +78,27 @@ export async function signupAction(userData: SignupInput) {
     } else {
       throw new Error('Signup failed');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup error:', error);
-    
-    if (error.response?.status === 409) {
-      return {
-        success: false,
-        error: 'Email already in use. Please use a different email.'
-      };
-    } else if (error.response?.status === 400) {
-      return {
-        success: false,
-        error: 'Please provide valid information'
-      };
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 409) {
+        return {
+          success: false,
+          error: 'Email already in use. Please use a different email.'
+        };
+      } else if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Please provide valid information'
+        };
+      }
     }
-    
+
     return {
       success: false,
-      error: error.message || 'Signup failed. Please try again.'
+      error: error instanceof Error ? error.message : 'Signup failed. Please try again.'
     };
   }
 }
@@ -109,7 +115,7 @@ export async function getUserProfileAction(): Promise<{ success: boolean; user?:
       return { success: false, error: 'No authentication token found' };
     }
 
-    const response = await axios.post(`${BACKEND_URL}/auth/profile`, {
+    const response = await axios.post(`${BACKEND_URL}/profile`, {
       token: token
     });
 
@@ -121,16 +127,19 @@ export async function getUserProfileAction(): Promise<{ success: boolean; user?:
     } else {
       throw new Error('Failed to fetch user profile');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get user profile error:', error);
-    
-    if (error.response?.status === 401) {
-      return { success: false, error: 'Unauthorized' };
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 401) {
+        return { success: false, error: 'Unauthorized' };
+      }
     }
-    
+
     return {
       success: false,
-      error: error.message || 'Failed to fetch user profile'
+      error: error instanceof Error ? error.message : 'Failed to fetch user profile'
     };
   }
 }
@@ -155,9 +164,9 @@ export async function checkAuthAction(): Promise<{ success: boolean; authenticat
       success: true, 
       authenticated: response.status === 200 
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Check auth error:', error);
-    
+
     return {
       success: true,
       authenticated: false
@@ -192,11 +201,11 @@ export async function logoutAction() {
     revalidatePath('/');
     
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Logout error:', error);
-    return { 
+    return {
       success: false,
-      error: error.message || 'Logout failed'
+      error: error instanceof Error ? error.message : 'Logout failed'
     };
   }
 }
@@ -215,24 +224,27 @@ export async function resetPasswordAction(email: string) {
     } else {
       throw new Error('Password reset failed');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Reset password error:', error);
-    
-    if (error.response?.status === 400) {
-      return {
-        success: false,
-        error: 'Please provide a valid email address'
-      };
-    } else if (error.response?.status === 404) {
-      return {
-        success: false,
-        error: 'Email not found'
-      };
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Please provide a valid email address'
+        };
+      } else if (axiosError.response?.status === 404) {
+        return {
+          success: false,
+          error: 'Email not found'
+        };
+      }
     }
-    
+
     return {
       success: false,
-      error: error.message || 'Password reset failed. Please try again.'
+      error: error instanceof Error ? error.message : 'Password reset failed. Please try again.'
     };
   }
 }
@@ -242,7 +254,7 @@ export async function resetPasswordAction(email: string) {
  */
 export async function forgotPasswordAction(email: string) {
   try {
-    const response = await axios.post(`${BACKEND_URL}/auth/forgot`, {
+    const response = await axios.post(`${BACKEND_URL}/auth/recover`, {
       email: email
     });
 
@@ -251,24 +263,67 @@ export async function forgotPasswordAction(email: string) {
     } else {
       throw new Error('Forgot password request failed');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Forgot password error:', error);
-    
-    if (error.response?.status === 400) {
-      return {
-        success: false,
-        error: 'Please provide a valid email address'
-      };
-    } else if (error.response?.status === 404) {
-      return {
-        success: false,
-        error: 'Email not found'
-      };
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Please provide a valid email address'
+        };
+      } else if (axiosError.response?.status === 404) {
+        return {
+          success: false,
+          error: 'Email not found'
+        };
+      }
     }
-    
+
     return {
       success: false,
-      error: error.message || 'Forgot password request failed. Please try again.'
+      error: error instanceof Error ? error.message : 'Forgot password request failed. Please try again.'
+    };
+  }
+}
+
+/**
+ * Server action to recover password with token
+ */
+export async function recoverPasswordAction(token: string, password: string) {
+  try {
+    const response = await axios.post(`${BACKEND_URL}/auth/recover`, {
+      token: token,
+      password: password
+    });
+
+    if (response.status === 200) {
+      return { success: true };
+    } else {
+      throw new Error('Password recovery failed');
+    }
+  } catch (error: unknown) {
+    console.error('Recover password error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Invalid token or password'
+        };
+      } else if (axiosError.response?.status === 403) {
+        return {
+          success: false,
+          error: 'Invalid or expired token'
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Password recovery failed. Please try again.'
     };
   }
 }

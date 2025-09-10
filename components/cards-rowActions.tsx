@@ -27,6 +27,8 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Skip on server-side
+    
     const handleOutside = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose()
@@ -37,6 +39,8 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   }, [onClose])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Skip on server-side
+    
     // Mark as client-side to prevent hydration mismatch
     setIsClient(true)
     // Set initial viewport width on client side

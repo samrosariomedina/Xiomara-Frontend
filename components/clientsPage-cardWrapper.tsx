@@ -6,7 +6,7 @@ import RowActionsMenu from "./cards-rowActions"
 import { ClientsListProps, MenuOpenData } from "../utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
 
-export function ClientsList({ clients = [], onDelete }: ClientsListProps) {
+export function ClientsList({ clients = [], onDelete, onEdit }: ClientsListProps) {
   
   const t = useTranslations('CLIENTS');
   const [expandedClients, setExpandedClients] = useState<(number | string)[]>([])
@@ -50,6 +50,7 @@ export function ClientsList({ clients = [], onDelete }: ClientsListProps) {
                 isExpanded={isExpanded}
                 onToggle={toggleClient}
                 onDeleteClient={handleDeleteClient}
+                onEditClient={onEdit}
                 onMenuOpen={handleMenuOpen}
                 t={t}
               />
@@ -76,7 +77,15 @@ export function ClientsList({ clients = [], onDelete }: ClientsListProps) {
         <RowActionsMenu
           left={openMenuFor.left}
           top={openMenuFor.top}
-          onEdit={() => console.log('edit client', openMenuFor.clientId)}
+          onEdit={() => {
+            if (onEdit && openMenuFor.clientId) {
+              const client = clients.find(c => c.id === openMenuFor.clientId)
+              if (client) {
+                onEdit(client)
+              }
+            }
+            setOpenMenuFor(null)
+          }}
           onDelete={() => handleDeleteClient(openMenuFor.clientId)}
           onClose={() => setOpenMenuFor(null)}
           itemName={`Client ${openMenuFor.clientId}`}

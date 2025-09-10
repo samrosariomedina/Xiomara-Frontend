@@ -10,72 +10,132 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Trash2 } from "lucide-react"
 import { Plus ,Upload } from "lucide-react"
 import { useTranslations } from 'next-intl'
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { connectCorrespondentsSchema, type ConnectCorrespondentsInput } from '@/lib/schemas'
-import { useEffect, forwardRef, useImperativeHandle, useState } from "react"
+import { forwardRef, useImperativeHandle, useState, useRef } from "react"
+import { useMutation } from "@tanstack/react-query"
+import { createCorresponsalesFromCSVAction } from "@/actions/clients"
+import { toast } from "sonner"
 
 interface ConnectCorrespondentsFormProps {
-  onFormValid?: (isValid: boolean) => void;
-  onDataChange?: (data: ConnectCorrespondentsInput) => void;
-  initialData?: Partial<ConnectCorrespondentsInput>;
+  folderId?: string | null;
 }
 
-export const ConnectCorrespondentsForm = forwardRef(function ConnectCorrespondentsForm({ 
-  onFormValid, 
-  onDataChange,
-  initialData 
-}: ConnectCorrespondentsFormProps, ref) {
+type ChildFormRef<T = unknown> = {
+  validate: () => Promise<boolean>
+  getValues: () => T
+}
+
+export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespondentsInput>, ConnectCorrespondentsFormProps>(function ConnectCorrespondentsForm({
+  folderId
+}, ref) {
   const t = useTranslations('CLIENT_FORM');
-  const [selectedAccountType, setSelectedAccountType] = useState<string>(initialData?.accountType || "");
+
+  // CSV upload state
+  const [selectedCsvFile, setSelectedCsvFile] = useState<File | null>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  // CSV upload mutation
+  const csvUploadMutation = useMutation({
+    mutationFn: ({ folderId, csvFile, enabled }: { folderId: string, csvFile: File, enabled: boolean }) =>
+      createCorresponsalesFromCSVAction(folderId, csvFile, enabled),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(`Successfully created ${result.data.length} corresponsales from CSV`);
+        setSelectedCsvFile(null);
+        if (csvFileInputRef.current) {
+          csvFileInputRef.current.value = '';
+        }
+      }
+    },
+    onError: (error: unknown) => {
+      console.error('CSV upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload CSV';
+      toast.error(errorMessage);
+    }
+  });
 
   const form = useForm<ConnectCorrespondentsInput>({
     resolver: zodResolver(connectCorrespondentsSchema),
-    defaultValues: initialData || {
-      corresponsalClientName: "",
-      corresponsalWhatsapp: "",
-      corresponsalClientName2: "",
-      accountType: undefined,
+    defaultValues: {
+      correspondents: [
+        {
+          clientName: "",
+          whatsapp: "",
+          accountType: "basic" as const,
+          invitationMethods: {
+            whatsapp: false,
+            email: false,
+            copyLink: false,
+          },
+        }
+      ]
+    },
+    mode: "onChange"
+  });
+  
+  const { register, setValue, formState: { errors }, watch, control } = form;
+  
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "correspondents"
+  });
+  
+  // Form validity is managed internally - no need to notify parent
+
+  // Add new correspondent function
+  const addCorrespondent = () => {
+    append({
+      clientName: "",
+      whatsapp: "",
+      accountType: "basic" as const,
       invitationMethods: {
         whatsapp: false,
         email: false,
         copyLink: false,
       },
-    },
-    mode: "onChange"
-  });
-  
-  const { register, setValue, formState: { errors, isValid }, watch } = form;
-  
-  // Watch for form validity changes and notify parent
-  useEffect(() => {
-    if (onFormValid) {
-      onFormValid(isValid);
-    }
-  }, [isValid, onFormValid]);
-  
-  // Watch all form values and notify parent on change using subscription
-  useEffect(() => {
-    // Set up a subscription to form changes
-    const subscription = watch((value) => {
-      if (onDataChange) {
-        onDataChange(value as ConnectCorrespondentsInput);
-      }
     });
-    
-    // Cleanup the subscription on unmount
-    return () => subscription.unsubscribe();
-  }, [watch, onDataChange]);
+  };
 
-  // Initialize selectedAccountType when initialData changes
-  useEffect(() => {
-    if (initialData?.accountType) {
-      setSelectedAccountType(initialData.accountType);
+  // CSV file handling functions
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+      toast.error('Please select a valid CSV file');
+      return;
     }
-  }, [initialData?.accountType]);
+
+    setSelectedCsvFile(file);
+  };
+
+  const handleCsvUploadClick = () => {
+    csvFileInputRef.current?.click();
+  };
+
+  const handleCsvUpload = async () => {
+    if (!selectedCsvFile) {
+      toast.error('Please select a CSV file first');
+      return;
+    }
+
+    if (!folderId) {
+      toast.error('Please create a client first before uploading CSV');
+      return;
+    }
+
+    await csvUploadMutation.mutateAsync({
+      folderId,
+      csvFile: selectedCsvFile,
+      enabled: true
+    });
+  };
 
   useImperativeHandle(ref, () => ({
     validate: async () => {
@@ -96,16 +156,45 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
               variant="outline"
               size="sm"
               type="button"
-              className="flex-1 lg:flex-none text-xs h-8 px-3 bg-[#F7F9FF] hover:bg-gray-50 text-[#31499F] rounded-full flex items-center justify-center border border-white"
+              onClick={handleCsvUploadClick}
+              disabled={csvUploadMutation.isPending}
+              className="flex-1 lg:flex-none text-xs h-8 px-3 bg-[#F7F9FF] hover:bg-gray-50 text-[#31499F] rounded-full flex items-center justify-center border border-white disabled:opacity-50"
             >
               <Upload className="h-3 w-3 mr-1.5" />
-              {t('correspondents.uploadCSV')}
+              {csvUploadMutation.isPending ? 'Uploading...' : t('correspondents.uploadCSV')}
             </Button>
+
+            {/* CSV file status and upload button */}
+            {selectedCsvFile && (
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span>📄 {selectedCsvFile.name}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={handleCsvUpload}
+                  disabled={csvUploadMutation.isPending || !folderId}
+                  className="text-xs h-6 px-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                >
+                  {csvUploadMutation.isPending ? 'Uploading...' : 'Upload'}
+                </Button>
+              </div>
+            )}
+
+            {/* Hidden file input for CSV */}
+            <input
+              type="file"
+              ref={csvFileInputRef}
+              onChange={handleCsvFileChange}
+              accept=".csv,text/csv"
+              className="hidden"
+            />
             <div className="w-2 lg:w-2" />
             <Button
               variant="outline"
               size="sm"
               type="button"
+              onClick={addCorrespondent}
               className="flex-1 lg:flex-none text-xs h-8 px-3 bg-[#F7F9FF] hover:bg-gray-50 text-[#31499F] rounded-full flex items-center justify-center border border-white"
             >
               <Plus className="h-3 w-3 mr-1.5" />
@@ -115,153 +204,157 @@ export const ConnectCorrespondentsForm = forwardRef(function ConnectCorresponden
         </div>
       </div>
 
-      {/* Agregar Nuevo Section */}
-      {/* --- CONNECT: ADD NEW CORRESPONDENT --- */}
-  <div className="border border-white rounded-lg p-3 bg-white space-y-5">
-        <h3 className="text-m font-medium text-gray-900">{t('correspondents.addNew')}</h3>
+      {/* Correspondents List */}
+      <div className="space-y-4">
+        {fields.map((field, index) => (
+          <div key={field.id} className="border border-white rounded-lg p-4 bg-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900">
+                {t('correspondents.addNew')} {index + 1}
+              </h3>
+              {fields.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="h-8 w-8 p-0 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
-        <div className="space-y-4">
-          {/* First row */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="corresponsalClientName" className="text-xs text-gray-700 font-medium">
-                {t('correspondents.clientName')}
-              </Label>
-              <Input
-                id="corresponsalClientName"
-                {...register("corresponsalClientName")}
-                 className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
-                  errors.corresponsalClientName ? "border-red-300" : ""
-                }`}
-                suppressHydrationWarning
-              />
-              {errors.corresponsalClientName && (
-                <p className="text-xs text-red-500 mt-1">{errors.corresponsalClientName.message as string}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="corresponsalWhatsapp" className="text-xs text-gray-700 font-medium">
-                {t('correspondents.whatsapp')}
-              </Label>
-              <Input
-                id="corresponsalWhatsapp"
-                {...register("corresponsalWhatsapp")}
-                 className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
-                  errors.corresponsalWhatsapp ? "border-red-300" : ""
-                }`}
-                placeholder={t('contact.whatsappPlaceholder')}
-                suppressHydrationWarning
-              />
-              {errors.corresponsalWhatsapp && (
-                <p className="text-xs text-red-500 mt-1">{errors.corresponsalWhatsapp.message as string}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Second row */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="corresponsalClientName2" className="text-xs text-gray-700 font-medium">
-                {t('correspondents.clientName')}
-              </Label>
-              <Input
-                id="corresponsalClientName2"
-                {...register("corresponsalClientName2")}
-                 className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
-                  errors.corresponsalClientName2 ? "border-red-300" : ""
-                }`}
-                suppressHydrationWarning
-              />
-              {errors.corresponsalClientName2 && (
-                <p className="text-xs text-red-500 mt-1">{errors.corresponsalClientName2.message as string}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="accountType" className="text-xs text-gray-700 font-medium">
-                {t('correspondents.accountType')}
-              </Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className={`bg-[#F7F9FF] w-full border-gray-200 h-9 text-sm justify-between ${
-                      errors.accountType ? "border-red-300" : ""
+            <div className="space-y-4">
+              {/* First row */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor={`correspondents.${index}.clientName`} className="text-xs text-gray-700 font-medium">
+                    {t('correspondents.clientName')}
+                  </Label>
+                  <Input
+                    id={`correspondents.${index}.clientName`}
+                    {...register(`correspondents.${index}.clientName`)}
+                    className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
+                      errors.correspondents?.[index]?.clientName ? "border-red-300" : ""
                     }`}
-                  >
-                    {selectedAccountType ? (
-                      selectedAccountType === 'premium' ? t('correspondents.accountTypes.premium') :
-                      selectedAccountType === 'standard' ? t('correspondents.accountTypes.standard') :
-                      selectedAccountType === 'basic' ? t('correspondents.accountTypes.basic') :
-                      t('correspondents.accountType')
-                    ) : t('correspondents.accountType')}
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  <DropdownMenuItem onSelect={() => {
-                    setSelectedAccountType('premium')
-                    setValue("accountType", 'premium')
-                  }}>
-                    {t('correspondents.accountTypes.premium')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => {
-                    setSelectedAccountType('standard')
-                    setValue("accountType", 'standard')
-                  }}>
-                    {t('correspondents.accountTypes.standard')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => {
-                    setSelectedAccountType('basic')
-                    setValue("accountType", 'basic')
-                  }}>
-                    {t('correspondents.accountTypes.basic')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {errors.accountType && (
-                <p className="text-xs text-red-500 mt-1">{errors.accountType.message as string}</p>
-              )}
+                    suppressHydrationWarning
+                  />
+                  {errors.correspondents?.[index]?.clientName && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.correspondents[index]?.clientName?.message as string}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
+                    {t('correspondents.whatsapp')}
+                  </Label>
+                  <Input
+                    id={`correspondents.${index}.whatsapp`}
+                    {...register(`correspondents.${index}.whatsapp`)}
+                    className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
+                      errors.correspondents?.[index]?.whatsapp ? "border-red-300" : ""
+                    }`}
+                    placeholder={t('contact.whatsappPlaceholder')}
+                    suppressHydrationWarning
+                  />
+                  {errors.correspondents?.[index]?.whatsapp && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.correspondents[index]?.whatsapp?.message as string}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Second row */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor={`correspondents.${index}.accountType`} className="text-xs text-gray-700 font-medium">
+                    {t('correspondents.accountType')}
+                  </Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className={`bg-[#F7F9FF] w-full border-gray-200 h-9 text-sm justify-between ${
+                          errors.correspondents?.[index]?.accountType ? "border-red-300" : ""
+                        }`}
+                      >
+                        {watch(`correspondents.${index}.accountType`) ? (
+                          watch(`correspondents.${index}.accountType`) === 'premium' ? t('correspondents.accountTypes.premium') :
+                          watch(`correspondents.${index}.accountType`) === 'standard' ? t('correspondents.accountTypes.standard') :
+                          watch(`correspondents.${index}.accountType`) === 'basic' ? t('correspondents.accountTypes.basic') :
+                          t('correspondents.accountType')
+                        ) : t('correspondents.accountType')}
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-full">
+                      <DropdownMenuItem onSelect={() => {
+                        setValue(`correspondents.${index}.accountType`, 'premium')
+                      }}>
+                        {t('correspondents.accountTypes.premium')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => {
+                        setValue(`correspondents.${index}.accountType`, 'standard')
+                      }}>
+                        {t('correspondents.accountTypes.standard')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => {
+                        setValue(`correspondents.${index}.accountType`, 'basic')
+                      }}>
+                        {t('correspondents.accountTypes.basic')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {errors.correspondents?.[index]?.accountType && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.correspondents[index]?.accountType?.message as string}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {/* Empty div for grid alignment */}
+                </div>
+              </div>
+            </div>
+
+            {/* Invitation Methods */}
+            <div className="space-y-3 mt-6">
+              <Label className="text-xs text-gray-600 font-medium">{t('correspondents.invitationMethods')}</Label>
+
+              <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-6">
+                <label className="flex items-center space-x-2 text-xs text-gray-700">
+                  <Checkbox
+                    id={`whatsapp-${index}`}
+                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.whatsapp`, !!checked)}
+                    className="border-gray-300 h-4 w-4"
+                  />
+                  <span>{t('correspondents.sendWhatsapp')}</span>
+                </label>
+
+                <label className="flex items-center space-x-2 text-xs text-gray-700">
+                  <Checkbox
+                    id={`email-${index}`}
+                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.email`, !!checked)}
+                    className="border-gray-300 h-4 w-4"
+                  />
+                  <span>{t('correspondents.sendEmail')}</span>
+                </label>
+
+                <label className="flex items-center space-x-2 text-xs text-gray-700">
+                  <Checkbox
+                    id={`copyLink-${index}`}
+                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.copyLink`, !!checked)}
+                    className="border-gray-300 h-4 w-4"
+                  />
+                  <span>{t('correspondents.copyLink')}</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Invitation Methods */}
-        {/* --- CONNECT: INVITATION METHODS --- */}
-        <div className="space-y-3 mt-6">
-          <Label className="text-xs text-gray-600 font-medium">{t('correspondents.invitationMethods')}</Label>
-
-          <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-6">
-            <label className="flex items-center space-x-2 text-xs text-gray-700">
-              <Checkbox
-                id="whatsapp"
-                defaultChecked={initialData?.invitationMethods?.whatsapp}
-                onCheckedChange={(checked) => setValue("invitationMethods.whatsapp", !!checked)}
-                className="border-gray-300 h-4 w-4"
-              />
-              <span>{t('correspondents.sendWhatsapp')}</span>
-            </label>
-
-            <label className="flex items-center space-x-2 text-xs text-gray-700">
-              <Checkbox
-                id="email"
-                defaultChecked={initialData?.invitationMethods?.email}
-                onCheckedChange={(checked) => setValue("invitationMethods.email", !!checked)}
-                className="border-gray-300 h-4 w-4"
-              />
-              <span>{t('correspondents.sendEmail')}</span>
-            </label>
-
-            <label className="flex items-center space-x-2 text-xs text-gray-700">
-              <Checkbox
-                id="copyLink"
-                defaultChecked={initialData?.invitationMethods?.copyLink}
-                onCheckedChange={(checked) => setValue("invitationMethods.copyLink", !!checked)}
-                className="border-gray-300 h-4 w-4"
-              />
-              <span>{t('correspondents.copyLink')}</span>
-            </label>
-          </div>
-        </div>
+        ))}
       </div>
 
     </div>

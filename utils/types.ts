@@ -22,6 +22,7 @@ export type Client = {
 export interface ClientsListProps {
   clients?: Client[]
   onDelete?: (clientId: string) => Promise<void>
+  onEdit?: (client: Client) => void
   itemsPerPage?: number
 }
 
@@ -30,6 +31,7 @@ export interface ClientCardProps {
   isExpanded: boolean
   onToggle: (clientId: number | string) => void
   onDeleteClient: (clientId: string | number) => Promise<void>
+  onEditClient?: (client: Client) => void
   onMenuOpen: (menuData: MenuOpenData) => void
   t: (key: string) => string
 }

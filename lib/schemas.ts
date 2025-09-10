@@ -19,6 +19,16 @@ export const forgotPasswordSchema = z.object({
 	email: z.string().min(1, 'Email is required').email('Invalid email')
 });
 
+export const resetPasswordSchema = z.object({
+	password: z.string()
+		.min(8, 'Password must be at least 8 characters')
+		.regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+	confirmPassword: z.string().min(1, 'Please confirm your password')
+}).refine((data) => data.password === data.confirmPassword, {
+	message: "Passwords don't match",
+	path: ["confirmPassword"],
+});
+
 // Client Schema - combines all form data
 export const clientSchema = z.object({
 	clientName: z.string().min(1, 'Client name is required'),
@@ -77,21 +87,23 @@ export const generalInformationSchema = z.object({
   logoFile: z.instanceof(File).optional().nullable(), // For file upload
 });
 
-// Connect Correspondents Form Schema
-export const connectCorrespondentsSchema = z.object({
-  corresponsalClientName: z.string().optional(),
-  corresponsalWhatsapp: z.string()
-    .optional()
-    .refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
-      message: 'WhatsApp number can only contain digits and +()-',
-    }),
-  corresponsalClientName2: z.string().optional(),
-  accountType: z.enum(['premium', 'standard', 'basic']).optional(),
+// Individual correspondent schema
+const correspondentSchema = z.object({
+  clientName: z.string().min(1, 'Client name is required'),
+  whatsapp: z.string()
+    .min(1, 'WhatsApp number is required')
+    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
+  accountType: z.enum(['premium', 'standard', 'basic']),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
     email: z.boolean(),
     copyLink: z.boolean()
   }).optional()
+});
+
+// Connect Correspondents Form Schema
+export const connectCorrespondentsSchema = z.object({
+  correspondents: z.array(correspondentSchema).min(1, 'At least one correspondent is required')
 });
 
 // Brand Guides Form Schema (currently empty)
@@ -169,11 +181,74 @@ export const knowledgeBaseSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
 
 export type GeneralInformationInput = z.infer<typeof generalInformationSchema>;
 export type ConnectCorrespondentsInput = z.infer<typeof connectCorrespondentsSchema>;
+export type CorrespondentInput = z.infer<typeof correspondentSchema>;
 export type BrandGuidesInput = z.infer<typeof brandGuidesSchema>;
 export type CorresponsablesInput = z.infer<typeof corresponsablesSchema>;
 export type FuentesGeneralesInput = z.infer<typeof fuentesGeneralesSchema>;
 export type KnowledgeBaseInput = z.infer<typeof knowledgeBaseSchema>;
+
+// Backend response types
+export interface ClientResponse {
+  _id: string;
+  title: string | null;
+  parent: string | null;
+  items: Record<string, string[]>;
+  metadata: {
+    type: string;
+    industry: string;
+    description?: string;
+    contactName: string;
+    whatsapp: string;
+    position: string;
+    email: string;
+  } | null;
+  timestamp: string;
+}
+
+export interface ListenerResponse {
+  _id: string;
+  type: string;
+  title: string | null;
+  origin: string;
+  reference: string | null;
+  enabled: boolean;
+  approved: boolean;
+  timestamp: string;
+}
+
+export interface ClientWithCampaigns {
+  id: string;
+  name: string;
+  contact: string;
+  email: string;
+  createdDate: string;
+  campaigns: number;
+  avatar: string;
+  campaignDetails: Array<{
+    id: string;
+    name: string;
+    createdDate: string;
+    connectedSources: {
+      whatsapp: number;
+      email: number;
+      other: number;
+    };
+    status: string;
+  }>;
+}
+
+// CSV upload schema
+export const csvUploadSchema = z.object({
+  csvFile: z.instanceof(File).refine(
+    (file) => file.type === 'text/csv' || file.name.endsWith('.csv'),
+    'File must be a CSV file'
+  ),
+  enabled: z.boolean().default(true)
+});
+
+export type CsvUploadInput = z.infer<typeof csvUploadSchema>;

@@ -18,39 +18,41 @@ import { generalInformationSchema, type GeneralInformationInput } from '@/lib/sc
 import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react"
 import Image from "next/image"
 
-interface GeneralInformationFormProps {
-  onFormValid?: (isValid: boolean) => void;
-  onDataChange?: (data: GeneralInformationInput) => void;
-  initialData?: Partial<GeneralInformationInput>;
+type ChildFormRef<T = unknown> = {
+  validate: () => Promise<boolean>
+  getValues: () => T
 }
 
-export const GeneralInformationForm = forwardRef(function GeneralInformationForm({ 
-  onFormValid, 
-  onDataChange,
-  initialData 
-}: GeneralInformationFormProps, ref) {
+interface GeneralInformationFormProps {
+  initialValues?: Partial<GeneralInformationInput>
+}
+
+export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformationInput>, GeneralInformationFormProps>(function GeneralInformationForm(
+  { initialValues },
+  ref
+) {
   const t = useTranslations('CLIENT_FORM');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedIndustry, setSelectedIndustry] = useState<string>(initialData?.industry || "");
-  const [selectedPosition, setSelectedPosition] = useState<string>(initialData?.position || "");
+  const [selectedIndustry, setSelectedIndustry] = useState<string>(initialValues?.industry || "");
+  const [selectedPosition, setSelectedPosition] = useState<string>(initialValues?.position || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const form = useForm<GeneralInformationInput>({
     resolver: zodResolver(generalInformationSchema),
-    defaultValues: initialData || {
-      clientName: "",
-      industry: "tecnologia",
-      description: "",
-      contactName: "",
-      whatsapp: "",
-      position: "ceo",
-      email: "",
+    defaultValues: {
+      clientName: initialValues?.clientName || "",
+      industry: initialValues?.industry || "tecnologia",
+      description: initialValues?.description || "",
+      contactName: initialValues?.contactName || "",
+      whatsapp: initialValues?.whatsapp || "",
+      position: initialValues?.position || "ceo",
+      email: initialValues?.email || "",
     },
     mode: "onChange"
   });
   
-  const { register, setValue, formState: { errors, isValid }, watch } = form;
+  const { register, setValue, formState: { errors }, watch } = form;
 
   // Expose validate and getValues to parent via ref
   useImperativeHandle(ref, () => ({
@@ -63,40 +65,22 @@ export const GeneralInformationForm = forwardRef(function GeneralInformationForm
     }
   }))
   
-  // Watch for form validity changes and notify parent
+  // Form validity is managed internally - no need to notify parent
+
+  // Watch form values to sync with local state
   useEffect(() => {
-    if (onFormValid) {
-      onFormValid(isValid);
-    }
-  }, [isValid, onFormValid]);
-  
-  // Watch all form values and notify parent on change using subscription
-  useEffect(() => {
-    // Set up a subscription to form changes
     const subscription = watch((value) => {
-      if (onDataChange) {
-        // Include the selected file in the data passed to the parent
-        const formData = value as GeneralInformationInput;
-        onDataChange({
-          ...formData,
-          logoFile: selectedFile
-        });
+      // Sync dropdown states with form values
+      if (value.industry !== selectedIndustry) {
+        setSelectedIndustry(value.industry || "");
+      }
+      if (value.position !== selectedPosition) {
+        setSelectedPosition(value.position || "");
       }
     });
-    
-    // Cleanup the subscription on unmount
-    return () => subscription.unsubscribe();
-  }, [watch, onDataChange, selectedFile]);
 
-  // Initialize dropdown selections when initialData changes
-  useEffect(() => {
-    if (initialData?.industry) {
-      setSelectedIndustry(initialData.industry);
-    }
-    if (initialData?.position) {
-      setSelectedPosition(initialData.position);
-    }
-  }, [initialData?.industry, initialData?.position]);
+    return () => subscription.unsubscribe();
+  }, [watch, selectedIndustry, selectedPosition]);
   
   // Clean up the preview URL when component unmounts
   useEffect(() => {

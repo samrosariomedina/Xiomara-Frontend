@@ -19,3 +19,31 @@ export function isAuthenticated() {
   }
   return false;
 }
+
+/**
+ * Format date safely for SSR/hydration compatibility
+ * Returns ISO date string (YYYY-MM-DD) to avoid locale/timezone differences
+ */
+export function formatDateSafe(dateString: string): string {
+  try {
+    return new Date(dateString).toISOString().split('T')[0];
+  } catch {
+    return dateString; // Return original if parsing fails
+  }
+}
+
+/**
+ * Format date with locale support (client-side only)
+ * Use this for display purposes after hydration
+ */
+export function formatDateWithLocale(dateString: string, locale: string = 'en-US'): string {
+  if (typeof window === 'undefined') {
+    return formatDateSafe(dateString); // Fallback for SSR
+  }
+  
+  try {
+    return new Date(dateString).toLocaleDateString(locale);
+  } catch {
+    return formatDateSafe(dateString);
+  }
+}

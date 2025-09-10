@@ -38,6 +38,17 @@
         "backToLogin": "Volver al inicio de sesión",
         "emailSent": "¡Enlace de restablecimiento enviado! Revisa tu email."
     },
+    "RESET_PASSWORD": {
+        "title": "Restablecer contraseña",
+        "newPassword": "Nueva contraseña",
+        "newPasswordPlaceholder": "Ingresa tu nueva contraseña",
+        "confirmPassword": "Confirmar contraseña",
+        "confirmPasswordPlaceholder": "Confirma tu nueva contraseña",
+        "resetPassword": "Restablecer contraseña",
+        "resetting": "Restableciendo...",
+        "backToLogin": "Volver al inicio de sesión",
+        "successMessage": "¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión..."
+    },
     "AUTH": {
         "logoutSuccess": "Sesión cerrada exitosamente",
         "logoutError": "Error durante el cierre de sesión",
@@ -83,13 +94,19 @@
         "deleteConfirm": "¿Estás seguro de que quieres eliminar este cliente?",
         "deleteSuccess": "Cliente eliminado exitosamente",
         "noCampaignsYet": "Aún no hay campañas",
-        "noCampaignsYetShort": "Sin campañas"
+        "noCampaignsYetShort": "Sin campañas",
+        "loading": "Cargando clientes...",
+        "errorTitle": "Error al cargar clientes",
+        "errorMessage": "Algo salió mal al cargar los clientes",
+        "retry": "Intentar de nuevo"
     },
     "CLIENT_FORM": {
         "createClient": "Crear Cliente",
+        "editClient": "Editar Cliente",
         "form": {
             "cancel": "Cancelar",
-            "submit": "Enviar"
+            "submit": "Enviar",
+            "update": "Actualizar"
         },
         "tabs": {
             "general": "Información General",
@@ -160,7 +177,9 @@
             "fillRequired": "Por favor complete todos los campos requeridos"
         },
         "clientCreated": "¡Cliente creado exitosamente!",
+        "clientUpdated": "¡Cliente actualizado exitosamente!",
         "creating": "Creando...",
+        "updating": "Actualizando...",
         "sourceAdded": "Fuente agregada exitosamente",
         "sourceError": "Error al agregar fuente",
         "nameRequired": "El nombre es requerido"

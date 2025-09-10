@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getClientsAction, createClientAction, deleteClientAction, type ClientData } from '@/actions/clients'
+import { getClientsAction, createClientAction, deleteClientAction } from '@/actions/clients'
 import { type ClientInput } from '@/lib/schemas'
 
 export function useClients() {
@@ -20,20 +20,27 @@ export function useClients() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch clients')
       }
-      return result.clients || []
+      return result.data || []
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2
+    staleTime: 30 * 1000, // 30 seconds for more real-time updates
+    retry: 2,
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchInterval: 60 * 1000 // Refetch every minute for real-time updates
   })
 
   // Mutation for creating a client
   const createClientMutation = useMutation({
     mutationFn: async (clientData: ClientInput) => {
-      const result = await createClientAction(clientData)
+      // Ensure logoFile is not null
+      const sanitizedData = {
+        ...clientData,
+        logoFile: clientData.logoFile || undefined
+      }
+      const result = await createClientAction(sanitizedData)
       if (!result.success) {
         throw new Error(result.error || 'Failed to create client')
       }
-      return result.client
+      return result.data
     },
     onSuccess: () => {
       // Invalidate and refetch clients

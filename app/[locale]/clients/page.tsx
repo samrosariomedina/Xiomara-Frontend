@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import ClientsPage from '@/components/pages/clientsPage'   
+import ClientsPage from '@/components/pages/clientsPage'
+import { getClientsAction } from '@/actions/clients'
+import { ClientResponse } from '@/lib/schemas'
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };
@@ -21,6 +23,20 @@ export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
   }
 }
 
-export default function Page() {
-  return <ClientsPage />
+async function getClientsData(): Promise<ClientResponse[]> {
+  try {
+    const result = await getClientsAction()
+    console.log('result', result); 
+    return result.success ? result.data : []
+
+  } catch (error) {
+    console.error('Failed to fetch clients:', error)
+    return []
+  }
+}
+
+export default async function Page() {
+  const clientsData = await getClientsData()
+
+  return <ClientsPage initialClients={clientsData} />
 }

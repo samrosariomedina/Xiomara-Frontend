@@ -83,6 +83,8 @@ export function CampaignRow({
             size="sm"
             className="h-8 w-8 p-0 rounded-full"
             onClick={(e) => {
+              if (typeof window === 'undefined') return; // Skip on server-side
+              
               const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
               const left = rect ? rect.right - 208 : window.innerWidth - 208
               const top = rect ? rect.bottom + 8 : 100
@@ -113,6 +115,8 @@ export function CampaignRow({
                 size="sm"
                 className="h-8 w-8 p-0 rounded-full"
                 onClick={(e) => {
+                  if (typeof window === 'undefined') return; // Skip on server-side
+                  
                   const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
                   const left = rect ? rect.right - 208 : window.innerWidth - 208
                   const top = rect ? rect.bottom + 8 : 100

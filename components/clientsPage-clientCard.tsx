@@ -19,6 +19,7 @@ export function ClientCard({
   client,
   isExpanded,
   onToggle,
+  onEditClient,
   onMenuOpen,
   t
 }: ClientCardProps) {
@@ -128,7 +129,12 @@ export function ClientCard({
           {/* Right Section - Actions (equal width) */}
           <div className="flex-1 flex items-center justify-end space-x-4">
             {/* Edit Button */}
-            <Button variant="ghost" size="sm" className="h-9 w-12 rounded-full p-0 bg-[#f7f9ff]">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-9 w-12 rounded-full p-0 bg-[#f7f9ff]"
+              onClick={() => onEditClient?.(client)}
+            >
               <Edit className="h-4 w-4 text-[#31499F]" />
             </Button>
 
@@ -214,7 +220,7 @@ export function ClientCard({
             {/* Client-level actions shown at the end of the client card on mobile & md */}
             <div className="px-4 py-3 md:px-6 md:py-4 lg:hidden">
               <div className="flex justify-end space-x-3">
-                <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F] rounded-full" onClick={() => console.log('edit client', client.id)}>
+                <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F] rounded-full" onClick={() => onEditClient?.(client)}>
                   <Edit className="h-5 w-5 " />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F]  rounded-full hover:cursor-pointer" onClick={goToDashboard}>
