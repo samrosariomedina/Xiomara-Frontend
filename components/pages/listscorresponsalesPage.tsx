@@ -4,6 +4,7 @@ import { useState } from "react"
 import { DashboardLayout } from "../lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import withAuth from "@/lib/withAuth"
+import { useClient } from "@/context/ClientContext"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -53,14 +54,19 @@ const fuentesData = Array.from({ length: 25 }, () => ({
 
  function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")
+  const { selectedClient, isClientSelected } = useClient()
 
   const currentColumns = activeTab === "usuarios" ? usuariosColumns : fuentesColumns
   const currentData = activeTab === "usuarios" ? usuariosData : fuentesData
 
   return (
     <DashboardLayout
-      title="Listado Corresponsales"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Corresponsales" }]}
+      title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
+      breadcrumbs={[
+        { label: "Dashboard" }, 
+        { label: "Clientes" , href: "/dashboard" }, 
+        { label: "Listado Corresponsales" }
+      ]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable

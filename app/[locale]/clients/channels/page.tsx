@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
+import { ClientContextDisplay } from "@/components/ClientContextDisplay";
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };
@@ -22,7 +23,12 @@ export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
 }
 
 export default function Page() {
-  return <DashBoard />
+  return (
+    <div>
+      <ClientContextDisplay />
+      <DashBoard />
+    </div>
+  )
 }
 
 
