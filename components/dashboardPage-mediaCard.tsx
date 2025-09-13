@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyMediaListener } from "@/components/icons/icons"
+import { useClient } from "@/context/ClientContext"
 
 // const mediaItems = [
 //   {
@@ -55,6 +56,9 @@ export function MediaListeningSection() {
   const t = useTranslations('MEDIA')
   const router = useRouter()
   const pathname = usePathname()
+  
+  // Get selected client from context
+  // const { selectedClient } = useClient()
 
   const goToMediaList = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.media, pathname || '/')

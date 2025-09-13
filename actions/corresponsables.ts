@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import axios from "axios";
 import FormData from 'form-data';
+import { revalidatePath } from 'next/cache';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -47,7 +48,10 @@ export async function createCorresponsableAction(folderId: string, data: {
       origin: data.whatsapp.replace(/[\s\-\+]/g, ""), // Sanitize WhatsApp number
       title: data.clientName,
       enabled: true,
-      reference: true // Create a reference for this listener
+      reference: true, // Create a reference for this listener
+      metadata: {
+        email: data.email || ""
+      }
     };
 
     const response = await axios.post(`${BACKEND_URL}/listeners/add`, listenerData, {
@@ -71,6 +75,8 @@ export async function createCorresponsableAction(folderId: string, data: {
         }
       });
 
+      // Revalidate the clients page to show fresh data
+      revalidatePath('/clients');
       return {
         success: true,
         data: createdListener
@@ -145,6 +151,8 @@ export async function createCorresponsablesAction(
       }
     }
 
+    // Revalidate the clients page to show fresh data
+    revalidatePath('/clients');
     return {
       success: true,
       data: createdListeners
@@ -224,6 +232,8 @@ export async function createCorresponsablesFromCSVAction(
         });
       }
 
+      // Revalidate the clients page to show fresh data
+      revalidatePath('/clients');
       return {
         success: true,
         data: createdListeners
@@ -334,6 +344,120 @@ export async function getCorresponsablesAction(folderId: string) {
 }
 
 /**
+ * Server action to update a corresponsable (listener)
+ */
+export async function updateCorresponsableAction(
+  listenerId: string, 
+  data: {
+    title?: string;
+    origin?: string;
+    enabled?: boolean;
+    email?: string;
+  }
+) {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    // Prepare update data with all supported fields
+    const updateData: {
+      listener: string;
+      title?: string | null;
+      enabled?: boolean;
+      origin?: string | null;
+      metadata?: { email: string };
+    } = {
+      listener: listenerId
+    };
+
+    // Add standard fields
+    if (data.title !== undefined) {
+      updateData.title = data.title || null;
+    }
+    if (data.enabled !== undefined) {
+      updateData.enabled = data.enabled;
+    }
+    if (data.origin !== undefined) {
+      updateData.origin = data.origin || null;
+    }
+    if (data.email !== undefined) {
+      updateData.metadata = {
+        email: data.email
+      };
+    }
+
+    console.log('Updating corresponsable with data:', updateData);
+    console.log('Listener ID being used:', listenerId);
+    console.log('Original data received:', data);
+    console.log('Data being sent to backend:', JSON.stringify(updateData, null, 2));
+
+    const response = await axios.post(`${BACKEND_URL}/listeners/edit`, updateData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      // Revalidate the clients page to show fresh data
+      revalidatePath('/clients');
+      return {
+        success: true,
+        data: response.data
+      };
+    } else {
+      throw new Error('Failed to update corresponsable');
+    }
+  } catch (error: unknown) {
+    console.error('Update corresponsable error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { 
+        response?: { 
+          status?: number;
+          data?: unknown;
+        } 
+      };
+      
+      console.error('Axios error details:', {
+        status: axiosError.response?.status,
+        data: axiosError.response?.data,
+        fullError: error
+      });
+      
+      if (axiosError.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Authentication required'
+        };
+      } else if (axiosError.response?.status === 404) {
+        return {
+          success: false,
+          error: `Corresponsable not found. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+        };
+      } else if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: `Bad request. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+        };
+      } else if (axiosError.response?.status === 500) {
+        return {
+          success: false,
+          error: `Server error. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update corresponsable'
+    };
+  }
+}
+
+/**
  * Server action to remove a corresponsable (listener)
  */
 export async function removeCorresponsableAction(listenerId: string, folderId: string) {
@@ -365,6 +489,8 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
     });
 
     if (response.status === 200) {
+      // Revalidate the clients page to show fresh data
+      revalidatePath('/clients');
       return {
         success: true
       };

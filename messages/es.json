@@ -245,6 +245,8 @@
     "CORRESPONSABLES": {
         "title": "Corresponsables",
         "viewAll": "Ver todos",
+        "loading": "Cargando...",
+        "error": "Error al cargar corresponsables",
         "tabs": {
             "usuarios": "Usuarios",
             "fuentes": "Fuentes"
@@ -349,6 +351,8 @@
             "uploadCSV": "Subir CSV",
             "add": "Agregar"
         },
+        "loading": "Cargando...",
+        "error": "Error al cargar corresponsables",
         "empty": {
             "title": "No se han agregado corresponsales",
             "subtitle": "Agregar usuarios para comenzar",

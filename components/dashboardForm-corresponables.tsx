@@ -14,6 +14,20 @@ import HeaderControls from "./ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "./ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
 import { corresponsablesSchema, validateForm } from '@/lib/schemas'
+import { useCorresponsables } from "@/hooks/useCorresponsables"
+import { useClient } from "@/context/ClientContext"
+import { formatDateSafe } from "@/lib/utils"
+
+interface CorresponsableData {
+  _id: string;
+  title?: string;
+  origin?: string;
+  approved: boolean;
+  timestamp: string;
+  metadata?: {
+    email?: string;
+  };
+}
 
 interface FormData {
   name: string
@@ -33,7 +47,6 @@ interface CorresponsalesFormProps {
 
 export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   const [showForm, setShowForm] = useState(false)
-  const [sources, setSources] = useState<SourceItem[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -49,6 +62,25 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
 
   const tForm = useTranslations('CORRESPONSABLES_FORM')
   const tMain = useTranslations('CORRESPONSABLES')
+  
+  // Get selected client from context
+  const { selectedClient } = useClient()
+  
+  // Fetch corresponsables for the selected client
+  const { 
+    corresponsables = [], 
+    isLoading, 
+    error 
+  } = useCorresponsables(selectedClient?._id)
+
+  // Convert corresponsables to SourceItem format for display
+  const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, index) => ({
+    id: corresponsable._id,
+    name: corresponsable.title || 'Unnamed',
+    type: "corresponsable",
+    category: "Corresponsable",
+    timestamp: formatDateSafe(corresponsable.timestamp),
+  }))
 
   // Account type options
   const accountTypeOptions = [
@@ -98,6 +130,39 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
     onSubmit?.(form)
     setForm({ name: "", whatsapp: "", other: "", accountType: "", invitationMethods: { whatsapp: false, email: false, copyLink: false } })
     setShowForm(false)
+  }
+
+  // loading state
+  if (isLoading) {
+    return (
+      <div>
+        <HeaderControls title={tMain('title')} actions={headerActionsPlain} />
+        <div className="bg-white rounded-lg p-6">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500 mb-2">{tForm('loading')}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // error state
+  if (error) {
+    return (
+      <div>
+        <HeaderControls title={tMain('title')} actions={headerActionsPlain} />
+        <div className="bg-white rounded-lg p-6">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-lg flex items-center justify-center">
+              <Users className="h-8 w-8 text-red-400" />
+            </div>
+            <p className="text-red-500 mb-2">{tForm('error')}</p>
+            <p className="text-sm text-gray-400 mb-6">{error.message || 'Please try again later'}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // list view

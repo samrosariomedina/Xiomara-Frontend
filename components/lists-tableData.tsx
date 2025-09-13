@@ -25,6 +25,7 @@ interface TableRow {
   nombre?: string
   estado?: string
   celular?: string
+  email?: string
   fuentesCreadas?: string | number
   ubicacion?: string
   ultimaActualizacion?: string
@@ -54,6 +55,8 @@ export interface DataTableProps {
   showAddButton?: boolean
   addButtonText?: string
   showUpdateButton?: boolean
+  isLoading?: boolean
+  error?: Error | null
 }
 
 export function DataTable({
@@ -69,17 +72,12 @@ export function DataTable({
   showAddButton = false,
   addButtonText = "Crear",
   showUpdateButton = false,
+  isLoading = false,
+  error = null,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
   const itemsPerPage = 10
-
-  const filteredData = data.filter((row) =>
-    Object.values(row).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())),
-  )
-
-  const { currentItems, currentPage, totalPages, goToPage } = usePagination(filteredData, itemsPerPage, 1)
-  const startIndex = (currentPage - 1) * itemsPerPage
 
   // Row actions menu state (shared between mobile cards and desktop rows)
   const [menuFor, setMenuFor] = useState<number | null>(null)
@@ -91,6 +89,69 @@ export function DataTable({
   const [dateFilter, setDateFilter] = useState<string>("abril-2025")
   const [stateFilter, setStateFilter] = useState<string>("todos")
   const [sortFilter, setSortFilter] = useState<string>("recientes")
+
+  const filteredData = data.filter((row) =>
+    Object.values(row).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())),
+  )
+
+  const { currentItems, currentPage, totalPages, goToPage } = usePagination(filteredData, itemsPerPage, 1)
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="bg-gray-50 lg:bg-white rounded-lg overflow-hidden">
+        <div className="px-4 pt-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="relative flex-1 lg:flex-none">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  disabled
+                  className="pl-12 w-full lg:w-96 bg-[#f7f9ff] rounded-lg py-2"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-sm text-gray-500 text-center">Cargando corresponsables...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="bg-gray-50 lg:bg-white rounded-lg overflow-hidden">
+        <div className="px-4 pt-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="relative flex-1 lg:flex-none">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  disabled
+                  className="pl-12 w-full lg:w-96 bg-[#f7f9ff] rounded-lg py-2"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-lg flex items-center justify-center">
+            <Search className="h-8 w-8 text-red-400" />
+          </div>
+          <p className="text-red-500 mb-2 text-center">Error al cargar corresponsables</p>
+          <p className="text-sm text-gray-400 text-center mb-6">{error.message || 'Por favor, inténtalo de nuevo más tarde'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  const startIndex = (currentPage - 1) * itemsPerPage
 
   // Filter options
   const dateOptions = [
@@ -213,7 +274,10 @@ export function DataTable({
                     Fuentes creadas: <span className="font-medium">{row.fuentesCreadas}</span>
                   </p>
                   <p>
-                    Ubicación: <span className="font-medium">{row.ubicacion}</span>
+                    Email: <span className="font-medium">{row.email || 'N/A'}</span>
+                  </p>
+                  <p>
+                    Celular: <span className="font-medium">{row.celular}</span>
                   </p>
                   <p>
                     Última actualización: <span className="font-medium">{row.ultimaActualizacion}</span>

@@ -83,7 +83,14 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
   const [createdFolderId, setCreatedFolderId] = useState<string | null>(null)
   
   // Use corresponsables hook
-  const { createCorresponsables, isCreating: isCreatingCorresponsables } = useCorresponsables(createdFolderId || undefined)
+  const { 
+    createCorresponsables, 
+    updateCorresponsable,
+    isCreating: isCreatingCorresponsables,
+    isUpdating: isUpdatingCorresponsables,
+    corresponsables,
+    isLoading: isLoadingCorresponsables 
+  } = useCorresponsables(editClient?.id || createdFolderId || undefined)
 
   // Form refs - child forms will manage their own states
   const generalFormRef = useRef<ChildFormRef<GeneralInformationInput> | null>(null)
@@ -167,24 +174,74 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
           return
         }
 
-        // Get connect form data and create corresponsables
-        const connectData = connectFormRef.current?.getValues() as ConnectCorrespondentsInput || {}
+        // Get connect form data and handle corresponsables
+        const connectData = connectFormRef.current?.getValues() as { correspondents: Array<{
+          id?: string;
+          clientName: string;
+          email: string;
+          whatsapp: string;
+          accountType: "premium" | "standard" | "basic";
+          invitationMethods: {
+            whatsapp: boolean;
+            email: boolean;
+            copyLink: boolean;
+          };
+        }> } || { correspondents: [] }
+        
         if (!connectData.correspondents || connectData.correspondents.length === 0) {
           toast.error(t('validation.addCorrespondent') || 'Please add at least one correspondent')
           return
         }
 
         try {
-          await createCorresponsables({
-            folderId: folderId,
-            correspondents: connectData.correspondents
-          })
-          toast.success('Corresponsables created successfully!')
+          // Separate new corresponsables from updates
+          // Only create new corresponsables that have actual data (not empty fields)
+          const newCorrespondents = connectData.correspondents.filter(c => 
+            !c.id && c.clientName.trim() && c.whatsapp.trim()
+          )
+          const updateCorrespondents = connectData.correspondents.filter(c => c.id)
+          
+          console.log('All correspondents:', connectData.correspondents)
+          console.log('New correspondents to create:', newCorrespondents)
+          console.log('Existing correspondents to update:', updateCorrespondents)
+
+          // Create new corresponsables
+          if (newCorrespondents.length > 0) {
+            await createCorresponsables({
+              folderId: folderId,
+              correspondents: newCorrespondents.map(c => ({
+                clientName: c.clientName,
+                email: c.email,
+                whatsapp: c.whatsapp,
+                accountType: c.accountType,
+                invitationMethods: c.invitationMethods
+              }))
+            })
+          }
+
+          // Update existing corresponsables
+          if (updateCorrespondents.length > 0) {
+            for (const correspondent of updateCorrespondents) {
+              if (correspondent.id) {
+                await updateCorresponsable({
+                  listenerId: correspondent.id,
+                  data: {
+                    title: correspondent.clientName,
+                    origin: correspondent.whatsapp,
+                    enabled: true,
+                    email: correspondent.email
+                  }
+                })
+              }
+            }
+          }
+
+          toast.success('Corresponsables updated successfully!')
           handleClose()
           return
         } catch (error) {
-          console.error('Failed to create corresponsables:', error)
-          toast.error('Failed to create corresponsables')
+          console.error('Failed to update corresponsables:', error)
+          toast.error('Failed to update corresponsables')
           return
         }
       } else if (activeTab === "brand") {
@@ -234,7 +291,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       console.error('Submit error:', error)
       toast.error(error instanceof Error ? error.message : (t('validation.error') || 'An error occurred during submission'))
     }
-  }, [createClientMutation, editClientMutation, editClient, t, handleClose, activeTab, createdFolderId, createCorresponsables])
+  }, [createClientMutation, editClientMutation, editClient, t, handleClose, activeTab, createdFolderId, createCorresponsables, updateCorresponsable])
 
 
   if (!isOpen) return null
@@ -358,6 +415,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                      <ConnectCorrespondentsForm
                        ref={connectFormRef}
                        folderId={editClient ? editClient.id : createdFolderId}
+                       initialCorresponsables={corresponsables}
                      />
                    </div>
                  </div>
@@ -406,6 +464,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                    <ConnectCorrespondentsForm
                      ref={connectFormRef}
                      folderId={editClient ? editClient.id : createdFolderId}
+                     initialCorresponsables={corresponsables}
                    />
                  </div>
                </div>
@@ -422,9 +481,9 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
                  <Button
                    onClick={handleSubmit}
                    className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
-                   disabled={createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables}
+                   disabled={createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables || isUpdatingCorresponsables || isLoadingCorresponsables}
                  >
-                   {createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables
+                   {createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables || isUpdatingCorresponsables
                      ? (editClient ? (t('updating') || 'Updating...') : (t('creating') || 'Creating...'))
                      : activeTab === "general" 
                        ? (editClient ? (t('form.update') || 'Update') : (t('form.submit') || 'Submit'))

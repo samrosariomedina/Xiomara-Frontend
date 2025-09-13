@@ -5,6 +5,7 @@ import {
   createCorresponsablesAction, 
   createCorresponsablesFromCSVAction,
   getCorresponsablesAction,
+  updateCorresponsableAction,
   removeCorresponsableAction
 } from '@/actions/corresponsables'
 import { ConnectCorrespondentsInput } from '@/lib/schemas'
@@ -56,8 +57,8 @@ export function useCorresponsables(folderId?: string) {
         throw new Error(result.error || 'Failed to create corresponsables')
       }
     },
-    onSuccess: (data) => {
-      toast.success(`Successfully created ${data.length} corresponsables`)
+    onSuccess: () => {
+      toast.success('Corresponsables created successfully')
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
@@ -85,14 +86,46 @@ export function useCorresponsables(folderId?: string) {
         throw new Error(result.error || 'Failed to create corresponsables from CSV')
       }
     },
-    onSuccess: (data) => {
-      toast.success(`Successfully created ${data.length} corresponsables from CSV`)
+    onSuccess: () => {
+      toast.success('Corresponsables created successfully from CSV')
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
     onError: (error: Error) => {
       console.error('Create corresponsables from CSV error:', error)
       toast.error(error.message || 'Failed to create corresponsables from CSV')
+    }
+  })
+
+  // Mutation to update a corresponsable
+  const updateCorresponsableMutation = useMutation({
+    mutationFn: async ({ 
+      listenerId, 
+      data 
+    }: { 
+      listenerId: string
+      data: {
+        title?: string;
+        origin?: string;
+        enabled?: boolean;
+        email?: string;
+      }
+    }) => {
+      const result = await updateCorresponsableAction(listenerId, data)
+      if (result.success) {
+        return result.data
+      } else {
+        throw new Error(result.error || 'Failed to update corresponsable')
+      }
+    },
+    onSuccess: () => {
+      toast.success('Corresponsable updated successfully')
+      // Invalidate and refetch corresponsables
+      queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
+    },
+    onError: (error: Error) => {
+      console.error('Update corresponsable error:', error)
+      toast.error(error.message || 'Failed to update corresponsable')
     }
   })
 
@@ -133,11 +166,13 @@ export function useCorresponsables(folderId?: string) {
     refetch,
     createCorresponsables: createCorresponsablesMutation.mutateAsync,
     createCorresponsablesFromCSV: createCorresponsablesFromCSVMutation.mutateAsync,
+    updateCorresponsable: updateCorresponsableMutation.mutateAsync,
     removeCorresponsable: removeCorresponsableMutation.mutateAsync,
     
     // Loading states
     isCreating: createCorresponsablesMutation.isPending,
     isCreatingFromCSV: createCorresponsablesFromCSVMutation.isPending,
+    isUpdating: updateCorresponsableMutation.isPending,
     isRemoving: removeCorresponsableMutation.isPending
   }
 }

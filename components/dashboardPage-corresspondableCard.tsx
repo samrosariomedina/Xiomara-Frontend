@@ -1,5 +1,4 @@
 "use client"
-
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, MoreVertical, Globe, ChevronDown, LucideImage } from "lucide-react"
@@ -12,30 +11,20 @@ import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyCorresponsable } from "@/components/icons/icons"
+import { useCorresponsables } from "@/hooks/useCorresponsables"
+import { useClient } from "@/context/ClientContext"
+import { formatDateSafe } from "@/lib/utils"
 
-// Mock data used for the list. Replace with real data or props when wiring to API.
-// const corresponsables = [
-//   { id: 1, name: "Ana López", avatar: "/avatar.svg", status: "Aprobado", sources: 4, time: "3 mins" },
-//   { id: 2, name: "Carlos Ruiz", avatar: "/avatar.svg", status: "Pendiente", sources: 1, time: "10 mins" },
-//   { id: 3, name: "María Gómez", avatar: "/avatar.svg", status: "Aprobado", sources: 6, time: "15 mins" },
-//   { id: 4, name: "Luis Fernández", avatar: "/avatar.svg", status: "Aprobado", sources: 3, time: "20 mins" },
-//   { id: 5, name: "Sofía Martínez", avatar: "/avatar.svg", status: "Aprobado", sources: 2, time: "30 mins" },
-//   { id: 6, name: "Jorge Díaz", avatar: "/avatar.svg", status: "Aprobado", sources: 5, time: "45 mins" },
-//   { id: 7, name: "Lucía Pérez", avatar: "/avatar.svg", status: "Pendiente", sources: 2, time: "1 hr" },
-//   { id: 8, name: "Andrés Soto", avatar: "/avatar.svg", status: "Aprobado", sources: 7, time: "2 hrs" },
-//   { id: 9, name: "Valentina Rivas", avatar: "/avatar.svg", status: "Aprobado", sources: 3, time: "3 hrs" },
-//   { id: 10, name: "Miguel Torres", avatar: "/avatar.svg", status: "Pendiente", sources: 1, time: "6 hrs" },
-//   { id: 11, name: "Clara Navarro", avatar: "/avatar.svg", status: "Aprobado", sources: 4, time: "1 day" },
-//   { id: 12, name: "Diego Herrera", avatar: "/avatar.svg", status: "Aprobado", sources: 2, time: "2 days" },
-// ]
-const corresponsables: Array<{
-  id: number;
-  name: string;
-  avatar: string;
-  status: string;
-  sources: number;
-  time: string;
-}> = [] // Empty state
+interface CorresponsableData {
+  _id: string;
+  title?: string;
+  origin?: string;
+  approved: boolean;
+  timestamp: string;
+  metadata?: {
+    email?: string;
+  };
+}
 export function CorresponsablesSection() {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
@@ -43,6 +32,16 @@ export function CorresponsablesSection() {
   const t = useTranslations('CORRESPONSABLES')
   const router = useRouter()
   const pathname = usePathname()
+  
+  // Get selected client from context
+  const { selectedClient } = useClient()
+  
+  // Fetch corresponsables for the selected client
+  const { 
+    corresponsables = [], 
+    isLoading, 
+    error 
+  } = useCorresponsables(selectedClient?._id)
 
   const goToCorresponsalesList = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.corresponsales, pathname || '/')
@@ -105,8 +104,24 @@ export function CorresponsablesSection() {
 
   {/* Scrollable content area (keeps card height consistent; contents scroll). Added hide-scrollbar to keep scroll functional but hide native scrollbars. */}
   <div className={`${!isExpanded ? 'hidden lg:block' : 'block'} px-4 lg:px-6 py-3 lg:py-4 flex-1 overflow-y-auto hide-scrollbar`}>
-  {/* Show empty state when no corresponsables, otherwise show tab content */}
-      {corresponsables.length === 0 ? (
+  {/* Show loading state */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-sm text-gray-500 text-center">
+            {t('loading')}
+          </p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <p className="text-sm text-red-500 text-center mb-2">
+            {t('error')}
+          </p>
+          <p className="text-xs text-gray-400 text-center">
+            {error.message || 'Please try again later'}
+          </p>
+        </div>
+      ) : corresponsables.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4">
           <EmptyCorresponsable className="mb-4" />
           <p className="text-sm text-gray-500 text-center mb-2">
@@ -140,28 +155,28 @@ export function CorresponsablesSection() {
           </div>
 
           <div className="space-y-4">
-              {corresponsables.map((person) => (
-                <div key={person.id} className="flex items-center justify-between py-1">
+              {corresponsables.map((corresponsable: CorresponsableData) => (
+                <div key={corresponsable._id} className="flex items-center justify-between py-1">
                   {/* Left column: checkbox + avatar + name + sources */}
                   <div className="flex items-center space-x-3">
                     {/* Individual row checkbox - wire to selection state if needed */}
-                    <Checkbox id={`person-${person.id}`} className="h-4 w-4 rounded border-gray-300" />
+                    <Checkbox id={`person-${corresponsable._id}`} className="h-4 w-4 rounded border-gray-300" />
                     <div className="flex items-center">
                       {/* Avatar - using next/image for optimization. To change size, adjust width/height and the className */}
                       <Image
-                        src={person.avatar}
-                        alt={person.name}
+                        src="/avatar.svg"
+                        alt={corresponsable.title || 'Corresponsable'}
                         width={32}
                         height={32}
                         className="w-8 h-8 rounded-full mr-3"
                       />
                       <div>
                         {/* Name text - change font sizes/weights here */}
-                        <p className="text-sm font-medium">{person.name}</p>
+                        <p className="text-sm font-medium">{corresponsable.title || 'Unnamed'}</p>
                         {/* Sources row: globe icon + number. To change color or spacing edit classes below */}
                         <div className="inline-flex bg-[#F7F9FF]  items-center text-xs text-blue-900 w-auto p-1">
                           <Globe className="h-3.5 w-3.5 mr-1" />
-                          <span>{person.sources}</span>
+                          <span>{corresponsable.origin || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
@@ -176,14 +191,16 @@ export function CorresponsablesSection() {
                     <div className="flex flex-col items-center">
                       <Badge
                         className={`px-2 py-1 text-xs font-medium ${
-                          person.status === "Aprobado"
+                          corresponsable.approved
                             ? "bg-[#74DEA4] text-[#192038]"
                             : "bg-[#E9C45E] text-[#192038]"
                         }`}
                       >
-                        {person.status === 'Aprobado' ? t('status.approved') : t('status.pending')}
+                        {corresponsable.approved ? t('status.approved') : t('status.pending')}
                       </Badge>
-                      <span className="text-xs text-gray-500 mt-1 text-center">{person.time}</span>
+                      <span className="text-xs text-gray-500 mt-1 text-center">
+                        {formatDateSafe(corresponsable.timestamp)}
+                      </span>
                     </div>
 
                     {/* Actions menu button */}

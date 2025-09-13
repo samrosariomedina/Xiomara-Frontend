@@ -15,13 +15,37 @@ import { Plus ,Upload } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { connectCorrespondentsSchema, type ConnectCorrespondentsInput } from '@/lib/schemas'
-import { forwardRef, useImperativeHandle, useState, useRef } from "react"
+import { type ConnectCorrespondentsInput, connectCorrespondentsSchema } from '@/lib/schemas'
+import { forwardRef, useImperativeHandle, useState, useRef, useEffect } from "react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { toast } from "sonner"
 
 interface ConnectCorrespondentsFormProps {
   folderId?: string | null;
+  initialCorresponsables?: Array<{
+    _id: string;
+    title: string;
+    origin: string;
+    enabled: boolean;
+    approved: boolean;
+    timestamp: string;
+    metadata?: {
+      email?: string;
+    };
+  }>;
+}
+
+interface CorrespondentFormData {
+  id?: string; // For existing corresponsables
+  clientName: string;
+  email: string;
+  whatsapp: string;
+  accountType: "premium" | "standard" | "basic";
+  invitationMethods?: {
+    whatsapp: boolean;
+    email: boolean;
+    copyLink: boolean;
+  };
 }
 
 type ChildFormRef<T = unknown> = {
@@ -31,7 +55,8 @@ type ChildFormRef<T = unknown> = {
 }
 
 export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespondentsInput>, ConnectCorrespondentsFormProps>(function ConnectCorrespondentsForm({
-  folderId
+  folderId,
+  initialCorresponsables = []
 }, ref) {
   const t = useTranslations('CLIENT_FORM');
 
@@ -42,25 +67,55 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   // Use corresponsables hook
   const { 
     createCorresponsablesFromCSV, 
-    isCreatingFromCSV 
+    isCreatingFromCSV,
+    isLoading: isLoadingCorresponsables,
+    corresponsables: fetchedCorresponsables = []
   } = useCorresponsables(folderId || undefined);
 
-  const form = useForm<ConnectCorrespondentsInput>({
+  // Convert corresponsables to form format
+  const getCorrespondentsFromData = (corresponsablesData: Array<{
+    _id: string;
+    title?: string;
+    origin?: string;
+    metadata?: { email?: string };
+  }>): CorrespondentFormData[] => {
+    const correspondents = corresponsablesData.map(corresponsable => ({
+      id: corresponsable._id, // Store the original ID for updates
+      clientName: corresponsable.title || "",
+      email: corresponsable.metadata?.email || "", // Get email from metadata
+      whatsapp: corresponsable.origin || "",
+      accountType: "basic" as const, // Default account type
+      invitationMethods: {
+        whatsapp: false,
+        email: false,
+        copyLink: false,
+      },
+    }));
+    
+    // Always add an empty field for adding new corresponsables
+    correspondents.push({
+      id: "", // Empty ID for new corresponsables
+      clientName: "",
+      email: "",
+      whatsapp: "",
+      accountType: "basic" as const,
+      invitationMethods: {
+        whatsapp: false,
+        email: false,
+        copyLink: false,
+      },
+    });
+    
+    return correspondents;
+  };
+
+  // Use fetched corresponsables or initial corresponsables
+  const corresponsablesToUse = fetchedCorresponsables.length > 0 ? fetchedCorresponsables : initialCorresponsables;
+
+  const form = useForm<{ correspondents: CorrespondentFormData[] }>({
     resolver: zodResolver(connectCorrespondentsSchema),
     defaultValues: {
-      correspondents: [
-        {
-          clientName: "",
-          email: "",
-          whatsapp: "",
-          accountType: "basic" as const,
-          invitationMethods: {
-            whatsapp: false,
-            email: false,
-            copyLink: false,
-          },
-        }
-      ]
+      correspondents: getCorrespondentsFromData(corresponsablesToUse)
     },
     mode: "onChange"
   });
@@ -71,6 +126,19 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     control,
     name: "correspondents"
   });
+
+  // Initialize form with corresponsables data when it changes
+  const initializedRef = useRef(false);
+  
+  useEffect(() => {
+    if (!initializedRef.current || corresponsablesToUse.length > 0) {
+      const correspondentsData = getCorrespondentsFromData(corresponsablesToUse);
+      console.log('Initializing form with corresponsables data:', correspondentsData);
+      form.reset({ correspondents: correspondentsData });
+      initializedRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [corresponsablesToUse.length, folderId]);
   
   // Form validity is managed internally - no need to notify parent
 
@@ -138,7 +206,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     validate: async () => {
       return await form.trigger();
     },
-    getValues: () => form.getValues() as ConnectCorrespondentsInput,
+    getValues: () => form.getValues() as { correspondents: CorrespondentFormData[] },
     reset: () => {
       form.reset();
       setSelectedCsvFile(null);
@@ -150,6 +218,13 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
 
   return (
     <div className="space-y-6 mt-4">
+      {/* Loading state */}
+      {isLoadingCorresponsables && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-sm text-gray-500">Loading corresponsables...</div>
+        </div>
+      )}
+      
       {/* Corresponsales Section */}
     <div className="pl-4 pr-4">
   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
