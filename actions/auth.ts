@@ -211,12 +211,27 @@ export async function logoutAction() {
 }
 
 /**
- * Server action to reset password
+ * Server action to reset password (for authenticated users)
  */
-export async function resetPasswordAction(email: string) {
+export async function resetPasswordAction(oldPassword: string, newPassword: string) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('authToken')?.value;
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'Authentication required'
+      };
+    }
+
     const response = await axios.post(`${BACKEND_URL}/auth/reset`, {
-      email: email
+      password_old: oldPassword,
+      password_new: newPassword
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
 
     if (response.status === 200) {
@@ -232,12 +247,17 @@ export async function resetPasswordAction(email: string) {
       if (axiosError.response?.status === 400) {
         return {
           success: false,
-          error: 'Please provide a valid email address'
+          error: 'Both old and new passwords are required'
         };
-      } else if (axiosError.response?.status === 404) {
+      } else if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Email not found'
+          error: 'Authentication required'
+        };
+      } else if (axiosError.response?.status === 403) {
+        return {
+          success: false,
+          error: 'Current password is incorrect'
         };
       }
     }
@@ -273,10 +293,10 @@ export async function forgotPasswordAction(email: string) {
           success: false,
           error: 'Please provide a valid email address'
         };
-      } else if (axiosError.response?.status === 404) {
+      } else if (axiosError.response?.status === 501) {
         return {
           success: false,
-          error: 'Email not found'
+          error: 'Email service is not available. Please try again later.'
         };
       }
     }
@@ -311,12 +331,17 @@ export async function recoverPasswordAction(token: string, password: string) {
       if (axiosError.response?.status === 400) {
         return {
           success: false,
-          error: 'Invalid token or password'
+          error: 'Invalid request parameters'
         };
       } else if (axiosError.response?.status === 403) {
         return {
           success: false,
           error: 'Invalid or expired token'
+        };
+      } else if (axiosError.response?.status === 500) {
+        return {
+          success: false,
+          error: 'Failed to update password. Please try again.'
         };
       }
     }
