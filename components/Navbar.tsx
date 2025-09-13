@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useTranslations } from 'next-intl'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { routes } from '@/lib/routes'
 import { toast } from "sonner"
 import { useAuth } from '@/context/AuthContext'
 
@@ -14,13 +15,13 @@ export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   
   const handleLogout = async () => {
     try {
       await logout() // Call the logout function from useAuth
       toast.success(t('logoutSuccess'))
-      router.push('/auth/login')
+      router.push(routes.auth.login)
     } catch (error) {
       console.error('Logout error:', error)
       toast.error(t('logoutError'))
@@ -61,16 +62,27 @@ export function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               {/* User menu trigger */}
-              <Button aria-label={t('user')} variant="ghost" className="flex items-center gap-2 text-gray-700 ">
+              <Button aria-label={user?.name || t('user')} variant="ghost" className="flex items-center gap-2 text-gray-700 ">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/avatar.svg" alt="user avatar" />
-                  <AvatarFallback>A</AvatarFallback>
+                  <AvatarImage src="/avatar.svg" alt={`${user?.name || 'user'} avatar`} />
+                  <AvatarFallback>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline text-sm font-medium">{t('user')}</span>
+                <span className="hidden sm:inline text-sm font-medium">
+                  {user?.name || t('user')}
+                </span>
                 <ChevronDown className="hidden sm:inline h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {/* User info section */}
+              {user && (
+                <div className="px-2 py-1.5 text-sm text-gray-500 border-b border-gray-100">
+                  <div className="font-medium text-gray-900">{user.name}</div>
+                  <div className="text-xs">{user.email}</div>
+                </div>
+              )}
               <DropdownMenuItem>{t('profile')}</DropdownMenuItem>
               <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
               <DropdownMenuItem onClick={toggleLocale}>

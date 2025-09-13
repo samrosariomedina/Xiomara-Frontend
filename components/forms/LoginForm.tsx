@@ -16,6 +16,7 @@ import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { loginSchema, type LoginInput } from '@/lib/schemas'
 import { loginAction } from '@/actions/auth'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 
 export default function LoginForm() {
   const t = useTranslations('LOGIN')
@@ -42,7 +43,7 @@ export default function LoginForm() {
     },
     onSuccess: () => {
       toast.success(t("loginSuccess"))
-      router.push('/clients')
+      router.push(routes.clients.page)
       router.refresh() // Refresh to update server components
     },
     onError: (error: Error) => {
@@ -76,7 +77,7 @@ export default function LoginForm() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" suppressHydrationWarning>
           {/* Email Field */}
           <div>
             <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-2 block">
@@ -134,7 +135,7 @@ export default function LoginForm() {
           {/* Forgot Password Link */}
           <div className="text-right">
             <Link 
-              href="/auth/forgot-password"
+              href={routes.auth.forgotPassword}
               className="text-xs text-gray-600 hover:text-blue-800 transition-colors font-medium"
             >
               {t("forgotPassword")}
@@ -163,7 +164,7 @@ export default function LoginForm() {
         {/* Register Section */}
         <div className="mt-9 text-center">
           <p className="text-xs text-gray-500 mb-3 font-medium">{t("noAccount")}</p>
-          <Link href="/auth/signup">
+          <Link href={routes.auth.signup}>
             <Button
               variant="outline"
               disabled={isLoading}

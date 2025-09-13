@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, ChevronDown, Calendar } from "lucide-react"
 import { usePathname, useRouter } from 'next/navigation'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { useTranslations } from 'next-intl'
 import { SourcesAdministrator } from '@/components/pages/dashboardPage-Forms'
 import {
@@ -23,13 +24,8 @@ export function DashboardHeader() {
   const router = useRouter()
 
   const goToClients = () => {
-    try {
-      const seg = (pathname || "/").split('/').filter(Boolean)
-      const locale = seg[0] === 'es' ? 'es' : 'en'
-      router.push(`/${locale}/clients`)
-    } catch {
-      router.push('/clients')
-    }
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.page, pathname || '/')
+    router.push(localizedRoute)
   }
 
   // Use dataset shape for reuse across the app: { label, value }

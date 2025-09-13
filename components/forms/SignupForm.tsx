@@ -16,6 +16,7 @@ import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { signupSchema, type SignupInput } from '@/lib/schemas'
 import { signupAction } from '@/actions/auth'
+import { routes } from '@/lib/routes'
 
 export default function SignupForm() {
   const t = useTranslations('SIGNUP')
@@ -46,7 +47,7 @@ export default function SignupForm() {
         icon: <CheckCircle className="h-4 w-4" />
       })
       // Redirect to login page after successful signup
-      router.push('/auth/login')
+      router.push(routes.auth.login)
     },
     onError: (error: Error) => {
       toast.error(error.message, {
@@ -193,7 +194,7 @@ export default function SignupForm() {
         {/* Login Section */}
         <div className="mt-9 text-center">
           <p className="text-xs text-gray-500 mb-3 font-medium">{t("haveAccount")}</p>
-          <Link href="/auth/login">
+          <Link href={routes.auth.login}>
             <Button
               variant="outline"
               disabled={isLoading}

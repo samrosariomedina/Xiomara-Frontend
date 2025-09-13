@@ -9,7 +9,8 @@ import { Search, ChevronDown, MoreVertical, Calendar } from "lucide-react"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,8 +48,7 @@ export function FuentesGeneralesSection() {
   const [selectedSort, setSelectedSort] = useState("Recientes");
   const t = useTranslations('FUENTES')
   const router = useRouter()
-  const params = useParams() as { locale?: string } | undefined
-  const locale = params?.locale
+  const pathname = usePathname()
 
   // Options for the dropdowns
   const dateOptions = [
@@ -78,8 +78,8 @@ export function FuentesGeneralesSection() {
   ];
 
   const goToFuentesList = () => {
-    const path = locale ? `/${locale}/lists/funtens-page` : '/lists/funtens-page'
-    router.push(path)
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname || '/')
+    router.push(localizedRoute)
   }
 
   return (

@@ -6,7 +6,8 @@ import { MoreVertical, RefreshCw } from "lucide-react"
 import { useState } from "react"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useTranslations } from 'next-intl'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
 
 // const knowledgeItems = [
@@ -33,12 +34,11 @@ export function KnowledgeBaseSection() {
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('KNOWLEDGE')
   const router = useRouter()
-  const params = useParams() as { locale?: string } | undefined
-  const locale = params?.locale
+  const pathname = usePathname()
 
   const goToKnowledgeList = () => {
-    const path = locale ? `/${locale}/lists/knowledge-page` : '/lists/knowledge-page'
-    router.push(path)
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.knowledge, pathname || '/')
+    router.push(localizedRoute)
   }
 
   const headerActions = (

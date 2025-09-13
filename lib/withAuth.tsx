@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { routes } from '@/lib/routes';
 
 export default function withAuth<P extends object>(
   WrappedComponent: React.ComponentType<P>
@@ -18,7 +19,7 @@ export default function withAuth<P extends object>(
       const timer = setTimeout(() => {
         if (!authLoading) {
           if (!isAuthenticated) {
-            router.push('/auth/login');
+            router.push(routes.auth.login);
           } else {
             setIsInitialized(true);
           }

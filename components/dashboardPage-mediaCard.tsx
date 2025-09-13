@@ -6,7 +6,8 @@ import { MediaPost } from "@/components/ui/media-post"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyMediaListener } from "@/components/icons/icons"
 
 // const mediaItems = [
@@ -53,12 +54,11 @@ export function MediaListeningSection() {
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('MEDIA')
   const router = useRouter()
-  const params = useParams() as { locale?: string } | undefined
-  const locale = params?.locale
+  const pathname = usePathname()
 
   const goToMediaList = () => {
-    const path = locale ? `/${locale}/lists/media-page` : '/lists/media-page'
-    router.push(path)
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.media, pathname || '/')
+    router.push(localizedRoute)
   }
 
   const headerActions = (

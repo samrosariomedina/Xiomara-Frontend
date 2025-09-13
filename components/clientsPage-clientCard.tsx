@@ -16,6 +16,7 @@ import { ClientCardProps } from "../utils/types"
 import { CampaignRow } from "./clientPage-campaignRows"
 import { useRouter, usePathname } from 'next/navigation'
 import { useClient } from '@/context/ClientContext'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 
 export function ClientCard({
   client,
@@ -48,44 +49,30 @@ export function ClientCard({
 
   const router = useRouter()
   const pathname = usePathname()
-  const { setSelectedClient } = useClient()
-
-  const goToDashboard = () => {
-    try {
-      const seg = (pathname || "/").split('/').filter(Boolean)
-      const locale = seg[0] === 'es' ? 'es' : 'en'
-      router.push(`/${locale}/dashboard`)
-    } catch {
-      router.push('/dashboard')
-    }
-  }
+  const { setSelectedClient, selectedClient } = useClient()
 
   const goToChannels = () => {
-    try {
-      const seg = (pathname || "/").split('/').filter(Boolean)
-      const locale = seg[0] === 'es' ? 'es' : 'en'
-      // Set the client context before navigating
-      // Convert the client data to ClientResponse format
-      const clientResponse = {
-        _id: String(client.id),
-        title: client.name,
-        parent: null,
-        items: {},
-        metadata: {
-          type: "client",
-          industry: "General", // Default value, should be updated with actual data
-          contactName: client.contact,
-          whatsapp: "", // Default value, should be updated with actual data
-          position: "", // Default value, should be updated with actual data
-          email: "", // Default value, should be updated with actual data
-        },
-        timestamp: new Date().toISOString(),
-      }
-      setSelectedClient(clientResponse)
-      router.push(`/${locale}/clients/channels`)
-    } catch {
-      router.push('/clients/channels')
+    // Set the client context before navigating
+    // Convert the client data to ClientResponse format
+    const clientResponse = {
+      _id: String(client.id),
+      title: client.name,
+      parent: null,
+      items: {},
+      metadata: {
+        type: "client",
+        industry: "General", // Default value, should be updated with actual data
+        contactName: client.contact,
+        whatsapp: "", // Default value, should be updated with actual data
+        position: "", // Default value, should be updated with actual data
+        email: "", // Default value, should be updated with actual data
+      },
+      timestamp: new Date().toISOString(),
     }
+    setSelectedClient(clientResponse)
+    console.log(selectedClient)
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.channels, pathname || '/')
+    router.push(localizedRoute)
   }
 
   return (
@@ -170,7 +157,7 @@ export function ClientCard({
             </Button>
 
             {/* Analytics Button */}
-            <Button variant="ghost" size="sm" className="h-9 w-12 rounded-full p-0 bg-[#f7f9ff] hover:cursor-pointer" onClick={goToDashboard}>
+            <Button variant="ghost" size="sm" className="h-9 w-12 rounded-full p-0 bg-[#f7f9ff] hover:cursor-pointer" onClick={goToChannels}>
               <LineChart className="h-4 w-4 text-[#31499F]" />
             </Button>
 
@@ -254,11 +241,8 @@ export function ClientCard({
                 <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F] rounded-full" onClick={() => onEditClient?.(client)}>
                   <Edit className="h-5 w-5 " />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F]  rounded-full hover:cursor-pointer" onClick={goToDashboard}>
-                  <LineChart className="h-5 w-5 " />
-                </Button>
                 <Button variant="ghost" size="sm" className="h-10 w-10 p-0 bg-[#f7f9ff] text-[#31499F]  rounded-full hover:cursor-pointer" onClick={goToChannels}>
-                  <Ear className="h-5 w-5" />
+                  <LineChart className="h-5 w-5 " />
                 </Button>
                 <Button variant="outline" size="sm" className="h-10 w-10 p-0 text-[#31499F] bg-[#f7f9ff] border-white hover:bg-blue-50 rounded-full" onClick={() => console.log('create campaign for', client.id)}>
                   <Plus className="h-5 w-5" />

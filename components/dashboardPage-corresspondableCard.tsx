@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyCorresponsable } from "@/components/icons/icons"
 
 // Mock data used for the list. Replace with real data or props when wiring to API.
@@ -41,12 +42,11 @@ export function CorresponsablesSection() {
   // translations scoped to messages/CORRESPONSABLES
   const t = useTranslations('CORRESPONSABLES')
   const router = useRouter()
-  const params = useParams() as { locale?: string } | undefined
-  const locale = params?.locale
+  const pathname = usePathname()
 
   const goToCorresponsalesList = () => {
-    const path = locale ? `/${locale}/lists/corresponsales-page` : '/lists/corresponsales-page'
-    router.push(path)
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.corresponsales, pathname || '/')
+    router.push(localizedRoute)
   }
 
   return (
@@ -66,45 +66,57 @@ export function CorresponsablesSection() {
       />
     </div>
 
-      {/* Tabs
+      {/* Tabs - Only show when there are corresponsables
           - Change active/inactive tab appearance by editing classes below
           - Active tab currently uses text-blue-600 + border-b-2
           - Only shown on desktop or when expanded on mobile
       */}
-  <div className={`border-b border-gray-200 ${!isExpanded ? 'hidden lg:block' : 'block'}`}>
-        {/* Make tabs take equal width: each button gets flex-1 and centered text */}
-  <div className="flex w-full">
-          <button
-            onClick={() => setActiveTab("usuarios")}
-            role="tab"
-            aria-selected={activeTab === "usuarios"}
-            className={`flex-1 text-center mx-1 py-3 text-sm font-medium ${
-              activeTab === "usuarios"
-                ? "text-blue-800 border-b-2 border-blue-900"
-                : "text-gray-600"
-            }`}
-          >
-            {t('tabs.usuarios')}
-          </button>
-          <button
-            onClick={() => setActiveTab("fuentes")}
-            role="tab"
-            aria-selected={activeTab === "fuentes"}
-            className={`flex-1 text-center  mx-1 py-3 text-sm font-medium ${
-              activeTab === "fuentes"
-                ? "text-blue-800 border-b-2 border-blue-900"
-                : "text-gray-600"
-            }`}
-          >
-            {t('tabs.fuentes')}
-          </button>
+  {corresponsables.length > 0 && (
+    <div className={`border-b border-gray-200 ${!isExpanded ? 'hidden lg:block' : 'block'}`}>
+          {/* Make tabs take equal width: each button gets flex-1 and centered text */}
+    <div className="flex w-full">
+            <button
+              onClick={() => setActiveTab("usuarios")}
+              role="tab"
+              aria-selected={activeTab === "usuarios"}
+              className={`flex-1 text-center mx-1 py-3 text-sm font-medium ${
+                activeTab === "usuarios"
+                  ? "text-blue-800 border-b-2 border-blue-900"
+                  : "text-gray-600"
+              }`}
+            >
+              {t('tabs.usuarios')}
+            </button>
+            <button
+              onClick={() => setActiveTab("fuentes")}
+              role="tab"
+              aria-selected={activeTab === "fuentes"}
+              className={`flex-1 text-center  mx-1 py-3 text-sm font-medium ${
+                activeTab === "fuentes"
+                  ? "text-blue-800 border-b-2 border-blue-900"
+                  : "text-gray-600"
+              }`}
+            >
+              {t('tabs.fuentes')}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
   {/* Scrollable content area (keeps card height consistent; contents scroll). Added hide-scrollbar to keep scroll functional but hide native scrollbars. */}
   <div className={`${!isExpanded ? 'hidden lg:block' : 'block'} px-4 lg:px-6 py-3 lg:py-4 flex-1 overflow-y-auto hide-scrollbar`}>
-  {/* Content for the active tab - only visible on desktop or when expanded on mobile */}
-      {activeTab === "usuarios" ? (
+  {/* Show empty state when no corresponsables, otherwise show tab content */}
+      {corresponsables.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <EmptyCorresponsable className="mb-4" />
+          <p className="text-sm text-gray-500 text-center mb-2">
+            {t('emptyState')}
+          </p>
+          <p className="text-xs text-gray-400 text-center">
+            {t('emptySubtitle')}
+          </p>
+        </div>
+      ) : activeTab === "usuarios" ? (
         <div className="p-0">
           {/* Toolbar: left = select / dropdown, right = create button
               - To change the dropdown look: update Checkbox + ChevronDown classes
@@ -127,19 +139,7 @@ export function CorresponsablesSection() {
             </Button>
           </div>
 
-          {/* Empty State */}
-          {corresponsables.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <EmptyCorresponsable className="mb-4" />
-              <p className="text-sm text-gray-500 text-center mb-2">
-                {t('emptyState')}
-              </p>
-              <p className="text-xs text-gray-400 text-center">
-                {t('emptySubtitle')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {corresponsables.map((person) => (
                 <div key={person.id} className="flex items-center justify-between py-1">
                   {/* Left column: checkbox + avatar + name + sources */}
@@ -194,95 +194,80 @@ export function CorresponsablesSection() {
                 </div>
               ))}
             </div>
-          )}
         </div>
       ) : (
         /* "Fuentes" Tab Content - only show when there are corresponsables */
         <div className={`p-4 pt-0 ${!isExpanded ? 'hidden lg:block' : 'block'}`}>
-          {corresponsables.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <EmptyCorresponsable className="mb-4" />
-              <p className="text-sm text-gray-500 text-center mb-2">
-                {t('fuentes.emptyState')}
-              </p>
-              <p className="text-xs text-gray-400 text-center">
-                {t('fuentes.emptySubtitle')}
-              </p>
+          {/* Toolbar: left = select / dropdown */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="hidden lg:flex items-center">
+              {/* Select all checkbox - visible only on large screens */}
+              <Checkbox id="select-all-fuentes" className="mr-2 h-4 w-4 rounded border-gray-300" />
+              {/* This ChevronDown is a visual dropdown icon in the original design */}
+              <ChevronDown className="h-4 w-4 text-gray-500" />
             </div>
-          ) : (
-            <>
-              {/* Toolbar: left = select / dropdown */}
-              <div className="flex justify-between items-center mb-4">
-                <div className="hidden lg:flex items-center">
-                  {/* Select all checkbox - visible only on large screens */}
-                  <Checkbox id="select-all-fuentes" className="mr-2 h-4 w-4 rounded border-gray-300" />
-                  {/* This ChevronDown is a visual dropdown icon in the original design */}
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </div>
-              </div>
+          </div>
 
-              {/* List of campaign images/sources - matches the image layout */}
-              <div className="space-y-4">
-                {/* Create mock data for campaign sources based on image */}
-                {[1, 2, 3, 4, 5,6,7,8,9,10,11,12].map((id) => (
-                  <div key={id} className="flex flex-col py-1">
-                    {/* Top row: content + timestamp + actions */}
-                    <div className="flex justify-between w-full">
-                      {/* Left side: checkbox + image icon + name */}
-                      <div className="flex items-center space-x-3">
-                        {/* Individual row checkbox */}
-                        <Checkbox id={`fuente-${id}`} className="h-4 w-4 rounded border-gray-300" />
-                        <div className="flex items-center">
-                          {/* Image icon - using a document/file icon as placeholder */}
-                          <div className="flex items-center justify-center w-8 h-8 rounded-md mr-3 bg-gray-100">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M8.5 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V13C1 13.5304 1.21071 14.0391 1.58579 14.4142C1.96086 14.7893 2.46957 15 3 15H13C13.5304 15 14.0391 14.7893 14.4142 14.4142C14.7893 14.0391 15 13.5304 15 13V7.5L8.5 1Z" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 1V8H15" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                          <div>
-                          <p className="block text-sm font-medium">{t('fuentes.campaignTitle')}</p>
-                          <div className="flex  ">
-                            {/* Campaign name - matches text in image */}
-                            
-                            {/* Image label - small text below name */}
-                            <LucideImage className="h-3 w-3 mt-[2px]"/>
-                            <p className="ml-1 text-xs text-gray-500">{t('fuentes.imageLabel')}</p>
-                          </div>
-                          </div>
-                        </div>
+          {/* List of campaign images/sources - matches the image layout */}
+          <div className="space-y-4">
+            {/* Create mock data for campaign sources based on image */}
+            {[1, 2, 3, 4, 5,6,7,8,9,10,11,12].map((id) => (
+              <div key={id} className="flex flex-col py-1">
+                {/* Top row: content + timestamp + actions */}
+                <div className="flex justify-between w-full">
+                  {/* Left side: checkbox + image icon + name */}
+                  <div className="flex items-center space-x-3">
+                    {/* Individual row checkbox */}
+                    <Checkbox id={`fuente-${id}`} className="h-4 w-4 rounded border-gray-300" />
+                    <div className="flex items-center">
+                      {/* Image icon - using a document/file icon as placeholder */}
+                      <div className="flex items-center justify-center w-8 h-8 rounded-md mr-3 bg-gray-100">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.5 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V13C1 13.5304 1.21071 14.0391 1.58579 14.4142C1.96086 14.7893 2.46957 15 3 15H13C13.5304 15 14.0391 14.7893 14.4142 14.4142C14.7893 14.0391 15 13.5304 15 13V7.5L8.5 1Z" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 1V8H15" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
-
-                      {/* Right side: timestamp + action button */}
-                      <div className="flex items-center">
-                        {/* Timestamp as in image */}
-                        <span className="text-xs text-gray-500 mr-2">{t('fuentes.time')}</span>
+                      <div>
+                      <p className="block text-sm font-medium">{t('fuentes.campaignTitle')}</p>
+                      <div className="flex  ">
+                        {/* Campaign name - matches text in image */}
                         
-                        {/* Action menu button */}
-                        <button className="text-gray-500">
-                          <MoreVertical className="h-4 w-4 text-black" />
-                        </button>
+                        {/* Image label - small text below name */}
+                        <LucideImage className="h-3 w-3 mt-[2px]"/>
+                        <p className="ml-1 text-xs text-gray-500">{t('fuentes.imageLabel')}</p>
                       </div>
-                    </div>
-                    
-                    {/* Bottom row: Empty left, "Add to campaign" link right */}
-                    <div className="flex justify-end mt-2">
-                      {/* "Agregar a campaña" link - blue text link as shown in image */}
-                      <a href="#" className="text-xs text-[#31499F] underline whitespace-nowrap">
-                        {t('fuentes.addToCampaign')}
-                      </a>
+                      </div>
                     </div>
                   </div>
-                ))}
+
+                  {/* Right side: timestamp + action button */}
+                  <div className="flex items-center">
+                    {/* Timestamp as in image */}
+                    <span className="text-xs text-gray-500 mr-2">{t('fuentes.time')}</span>
+                    
+                    {/* Action menu button */}
+                    <button className="text-gray-500">
+                      <MoreVertical className="h-4 w-4 text-black" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Bottom row: Empty left, "Add to campaign" link right */}
+                <div className="flex justify-end mt-2">
+                  {/* "Agregar a campaña" link - blue text link as shown in image */}
+                  <a href="#" className="text-xs text-[#31499F] underline whitespace-nowrap">
+                    {t('fuentes.addToCampaign')}
+                  </a>
+                </div>
               </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
       )}
 
     </div>
-  {/* Mobile "Ver todos" link at bottom (only when expanded) */}
-  {isExpanded && (
+  {/* Mobile "Ver todos" link at bottom (only when expanded and there are corresponsables) */}
+  {isExpanded && corresponsables.length > 0 && (
     <div className="lg:hidden px-4 text-center border-t border-gray-100">
       <Button variant="link" className="text-[#192038] underline hover:no-underline text-sm p-0 cursor-pointer hover:no-underline" onClick={goToCorresponsalesList}>
         {t('viewAll')}

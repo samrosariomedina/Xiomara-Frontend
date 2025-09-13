@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { User, AuthContextType } from '@/lib/types'
+import { routes } from '@/lib/routes'
 
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,7 +55,7 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
       toast.success(t('logoutSuccess'))
       
       // Redirect to login
-      router.push('/auth/login')
+      router.push(routes.auth.login)
     },
     onError: (error: Error) => {
       console.error('Logout error:', error)

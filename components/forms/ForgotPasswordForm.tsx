@@ -14,6 +14,7 @@ import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { forgotPasswordSchema, type ForgotPasswordInput } from '@/lib/schemas'
 import { forgotPasswordAction } from '@/actions/auth'
+import { routes } from '@/lib/routes'
 
 export default function ForgotPasswordForm() {
   const t = useTranslations('FORGOT_PASSWORD')
@@ -42,7 +43,7 @@ export default function ForgotPasswordForm() {
         icon: <CheckCircle className="h-4 w-4" />
       })
       // Redirect to login page after successful request
-      router.push('/auth/login')
+      router.push(routes.auth.login)
     },
     onError: (error: Error) => {
       toast.error(error.message, {
@@ -119,7 +120,7 @@ export default function ForgotPasswordForm() {
 
         {/* Back to Login Section */}
         <div className="mt-9 text-center">
-          <Link href="/auth/login">
+          <Link href={routes.auth.login}>
             <Button
               variant="outline"
               disabled={isLoading}

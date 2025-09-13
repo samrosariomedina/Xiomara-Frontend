@@ -14,6 +14,7 @@ import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/schemas'
 import { recoverPasswordAction } from '@/actions/auth'
+import { routes } from '@/lib/routes'
 import { useState } from 'react'
 
 export default function ResetPasswordForm() {
@@ -52,7 +53,7 @@ export default function ResetPasswordForm() {
       })
       // Redirect to login page after successful password reset
       setTimeout(() => {
-        router.push('/auth/login')
+        router.push(routes.auth.login)
       }, 2000)
     },
     onError: (error: Error) => {
@@ -97,7 +98,7 @@ export default function ResetPasswordForm() {
           </div>
 
           <div className="text-center">
-            <Link href="/auth/forgot-password">
+            <Link href={routes.auth.forgotPassword}>
               <Button
                 variant="outline"
                 className="w-full border border-[#31499F] text-[#31499F] hover:bg-[#eef1ff] font-semibold h-12 px-4 rounded-full transition-colors bg-white"
@@ -223,7 +224,7 @@ export default function ResetPasswordForm() {
 
         {/* Back to Login Section */}
         <div className="mt-9 text-center">
-          <Link href="/auth/login">
+          <Link href={routes.auth.login}>
             <Button
               variant="outline"
               disabled={isLoading}
