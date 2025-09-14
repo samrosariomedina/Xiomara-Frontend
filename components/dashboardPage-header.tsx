@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react'
@@ -13,8 +14,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  references: ReferenceResponse[]
+  sources: SourceResponse[]
+}
+
+export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
   const t = useTranslations('DASHBOARD')
   const tFilters = useTranslations('FILTERS')
   const [selected, setSelected] = useState('abril')
@@ -188,10 +195,12 @@ export function DashboardHeader() {
         </div>
       </div>
       
-      <SourcesAdministrator 
-        isOpen={isSourcesAdminOpen} 
-        onClose={() => setIsSourcesAdminOpen(false)} 
-      />
+        <SourcesAdministrator 
+          isOpen={isSourcesAdminOpen} 
+          onClose={() => setIsSourcesAdminOpen(false)} 
+          references={references}
+          sources={sources}
+        />
     </div>
   )
 }

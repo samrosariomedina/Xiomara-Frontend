@@ -207,14 +207,22 @@
     },
     "FILTERS": {
         "search": "Buscar clientes, campañas",
-        "date": "Abril 2025",
+        "date": "Abril",
         "status": "Estado",
         "recent": "Recientes",
         "months": {
-            "january": "Enero 2025",
-            "february": "Febrero 2025",
-            "march": "Marzo 2025",
-            "april": "Abril 2025"
+            "january": "Enero",
+            "february": "Febrero",
+            "march": "Marzo",
+            "april": "Abril",
+            "may": "Mayo",
+            "june": "Junio",
+            "july": "Julio",
+            "august": "Agosto",
+            "september": "Septiembre",
+            "october": "Octubre",
+            "november": "Noviembre",
+            "december": "Diciembre"
         },
         "statuses": {
             "active": "Activo",
@@ -231,9 +239,9 @@
         "title": "Dashboard Canales",
         "addSources": "Agregar Fuentes",
         "months": {
-            "april": "Abril 2025",
-            "march": "Marzo 2025",
-            "february": "Febrero 2025"
+            "april": "Abril",
+            "march": "Marzo",
+            "february": "Febrero"
         }
         ,
         "breadcrumb": {
@@ -277,7 +285,7 @@
         "viewAll": "Ver todos",
     "groupBy": "Agrupar por",
         "searchPlaceholder": "Buscar Fuentes",
-        "dateLabel": "Abril 2025",
+        "dateLabel": "Abril",
         "statusLabel": "Estado",
         "recentLabel": "Recientes",
         "table": {

@@ -1,8 +1,13 @@
 "use client"
 
-import withAuth from "@/lib/withAuth"
 import { DashboardLayout } from "../lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
+import { formatDateSafe } from "@/lib/utils"
+import type { SourceResponse } from "@/lib/schemas"
+
+interface FuentesGeneralesPageProps {
+  sources: SourceResponse[]
+}
 
 const columns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -13,16 +18,17 @@ const columns: Column[] = [
   { key: "ultimaActualizacion", label: "Última actualización", width: "150px" },
 ]
 
-const data = Array.from({ length: 25 }, () => ({
-  nombre: "Nombre",
-  tipo: "PDF",
-  contenido: "Lorem ipsum dolor sit",
-  estado: "En uso",
-  creadoPor: "Nombre de la persona",
-  ultimaActualizacion: "16/06/2025",
-}))
-
- function FuentesGeneralesPage() {
+function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
+  // Transform sources to table data format
+  const data = sources.map((source, index) => ({
+    id: source._id,
+    nombre: source.title || 'Sin título',
+    tipo: source.type === 'generales' ? 'General' : source.type,
+    contenido: source.content || 'Sin contenido',
+    estado: source.edited ? 'Editado' : 'En uso',
+    creadoPor: 'Sistema', // Default since user info is not available in current schema
+    ultimaActualizacion: formatDateSafe(source.timestamp),
+  }))
   return (
     <DashboardLayout
       title="Listado Fuentes Generales"
@@ -41,4 +47,4 @@ const data = Array.from({ length: 25 }, () => ({
   )
 }
 
-export default withAuth(FuentesGeneralesPage)
+export default FuentesGeneralesPage

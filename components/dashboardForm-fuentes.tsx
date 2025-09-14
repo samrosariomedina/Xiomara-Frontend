@@ -12,6 +12,9 @@ import HeaderControls from "./ui/formsHeader-dashboard"
 import { useTranslations } from 'next-intl'
 import SourcesList from "./ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
+import { useSourcesMutations } from '@/hooks/useSources'
+import { formatDateSafe } from '@/lib/utils'
+import type { SourceResponse } from '@/lib/schemas'
 
 interface FormData {
   name: string
@@ -22,6 +25,7 @@ interface FormData {
 
 interface FuentesGeneralesFormProps {
   onSubmit: (data: FormData) => void
+  sources: SourceResponse[]
 }
 
 interface Source {
@@ -33,12 +37,11 @@ interface Source {
 }
 
 export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
-  { onSubmit }: FuentesGeneralesFormProps,
+  { onSubmit, sources }: FuentesGeneralesFormProps,
   ref
 ) {
   const [showForm, setShowForm] = useState(false)
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
-  const [sources, setSources] = useState<Source[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: "",
@@ -47,7 +50,18 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     text: "",
   })
 
-  const handleSubmit = () => {
+  const { createSource, isCreating } = useSourcesMutations()
+
+  // Transform sources to SourceItem format for display
+  const sourcesList: Source[] = sources.map((source, index) => ({
+    id: index + 1,
+    name: source.title || 'Sin título',
+    type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
+    category: "General",
+    timestamp: formatDateSafe(source.timestamp),
+  }))
+
+  const handleSubmit = async () => {
     // Validate form data
     const validation = validateForm(fuentesGeneralesSchema, formData)
     
@@ -57,18 +71,26 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     }
 
     setErrors({}) // Clear any previous errors
-    const newSource: Source = {
-      id: sources.length + 1,
-      name: formData.name || "Nombre",
-      type: activeTab === "file" ? "image" : activeTab === "url" ? "url" : "text",
-      category: "Marketing",
-      timestamp: "20min"
-    }
     
-    setSources([...sources, newSource])
-    onSubmit(formData)
-    setFormData({ name: "", file: null, url: "", text: "" })
-    setShowForm(false) // Close form and show sources list
+    try {
+      // Create source using the mutation
+      await createSource({
+        name: formData.name,
+        file: formData.file || undefined,
+        url: formData.url || undefined,
+        text: formData.text || undefined,
+      })
+      
+      // Call the parent onSubmit for any additional handling
+      onSubmit(formData)
+      
+      // Reset form
+      setFormData({ name: "", file: null, url: "", text: "" })
+      setShowForm(false) // Close form and show sources list
+    } catch (error) {
+      console.error('Error creating source:', error)
+      setErrors({ general: 'Failed to create source' })
+    }
   }
 
   const handleCancel = () => {
@@ -101,18 +123,18 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // header controls are now a reusable component
 
   // Image 5: Sources list view
-  if (sources.length > 0 && !showForm) {
+  if (sourcesList.length > 0 && !showForm) {
     return (
       <div className="space-y-2">
   <HeaderControls title={t('title')} actions={headerActions} />
 
-  <SourcesList sources={sources} onKebabClick={(id) => console.log("kebab", id)} />
+  <SourcesList sources={sourcesList} onKebabClick={(id) => console.log("kebab", id)} />
       </div>
     )
   }
 
   // Image 1: Empty state
-  if (!showForm && sources.length === 0) {
+  if (!showForm && sourcesList.length === 0) {
     return (
       <>
   <HeaderControls title={t('title')} actions={headerActionsPlain} />
@@ -234,7 +256,9 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
             <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                      <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
                        <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
-                       <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{t('form.submit')}</Button>
+                       <Button onClick={handleSubmit} disabled={isCreating} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
+                         {isCreating ? 'Creating...' : t('form.submit')}
+                       </Button>
                      </div>
                    </div>
     </div>

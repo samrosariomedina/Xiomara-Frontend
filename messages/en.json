@@ -208,22 +208,22 @@
     },
     "FILTERS":{
         "search": "Search clients, campaigns",
-        "date": "April 2025",
+        "date": "April",
         "status": "Status",
         "recent": "Recent",
         "months": {
-            "january": "January 2025",
-            "february": "February 2025",
-            "march": "March 2025",
-            "april": "April 2025",
-            "may": "May 2025",
-            "june": "June 2025",
-            "july": "July 2025",
-            "august": "August 2025",
-            "september": "September 2025",
-            "october": "October 2025",
-            "november": "November 2025",
-            "december": "December 2025"
+            "january": "January",
+            "february": "February",
+            "march": "March",
+            "april": "April",
+            "may": "May",
+            "june": "June",
+            "july": "July",
+            "august": "August",
+            "september": "September",
+            "october": "October",
+            "november": "November",
+            "december": "December"
         },
         "statuses": {
             "active": "Active",
@@ -241,9 +241,9 @@
         "title": "Dashboard Channels",
         "addSources": "Add Sources",
         "months": {
-            "april": "April 2025",
-            "march": "March 2025",
-            "february": "February 2025"
+            "april": "April",
+            "march": "March",
+            "february": "February"
         }
         ,
         "breadcrumb": {
@@ -288,7 +288,7 @@
         "viewAll": "View all",
     "groupBy": "Group by",
         "searchPlaceholder": "Search sources",
-        "dateLabel": "April 2025",
+        "dateLabel": "April",
         "statusLabel": "Status",
         "recentLabel": "Recent",
         "table": {

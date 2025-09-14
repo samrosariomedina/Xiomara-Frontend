@@ -9,32 +9,52 @@ import { useTranslations } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
+import { formatDateSafe } from '@/lib/utils'
+import type { ReferenceResponse } from '@/lib/schemas'
 
-// const knowledgeItems = [
-//   { id: 1, name: "Cómo configurar X", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 horas" },
-//   { id: 2, name: "Guía de usuario Y", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 horas" },
-//   { id: 3, name: "FAQ Z", type: "Knowledge base", lastUpdate: "Última actualización", time: "5 horas" },
-//   { id: 4, name: "Procedimiento de soporte", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 día" },
-//   { id: 5, name: "Onboarding cliente", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 días" },
-//   { id: 6, name: "Política de privacidad", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 semana" },
-//   { id: 7, name: "Checklist de lanzamiento", type: "Knowledge base", lastUpdate: "Última actualización", time: "3 semanas" },
-//   { id: 8, name: "Plantilla reportes", type: "Knowledge base", lastUpdate: "Última actualización", time: "1 mes" },
-//   { id: 9, name: "Manual técnico", type: "Knowledge base", lastUpdate: "Última actualización", time: "2 meses" },
-//   { id: 10, name: "Glosario", type: "Knowledge base", lastUpdate: "Última actualización", time: "6 meses" },
-// ]
-const knowledgeItems: Array<{
-  id: number;
+// Define types for knowledge base data
+interface KnowledgeItem {
+  id: string;
   name: string;
   type: string;
   lastUpdate: string;
   time: string;
-}> = [] // Empty state
+}
 
-export function KnowledgeBaseSection() {
+interface KnowledgeBaseSectionProps {
+  references: ReferenceResponse[]
+}
+
+export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('KNOWLEDGE')
   const router = useRouter()
   const pathname = usePathname()
+
+  // Transform references to KnowledgeItem format
+  const knowledgeItems: KnowledgeItem[] = references.map((ref) => {
+    // Handle both old string content and new object content
+    const content = typeof ref.content === 'string' ? ref.content : ref.content;
+    const displayName = ref.title || 'Untitled';
+    
+    // Get type display name
+    let typeDisplay = 'Text';
+    if (ref.type === 'file') {
+      typeDisplay = 'File';
+    } else if (ref.type === 'webpage') {
+      typeDisplay = 'URL';
+    } else if (ref.type === 'text') {
+      typeDisplay = 'Text';
+    }
+    
+    return {
+      id: ref._id,
+      name: displayName,
+      type: typeDisplay,
+      lastUpdate: 'Última actualización',
+      time: formatDateSafe(ref.timestamp),
+    }
+  })
 
   const goToKnowledgeList = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.knowledge, pathname || '/')
@@ -91,8 +111,8 @@ export function KnowledgeBaseSection() {
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-200" />
                   <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-semibold">NC</div>
                   <div>
-        <p className="text-xs text-gray-400">{item.name}</p>
-        <p className="text-sm font-medium text-gray-900">{t('type')}</p>
+        <p className="text-sm font-medium text-gray-900">{item.name}</p>
+        <p className="text-xs text-gray-400">{item.type}</p>
                   </div>
                 </div>
 

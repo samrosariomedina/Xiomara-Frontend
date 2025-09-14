@@ -2,12 +2,18 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const nextConfig: NextConfig = {
-  // Disable font optimization when using Turbopack to avoid module resolution issues
-  experimental: {
-    optimizePackageImports: ['next/font/google'],
+  // Configure server actions body size limit to 100MB
+  serverActions: {
+    bodySizeLimit: '100mb',
   },
-  // Alternative: disable font optimization entirely if issues persist
-  // optimizeFonts: false,
+  
+ 
+  
+  // Additional configuration for large file uploads
+  
+  
+  // Configure webpack for large files
+  
 };
 const withNextIntl = createNextIntlPlugin();
 export default withNextIntl(nextConfig);

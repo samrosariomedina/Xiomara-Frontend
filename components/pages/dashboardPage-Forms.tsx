@@ -7,10 +7,13 @@ import { CorresponsalesForm } from "@/components/dashboardForm-corresponables"
 import { KnowledgeBaseForm } from "@/components/dashboardForm-knowledge"
 import { MediaListeningForm } from "@/components/dashboardForm-media"
 import { toast } from "sonner"
+import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
 interface SourcesAdministratorProps {
   isOpen: boolean
   onClose: () => void
+  references: ReferenceResponse[]
+  sources: SourceResponse[]
 }
 
 interface SourceData {
@@ -18,7 +21,7 @@ interface SourceData {
   [key: string]: unknown
 }
 
-export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorProps) {
+export function SourcesAdministrator({ isOpen, onClose, references, sources }: SourcesAdministratorProps) {
   // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
   const [visible, setVisible] = useState(isOpen)
   const [active, setActive] = useState(isOpen)
@@ -38,7 +41,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
   }, [isOpen])
   // Local state management
   const [activeTab, setActiveTab] = useState("fuentes-generales")
-  const [sources, setSources] = useState<
+  const [localSources, setLocalSources] = useState<
     Array<{
       id: number
       name: string
@@ -62,14 +65,14 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
       }
       
       const newSource = {
-        id: sources.length + 1,
+        id: localSources.length + 1,
         name: d.name,
         type: "image" as const,
         category: "Marketing",
         timestamp: new Date().toISOString(),
       }
       
-      setSources(prev => [...prev, newSource])
+      setLocalSources(prev => [...prev, newSource])
       toast.success('Source added successfully')
     } catch (error) {
       console.error('Submit error:', error)
@@ -77,7 +80,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
     } finally {
       setIsSubmitting(false)
     }
-  }, [sources.length])
+  }, [localSources.length])
 
 
   const renderTabContent = (tabId?: string) => {
@@ -88,7 +91,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} />
+              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} sources={sources} />
             </div>
           </div>
         )
@@ -106,7 +109,7 @@ export function SourcesAdministrator({ isOpen, onClose }: SourcesAdministratorPr
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <KnowledgeBaseForm onSubmit={handleSubmit} />
+              <KnowledgeBaseForm onSubmit={handleSubmit} references={references} />
             </div>
           </div>
         )

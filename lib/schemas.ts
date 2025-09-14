@@ -156,14 +156,33 @@ export const fuentesGeneralesSchema = z.object({
   }
 );
 
+// Supported file types for knowledge base uploads
+const SUPPORTED_FILE_TYPES = [
+  'text/plain', // .txt
+  'text/markdown', // .md
+  'application/pdf', // .pdf
+  'text/html', // .html, .htm
+];
+
+const SUPPORTED_FILE_EXTENSIONS = ['.txt', '.md', '.pdf', '.html', '.htm'];
+
 // Knowledge Base Form Schema
 export const knowledgeBaseSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   accountType: z.enum(['kb', 'article'], {
     message: 'Please select a valid account type',
   }),
-  description: z.string().min(1, 'Description is required').max(500, 'Description must be less than 500 characters'),
-  file: z.instanceof(File).optional().nullable(),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  file: z.instanceof(File)
+    .optional()
+    .nullable()
+    .refine(
+      (file) => !file || SUPPORTED_FILE_TYPES.includes(file.type) ||
+        SUPPORTED_FILE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext)),
+      {
+        message: 'Please upload a supported file type: TXT, MD, PDF, HTML, or HTM',
+      }
+    ),
   url: z.string()
     .optional()
     .refine(
@@ -177,7 +196,7 @@ export const knowledgeBaseSchema = z.object({
   (data) => data.file || data.url || data.text,
   {
     message: 'At least one source (file, URL, or text) must be provided',
-    path: ['general'],
+    path: ['file'],
   }
 );
 
@@ -222,6 +241,32 @@ export interface ListenerResponse {
   enabled: boolean;
   approved: boolean;
   timestamp: string;
+}
+
+export interface ReferenceResponse {
+  _id: string;
+  title: string | null;
+  type: string;
+  content: {
+    description: string;
+    text: string;
+    webUrl: string;
+    fileContent: string;
+  } | string; // Support both new object format and legacy string format
+  timestamp: string;
+  edited: boolean;
+  listener: string | null;
+}
+
+export interface SourceResponse {
+  _id: string;
+  title: string | null;
+  type: string;
+  content: string;
+  timestamp: string;
+  origin: string | null;
+  edited: boolean;
+  listener: string | null;
 }
 
 export interface ClientWithCampaigns {

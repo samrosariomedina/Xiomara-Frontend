@@ -4,8 +4,14 @@ import { MetricCard } from "@/components/ui/metric-card"
 import { Users,  FileText, Ear,  Globe } from "lucide-react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useClient } from "@/context/ClientContext"
+import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
-export function MetricsCards() {
+interface MetricsCardsProps {
+  references: ReferenceResponse[]
+  sources: SourceResponse[]
+}
+
+export function MetricsCards({ references, sources }: MetricsCardsProps) {
   // Get selected client from context
   const { selectedClient } = useClient()
   
@@ -30,13 +36,13 @@ export function MetricsCards() {
     },
     {
       title: "Knowledge base",
-      value: "0",
+      value: references.length.toString(),
       icon: Globe,
       iconColor: "text-gray-600",
     },
     {
       title: "Generales",
-      value: "0",
+      value: sources.length.toString(),
       icon: FileText,
       iconColor: "text-gray-600",
     },

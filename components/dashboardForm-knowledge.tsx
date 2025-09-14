@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Plus, Eye, Brain, ChevronDown } from "lucide-react"
 import HeaderControls from "./ui/formsHeader-dashboard"
@@ -11,7 +13,10 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
-import { knowledgeBaseSchema, validateForm } from '@/lib/schemas'
+import { knowledgeBaseSchema, type KnowledgeBaseInput } from '@/lib/schemas'
+import { useKnowledge } from '@/hooks/useKnowledge'
+import { useClient } from '@/context/ClientContext'
+import type { ReferenceResponse } from '@/lib/schemas'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,20 +26,26 @@ import {
 
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
+  references: ReferenceResponse[]
 }
 
-export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
+export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormProps) {
   const [showForm, setShowForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
-  const [sources, setSources] = useState<SourceItem[]>([])
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [formData, setFormData] = useState({
-    name: "",
-    accountType: "",
-    description: "",
-    file: null as File | null,
-    url: "",
-    text: "",
+  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("text")
+  
+  const { selectedClient } = useClient()
+  const { createReference, isCreating } = useKnowledge()
+  
+  const form = useForm<KnowledgeBaseInput>({
+    resolver: zodResolver(knowledgeBaseSchema),
+    defaultValues: {
+      name: "",
+      accountType: "kb",
+      description: "",
+      file: null,
+      url: "",
+      text: "",
+    }
   })
 
   const t = useTranslations('KNOWLEDGE')
@@ -48,9 +59,25 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
   ];
 
   const getAccountTypeLabel = () => {
-    const found = accountTypeOptions.find(opt => opt.value === formData.accountType)
+    const accountType = form.watch('accountType')
+    const found = accountTypeOptions.find(opt => opt.value === accountType)
     return found ? found.label : t('form.selectPlaceholder')
   }
+
+  // Transform references to SourceItem format for display
+  const sources: SourceItem[] = references.map((ref, index) => {
+    // Handle both old string content and new object content
+    const content = typeof ref.content === 'string' ? ref.content : ref.content;
+    const displayName = ref.title || `Knowledge Item ${index + 1}`;
+    
+    return {
+      id: index + 1, // Convert to number for SourceItem compatibility
+      name: displayName,
+      type: ref.type === 'text' ? 'text' : ref.type === 'webpage' ? 'url' : 'image',
+      category: "Knowledge",
+      timestamp: new Date(ref.timestamp).toLocaleDateString(),
+    }
+  })
 
   const headerActions = [
     { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => {}, variant: "soft" as const },
@@ -59,34 +86,35 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
 
   const handleCancel = () => {
-    setErrors({}) // Clear validation errors
-    setFormData({ name: "", accountType: "", description: "", file: null, url: "", text: "" })
+    form.reset()
+    form.clearErrors()
     setShowForm(false)
   }
 
-  const handleSubmit = () => {
-    // Validate form data
-    const validation = validateForm(knowledgeBaseSchema, formData)
-    
-    if (!validation.success) {
-      setErrors(validation.errors || {})
+  const handleSubmit = form.handleSubmit((data) => {
+    if (!selectedClient) {
+      console.error('No client selected')
       return
     }
 
-    setErrors({}) // Clear any previous errors
-    const id = sources.length + 1
-    const newItem: SourceItem = {
-      id,
-      name: formData.name || t('form.namePlaceholder'),
-      type: activeTab === "file" ? "image" : activeTab === "url" ? "url" : "text",
-      category: "Knowledge",
-      timestamp: "now",
+    // Validate that at least one content type is provided
+    if (!data.file && !data.url && !data.text) {
+      form.setError('file', { 
+        type: 'manual', 
+        message: 'At least one source (file, URL, or text) must be provided' 
+      })
+      return
     }
-    setSources([...sources, newItem])
-    onSubmit?.(formData)
-    setFormData({ name: "", accountType: "", description: "", file: null, url: "", text: "" })
-    setShowForm(false)
-  }
+
+    createReference(data, {
+      onSuccess: () => {
+        form.reset()
+        setShowForm(false)
+        onSubmit?.(data)
+      }
+    })
+  })
+
 
   // list view
   if (sources.length > 0 && !showForm) {
@@ -134,12 +162,11 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
           <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">{t('form.nameLabel')}</Label>
           <Input 
             id="name" 
-            value={formData.name} 
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+            {...form.register('name')}
             placeholder={t('form.namePlaceholder')} 
-            className={`w-full bg-[#f7f9ff] ${errors.name ? 'border-red-500' : ''}`} 
+            className={`w-full bg-[#f7f9ff] ${form.formState.errors.name ? 'border-red-500' : ''}`} 
           />
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          {form.formState.errors.name && <p className="text-red-500 text-xs mt-1">{form.formState.errors.name.message}</p>}
         </div>
 
         <div>
@@ -149,7 +176,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
               <Button
                 variant="outline"
                 className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 text-sm justify-between ${
-                  errors.accountType ? 'border-red-500' : 'border-gray-200'
+                  form.formState.errors.accountType ? 'border-red-500' : 'border-gray-200'
                 }`}
               >
                 {getAccountTypeLabel()}
@@ -160,7 +187,7 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
               {accountTypeOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
-                  onClick={() => setFormData({ ...formData, accountType: option.value })}
+                  onClick={() => form.setValue('accountType', option.value as 'kb' | 'article')}
                   className="cursor-pointer"
                 >
                   {option.label}
@@ -168,31 +195,39 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType}</p>}
+          {form.formState.errors.accountType && <p className="text-red-500 text-xs mt-1">{form.formState.errors.accountType.message}</p>}
         </div>
       </div>
 
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-2 block">{t('form.descriptionLabel')}</Label>
         <textarea 
-          className={`w-full focus:outline-none bg-[#f7f9ff] border rounded px-3 py-2 min-h-[120px] ${errors.description ? 'border-red-500' : 'border-gray-200'}`} 
-          value={formData.description} 
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
+          className={`w-full focus:outline-none bg-[#f7f9ff] border rounded px-3 py-2 min-h-[120px] ${form.formState.errors.description ? 'border-red-500' : 'border-gray-200'}`} 
+          {...form.register('description')}
         />
-        {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+        {form.formState.errors.description && <p className="text-red-500 text-xs mt-1">{form.formState.errors.description.message}</p>}
       </div>
 
       {/* Horizontal tabs */}
       <div>
         <div className="mb-2">
           <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
-            <button type="button" onClick={() => setActiveTab("file")} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "file" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+            <button type="button" onClick={() => {
+              setActiveTab("file")
+              form.clearErrors(['file', 'url', 'text'])
+            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "file" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
               {t('form.uploadTab')}
             </button>
-            <button type="button" onClick={() => setActiveTab("url")} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "url" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+            <button type="button" onClick={() => {
+              setActiveTab("url")
+              form.clearErrors(['file', 'url', 'text'])
+            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "url" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
               {t('form.urlTab')}
             </button>
-            <button type="button" onClick={() => setActiveTab("text")} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "text" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+            <button type="button" onClick={() => {
+              setActiveTab("text")
+              form.clearErrors(['file', 'url', 'text'])
+            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "text" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
               {t('form.textTab')}
             </button>
           </div>
@@ -200,38 +235,67 @@ export function KnowledgeBaseForm({ onSubmit }: KnowledgeBaseFormProps) {
 
         {activeTab === "file" && (
           <div>
-            <FileUpload selectedFile={formData.file || undefined} onFileSelect={(file) => setFormData({ ...formData, file })} onRemove={() => setFormData({ ...formData, file: null })} />
+            <FileUpload
+              selectedFile={form.watch('file') || undefined}
+              onFileSelect={(file) => form.setValue('file', file)}
+              onRemove={() => form.setValue('file', null)}
+              accept=".txt,.md,.pdf,.html,.htm"
+              maxSize={100}
+            />
+            {form.formState.errors.file && <p className="text-red-500 text-xs mt-1">{form.formState.errors.file.message}</p>}
           </div>
         )}
 
         {activeTab === "url" && (
           <div>
-            <UrlInput value={formData.url} onChange={(url) => setFormData({ ...formData, url })} placeholder={t('form.addUrlPlaceholder')} />
+            <UrlInput 
+              value={form.watch('url') || ''} 
+              onChange={(url) => form.setValue('url', url)} 
+              placeholder={t('form.addUrlPlaceholder')} 
+            />
+            {form.formState.errors.url && <p className="text-red-500 text-xs mt-1">{form.formState.errors.url.message}</p>}
           </div>
         )}
 
         {activeTab === "text" && (
           <div>
-            <RichTextEditor value={formData.text} onChange={(text) => setFormData({ ...formData, text })} />
+            <RichTextEditor 
+              value={form.watch('text') || ''} 
+              onChange={(text) => form.setValue('text', text)} 
+            />
+            {form.formState.errors.text && <p className="text-red-500 text-xs mt-1">{form.formState.errors.text.message}</p>}
           </div>
         )}
       </div>
       </div>
 
       {/* General validation error */}
-      {errors.general && (
+      {(form.formState.errors.file || form.formState.errors.url || form.formState.errors.text) && (
         <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-600 text-sm">{errors.general}</p>
+          <p className="text-red-600 text-sm">At least one source (file, URL, or text) must be provided</p>
         </div>
       )}
 
       {/* Footer: center the buttons inside the same max width on desktop */}
       <div className="fixed bottom-0 left-0 right-0 lg:m-3 bg-white sm:bg-transparent rounded-lg shadow-md sm:shadow-none">
         <div className="max-w-[520px] mx-auto pt-2 flex justify-end gap-3 mb-2 mr-2 px-4 lg:px-0">
-          <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
-          <Button onClick={handleSubmit} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{t('form.submit')}</Button>
+          <Button 
+            onClick={handleCancel} 
+            disabled={isCreating}
+            className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]"
+          >
+            {t('form.cancel')}
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isCreating}
+            className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
+          >
+            {isCreating ? 'Creating...' : t('form.submit')}
+          </Button>
         </div>
       </div>
     </div>
   )
 }
+

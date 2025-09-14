@@ -18,30 +18,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { EmptyFuentesGenerales } from "./icons/icons"
+import { formatDateSafe } from '@/lib/utils'
+import type { SourceResponse } from '@/lib/schemas'
 
-// const fuentesData = [
-//   { id: 1, nombre: "Informe Q1", tipo: "PDF", contenido: "Análisis de mercado Q1", estado: "En uso", creadoPor: "Ana López", ultimaActualizacion: "16/06/2025" },
-//   { id: 2, nombre: "Presentación Campaña", tipo: "PPT", contenido: "Material creativo campaña", estado: "En uso", creadoPor: "Carlos Ruiz", ultimaActualizacion: "10/06/2025" },
-//   { id: 3, nombre: "Dataset Usuarios", tipo: "CSV", contenido: "Segmentación usuarios", estado: "En uso", creadoPor: "María Gómez", ultimaActualizacion: "01/06/2025" },
-//   { id: 4, nombre: "Brief Producto", tipo: "DOCX", contenido: "Especificaciones del producto", estado: "En uso", creadoPor: "Luis Fernández", ultimaActualizacion: "22/05/2025" },
-//   { id: 5, nombre: "Imagen Campaña 1", tipo: "IMG", contenido: "Banner principal", estado: "En uso", creadoPor: "Sofía Martínez", ultimaActualizacion: "16/04/2025" },
-//   { id: 6, nombre: "Audio Spot", tipo: "MP3", contenido: "Spot radio 30s", estado: "En uso", creadoPor: "Jorge Díaz", ultimaActualizacion: "03/04/2025" },
-//   { id: 7, nombre: "Guía de Estilo", tipo: "PDF", contenido: "Lineamientos de marca", estado: "En uso", creadoPor: "Lucía Pérez", ultimaActualizacion: "12/03/2025" },
-//   { id: 8, nombre: "Reporte SEO", tipo: "PDF", contenido: "Keywords rendimiento", estado: "En uso", creadoPor: "Andrés Soto", ultimaActualizacion: "28/02/2025" },
-//   { id: 9, nombre: "Notas de Prensa", tipo: "DOCX", contenido: "Lanzamiento producto", estado: "En uso", creadoPor: "Valentina Rivas", ultimaActualizacion: "14/02/2025" },
-//   { id: 10, nombre: "Resumen Anual", tipo: "PDF", contenido: "Resultados 2024", estado: "En uso", creadoPor: "Miguel Torres", ultimaActualizacion: "01/01/2025" },
-// ]
-const fuentesData: Array<{
-  id: number;
-  nombre: string;
-  tipo: string;
-  contenido: string;
-  estado: string;
-  creadoPor: string;
-  ultimaActualizacion: string;
-}> = [] // Empty state
+interface FuentesGeneralesSectionProps {
+  sources: SourceResponse[]
+}
 
-export function FuentesGeneralesSection() {
+export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProps) {
+
+  // Transform sources to fuentesData format
+  const fuentesData = sources.map((source, index) => ({
+    id: index + 1,
+    nombre: source.title || 'Sin título',
+    tipo: source.type === 'generales' ? 'General' : source.type,
+    contenido: source.content || 'Sin contenido',
+    estado: source.edited ? 'Editado' : 'En uso',
+    creadoPor: 'Sistema', // Default since user info is not available in current schema
+    ultimaActualizacion: formatDateSafe(source.timestamp),
+  }))
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedDate, setSelectedDate] = useState("Abril 2025");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
