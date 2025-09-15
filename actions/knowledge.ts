@@ -7,7 +7,6 @@ import FormData from 'form-data'
 import type { KnowledgeBaseInput, ReferenceResponse } from '@/lib/schemas'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
-console.log('API_BASE_URL:', API_BASE_URL)
 
 /**
  * Get authentication token from cookies
@@ -16,7 +15,6 @@ async function getAuthToken(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('authToken')?.value || null;
-    console.log('Auth token check:', token ? 'Found token' : 'No token found');
     return token;
   } catch (error) {
     console.error('Error getting auth token:', error);
@@ -41,11 +39,6 @@ export async function getReferencesAction(): Promise<ReferenceResponse[]> {
       }
     })
     
-    console.log('References API response:', {
-      status: response.status,
-      dataLength: response.data?.length || 0,
-      data: response.data
-    })
     
     return response.data
   } catch (error) {
@@ -61,14 +54,11 @@ export async function getReferencesAction(): Promise<ReferenceResponse[]> {
 export async function getReferences(): Promise<ReferenceResponse[]> {
   try {
     const token = await getAuthToken();
-    console.log('Server-side getReferences - token:', token ? 'Found' : 'Not found');
     
     if (!token) {
-      console.log('No auth token found, returning empty array');
       return [];
     }
 
-    console.log('Making API call to:', `${API_BASE_URL}/references`);
     const response = await axios.post(`${API_BASE_URL}/references`, {
       types: ['text', 'webpage', 'file']
     }, {
@@ -78,13 +68,11 @@ export async function getReferences(): Promise<ReferenceResponse[]> {
       }
     })
     
-    console.log('Server-side API response:', {
-      status: response.status,
-      dataLength: response.data?.length || 0,
-      data: response.data
-    });
+    const references = response.data || []
     
-    return response.data || []
+    // Note: We can't use localStorage in server components, 
+    // but we'll handle caching in the client components
+    return references
   } catch (error) {
     console.error('Get references server error:', error)
     if (axios.isAxiosError(error)) {
@@ -143,21 +131,10 @@ export async function createReferenceAction(data: KnowledgeBaseInput): Promise<R
     formData.append('content', JSON.stringify(contentObject))
 
     // Debug logging
-    console.log('Sending to backend:', {
-      type: referenceType,
-      contentObject: contentObject,
-      hasFile: !!data.file,
-      fileName: data.file?.name,
-      fileSize: data.file?.size,
-      title: data.name,
-      description: data.description,
-      formDataKeys: ['title', 'type', 'content', ...(data.file ? ['file'] : [])]
-    })
     
     // Check file size
     if (data.file) {
       const fileSizeMB = data.file.size / (1024 * 1024);
-      console.log(`File size: ${fileSizeMB.toFixed(2)} MB`);
       if (fileSizeMB > 100) {
         throw new Error('File size exceeds 100MB limit');
       }
@@ -170,7 +147,6 @@ export async function createReferenceAction(data: KnowledgeBaseInput): Promise<R
       },
     })
     
-    console.log('Backend response:', response.data)
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
     revalidatePath('/clients/dashboards/knowledge')

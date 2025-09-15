@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { EmptyFuentesGenerales } from "./icons/icons"
 import { formatDateSafe } from '@/lib/utils'
+import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { SourceResponse } from '@/lib/schemas'
 
 interface FuentesGeneralesSectionProps {
@@ -26,9 +27,13 @@ interface FuentesGeneralesSectionProps {
 }
 
 export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProps) {
+  // Use caching for sources
+  const {
+    data: cachedSources
+  } = useDataWithCache(sources, { cacheKey: 'sources' })
 
   // Transform sources to fuentesData format
-  const fuentesData = sources.map((source, index) => ({
+  const fuentesData = cachedSources.map((source, index) => ({
     id: index + 1,
     nombre: source.title || 'Sin título',
     tipo: source.type === 'generales' ? 'General' : source.type,
@@ -200,19 +205,19 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
     ) : (
       <>
         {/* Desktop view - table layout (hidden on mobile) */}
-        <div className="hidden sm:block overflow-x-auto mt-2 ">
-          <table className="w-full">
-            <thead className="bg-gray-50 ">
+        <div className="hidden sm:block overflow-x-auto overflow-y-auto mt-2 max-h-96">
+          <table className="w-full table-fixed">
+            <thead className="bg-gray-50 sticky top-0">
               <tr>
                 <th className="px-6 py-3 text-left w-6">
                   <Checkbox />
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.name')}</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.type')}</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.content')}</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.status')}</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.createdBy')}</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">{t('table.updatedAt')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-32">{t('table.name')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-20">{t('table.type')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-64">{t('table.content')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-24">{t('table.status')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-28">{t('table.createdBy')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-900 w-32">{t('table.updatedAt')}</th>
                 <th className="px-6 py-3 text-left w-6"></th>
               </tr>
             </thead>
@@ -222,16 +227,30 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
                   <td className="px-6 py-3">
                     <Checkbox />
                   </td>
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900">{fuente.nombre}</td>
-                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.tipo}</td>
-                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.contenido}</td>
+                  <td className="px-6 py-3 text-sm font-medium text-gray-900 truncate" title={fuente.nombre}>
+                    {fuente.nombre}
+                  </td>
+                  <td className="px-6 py-3 text-sm text-gray-600 truncate" title={fuente.tipo}>
+                    {fuente.tipo}
+                  </td>
+                  <td className="px-6 py-3 text-sm text-gray-600">
+                    <div className="max-w-64 overflow-hidden">
+                      <p className="truncate" title={fuente.contenido}>
+                        {fuente.contenido}
+                      </p>
+                    </div>
+                  </td>
                   <td className="px-6 py-3">
-                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF] text-xs">
                       {fuente.estado}
                     </Badge>
                   </td>
-                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.creadoPor}</td>
-                  <td className="px-6 py-3 text-sm text-gray-600">{fuente.ultimaActualizacion}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600 truncate" title={fuente.creadoPor}>
+                    {fuente.creadoPor}
+                  </td>
+                  <td className="px-6 py-3 text-sm text-gray-600 truncate" title={fuente.ultimaActualizacion}>
+                    {fuente.ultimaActualizacion}
+                  </td>
                   <td className="px-6 py-3">
                     <button className="text-gray-400 hover:text-gray-600">
                       <MoreVertical className="h-4 w-4 text-black" />
@@ -244,22 +263,28 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
         </div>
 
         {/* Mobile view - card layout (visible only on mobile and when expanded) */}
-        <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'}`}>
+        <div className={`sm:hidden ${isExpanded ? 'block' : 'hidden'} overflow-y-auto max-h-96`}>
           <div className="space-y-3 px-3">
             {fuentesData.map((fuente) => (
               <div key={fuente.id} className="bg-white border border-gray-100 rounded-lg p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-start gap-3">
-                    <Checkbox className="mt-1 h-4 w-4" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{fuente.nombre}</p>
-                      <p className="text-sm text-gray-600">{fuente.contenido}</p>
-                      <p className="text-xs text-gray-500 mt-1">{fuente.tipo}</p>
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <Checkbox className="mt-1 h-4 w-4 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate" title={fuente.nombre}>
+                        {fuente.nombre}
+                      </p>
+                      <p className="text-sm text-gray-600 line-clamp-2" title={fuente.contenido}>
+                        {fuente.contenido}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 truncate" title={fuente.tipo}>
+                        {fuente.tipo}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF]">
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF] text-xs">
                       {fuente.estado}
                     </Badge>
                     <button className="text-gray-400">

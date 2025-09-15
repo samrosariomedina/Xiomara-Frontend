@@ -241,7 +241,25 @@ export function DataTable({
       return <Badge className={`${statusColors[statusValue] || "bg-gray-100 text-gray-800"} border-0`}>{statusValue}</Badge>
     }
 
-    return String(value || "")
+    // Handle content column with overflow
+    if (column.key === "contenido" || column.key === "content") {
+      const contentValue = String(value || "")
+      return (
+        <div className="max-w-xs overflow-hidden">
+          <p className="truncate" title={contentValue}>
+            {contentValue}
+          </p>
+        </div>
+      )
+    }
+
+    // Handle other columns with truncation
+    const cellValue = String(value || "")
+    return (
+      <div className="truncate" title={cellValue}>
+        {cellValue}
+      </div>
+    )
   }
 
   const renderMobileCard = (row: TableRow, index: number) => {
@@ -334,30 +352,30 @@ export function DataTable({
     return (
       <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3">
-            <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} />
-            <div className="flex-1">
+          <div className="flex items-start space-x-3 flex-1 min-w-0">
+            <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-gray-900">{row.nombre}</h3>
-                <Badge className={`${statusColors[row.estado || ""] || "bg-gray-100 text-gray-800"} border-0 ml-2`}>
+                <h3 className="font-medium text-gray-900 truncate" title={row.nombre}>{row.nombre}</h3>
+                <Badge className={`${statusColors[row.estado || ""] || "bg-gray-100 text-gray-800"} border-0 ml-2 flex-shrink-0`}>
                   {row.estado}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600 mb-3">{row.contenido}</p>
+              <p className="text-sm text-gray-600 mb-3 line-clamp-2" title={row.contenido}>{row.contenido}</p>
               <div className="space-y-1 text-sm text-gray-600">
-                <p>
+                <p className="truncate" title={row.tipo}>
                   Tipo: <span className="font-medium">{row.tipo}</span>
                 </p>
-                <p>
+                <p className="truncate" title={row.creadoPor}>
                   Creado por: <span className="font-medium">{row.creadoPor}</span>
                 </p>
-                <p>
+                <p className="truncate" title={row.ultimaActualizacion}>
                   Última actualización: <span className="font-medium">{row.ultimaActualizacion}</span>
                 </p>
               </div>
             </div>
           </div>
-            <Button variant="ghost" size="sm" className="p-1" onClick={(e) => openRowMenu(startIndex + index, row, e, ["edit","delete"], "right")}>
+            <Button variant="ghost" size="sm" className="p-1 flex-shrink-0" onClick={(e) => openRowMenu(startIndex + index, row, e, ["edit","delete"], "right")}>
               <MoreVertical className="h-4 w-4" />
             </Button>
         </div>
@@ -517,11 +535,11 @@ export function DataTable({
       </div>
 
       {/* Mobile Cards */}
-  <div className="md:hidden p-6 bg-gray-50">{currentItems.map((row, index) => renderMobileCard(row, index))}</div>
+  <div className="md:hidden p-6 bg-gray-50 overflow-y-auto max-h-96">{currentItems.map((row, index) => renderMobileCard(row, index))}</div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block px-6 py-4">
-        <Table>
+      <div className="hidden md:block px-6 py-4 overflow-x-auto overflow-y-auto max-h-96">
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-white rounded-lg">
               <TableHead className="w-12 py-3">

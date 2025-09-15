@@ -10,6 +10,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
 import { formatDateSafe } from '@/lib/utils'
+import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { ReferenceResponse } from '@/lib/schemas'
 
 // Define types for knowledge base data
@@ -26,13 +27,17 @@ interface KnowledgeBaseSectionProps {
 }
 
 export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) {
+  // Use caching for references
+  const {
+    data: cachedReferences
+  } = useDataWithCache(references, { cacheKey: 'references' })
   const [isExpanded, setIsExpanded] = useState(false)
   const t = useTranslations('KNOWLEDGE')
   const router = useRouter()
   const pathname = usePathname()
 
   // Transform references to KnowledgeItem format
-  const knowledgeItems: KnowledgeItem[] = references.map((ref) => {
+  const knowledgeItems: KnowledgeItem[] = cachedReferences.map((ref) => {
     // Handle both old string content and new object content
     const content = typeof ref.content === 'string' ? ref.content : ref.content;
     const displayName = ref.title || 'Untitled';

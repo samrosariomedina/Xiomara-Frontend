@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl'
 import SourcesList from "./ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
 import { useSourcesMutations } from '@/hooks/useSources'
+import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { formatDateSafe } from '@/lib/utils'
 import type { SourceResponse } from '@/lib/schemas'
 
@@ -40,6 +41,10 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   { onSubmit, sources }: FuentesGeneralesFormProps,
   ref
 ) {
+  // Use caching for sources
+  const {
+    data: cachedSources
+  } = useDataWithCache(sources, { cacheKey: 'sources' })
   const [showForm, setShowForm] = useState(false)
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -53,7 +58,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const { createSource, isCreating } = useSourcesMutations()
 
   // Transform sources to SourceItem format for display
-  const sourcesList: Source[] = sources.map((source, index) => ({
+  const sourcesList: Source[] = cachedSources.map((source, index) => ({
     id: index + 1,
     name: source.title || 'Sin título',
     type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
@@ -128,7 +133,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       <div className="space-y-2">
   <HeaderControls title={t('title')} actions={headerActions} />
 
-  <SourcesList sources={sourcesList} onKebabClick={(id) => console.log("kebab", id)} />
+  <SourcesList sources={sourcesList} onKebabClick={(id) => {}} />
       </div>
     )
   }
@@ -216,12 +221,17 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   {/* Tab content */}
         {activeTab === "file" && (
-          <div>
+          <div className="space-y-3">
             <FileUpload
               selectedFile={formData.file || undefined}
               onFileSelect={(file) => setFormData({ ...formData, file })}
               onRemove={() => setFormData({ ...formData, file: null })}
+              accept=".txt,.md,.pdf,.htm,.html"
+              maxSize={100}
             />
+            <p className="text-xs text-gray-500 text-center">
+              Supported file types: TXT, MD, PDF, HTM, HTML (Max 100MB)
+            </p>
           </div>
         )}
 

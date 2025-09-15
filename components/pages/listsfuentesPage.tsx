@@ -3,6 +3,7 @@
 import { DashboardLayout } from "../lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
+import { useDataWithCache } from "@/hooks/useDataWithCache"
 import type { SourceResponse } from "@/lib/schemas"
 
 interface FuentesGeneralesPageProps {
@@ -19,8 +20,13 @@ const columns: Column[] = [
 ]
 
 function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
+  // Use caching for sources
+  const {
+    data: cachedSources
+  } = useDataWithCache(sources, { cacheKey: 'sources' })
+
   // Transform sources to table data format
-  const data = sources.map((source, index) => ({
+  const data = cachedSources.map((source, index) => ({
     id: source._id,
     nombre: source.title || 'Sin título',
     tipo: source.type === 'generales' ? 'General' : source.type,
@@ -33,7 +39,7 @@ function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
     <DashboardLayout
       title="Listado Fuentes Generales"
       breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href :"/dashboard" }, { label: "Listado Fuentes Generales" }]}
-      onAddClick={() => console.log("Add clicked")}
+      onAddClick={() => {}}
     >
       <DataTable
         columns={columns}

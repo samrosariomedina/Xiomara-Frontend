@@ -70,7 +70,6 @@ export function ClientCard({
       timestamp: new Date().toISOString(),
     }
     setSelectedClient(clientResponse)
-    console.log(selectedClient)
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.channels, pathname || '/')
     router.push(localizedRoute)
   }

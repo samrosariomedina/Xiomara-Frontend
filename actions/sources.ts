@@ -7,7 +7,6 @@ import FormData from 'form-data'
 import type { SourceResponse } from '@/lib/schemas'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
-console.log('Sources API_BASE_URL:', API_BASE_URL)
 
 /**
  * Get authentication token from cookies
@@ -16,7 +15,6 @@ async function getAuthToken(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('authToken')?.value || null;
-    console.log('Sources Auth token check:', token ? 'Found token' : 'No token found');
     return token;
   } catch (error) {
     console.error('Error getting auth token:', error);
@@ -33,7 +31,7 @@ export async function getSourcesAction(): Promise<SourceResponse[]> {
     }
 
     const response = await axios.post(`${API_BASE_URL}/sources`, {
-      types: ['generales'] // Filter for general sources
+      types: ['text', 'file', 'webpage'] // Filter for manually added sources
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -41,11 +39,6 @@ export async function getSourcesAction(): Promise<SourceResponse[]> {
       }
     })
     
-    console.log('Sources API response:', {
-      status: response.status,
-      dataLength: response.data?.length || 0,
-      data: response.data
-    })
     
     return response.data
   } catch (error) {
@@ -61,16 +54,13 @@ export async function getSourcesAction(): Promise<SourceResponse[]> {
 export async function getSources(): Promise<SourceResponse[]> {
   try {
     const token = await getAuthToken();
-    console.log('Server-side getSources - token:', token ? 'Found' : 'Not found');
     
     if (!token) {
-      console.log('No auth token found, returning empty array');
       return [];
     }
 
-    console.log('Making API call to:', `${API_BASE_URL}/sources`);
     const response = await axios.post(`${API_BASE_URL}/sources`, {
-      types: ['generales']
+      types: ['text', 'file', 'webpage'] // Filter for manually added sources
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -78,13 +68,11 @@ export async function getSources(): Promise<SourceResponse[]> {
       }
     })
     
-    console.log('Server-side sources API response:', {
-      status: response.status,
-      dataLength: response.data?.length || 0,
-      data: response.data
-    });
+    const sources = response.data || []
     
-    return response.data || []
+    // Note: We can't use localStorage in server components, 
+    // but we'll handle caching in the client components
+    return sources
   } catch (error) {
     console.error('Get sources server error:', error)
     if (axios.isAxiosError(error)) {
@@ -117,12 +105,14 @@ export async function createSourceAction(data: {
 
     // Add basic fields
     formData.append('title', data.name)
-    formData.append('type', 'generales') // Always set as generales
 
-    // Determine content based on what's provided
+    // Determine type and content based on what's provided
+    let sourceType = 'text';
     let content = '';
+    
     if (data.file) {
       // Handle file upload
+      sourceType = 'file';
       const buffer = Buffer.from(await data.file.arrayBuffer())
       formData.append('file', buffer, {
         filename: data.file.name,
@@ -130,31 +120,30 @@ export async function createSourceAction(data: {
       })
       content = data.file.name; // Use filename as content for now
     } else if (data.url) {
+      sourceType = 'webpage';
       content = data.url;
     } else if (data.text) {
+      sourceType = 'text';
       content = data.text;
     }
 
+    formData.append('type', sourceType)
+
     formData.append('content', content)
 
-    // Debug logging
-    console.log('Sending source to backend:', {
-      type: 'generales',
-      content: content,
-      hasFile: !!data.file,
-      fileName: data.file?.name,
-      fileSize: data.file?.size,
-      title: data.name,
-      description: data.description,
-      formDataKeys: ['title', 'type', 'content', ...(data.file ? ['file'] : [])]
-    })
     
-    // Check file size
+    // Check file size and type
     if (data.file) {
       const fileSizeMB = data.file.size / (1024 * 1024);
-      console.log(`File size: ${fileSizeMB.toFixed(2)} MB`);
       if (fileSizeMB > 100) {
         throw new Error('File size exceeds 100MB limit');
+      }
+      
+      // Check if file type is supported by backend
+      const supportedTypes = ['txt', 'md', 'pdf', 'htm', 'html'];
+      const fileExtension = data.file.name.split('.').pop()?.toLowerCase();
+      if (!fileExtension || !supportedTypes.includes(fileExtension)) {
+        throw new Error(`Unsupported file type. Please upload one of: ${supportedTypes.join(', ').toUpperCase()}`);
       }
     }
 
@@ -165,7 +154,6 @@ export async function createSourceAction(data: {
       },
     })
     
-    console.log('Sources backend response:', response.data)
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')
     revalidatePath('/clients/dashboards/fuentes')
@@ -207,10 +195,13 @@ export async function editSourceAction(
       formData.append('title', data.name)
     }
 
-    // Determine content based on what's provided
+    // Determine type and content based on what's provided
+    let sourceType = 'text';
     let content = '';
+    
     if (data.file) {
       // Handle file upload
+      sourceType = 'file';
       const buffer = Buffer.from(await data.file.arrayBuffer())
       formData.append('file', buffer, {
         filename: data.file.name,
@@ -218,12 +209,30 @@ export async function editSourceAction(
       })
       content = data.file.name;
     } else if (data.url) {
+      sourceType = 'webpage';
       content = data.url;
     } else if (data.text) {
+      sourceType = 'text';
       content = data.text;
     }
 
+    formData.append('type', sourceType)
     formData.append('content', content)
+
+    // Check file size and type for edit
+    if (data.file) {
+      const fileSizeMB = data.file.size / (1024 * 1024);
+      if (fileSizeMB > 100) {
+        throw new Error('File size exceeds 100MB limit');
+      }
+      
+      // Check if file type is supported by backend
+      const supportedTypes = ['txt', 'md', 'pdf', 'htm', 'html'];
+      const fileExtension = data.file.name.split('.').pop()?.toLowerCase();
+      if (!fileExtension || !supportedTypes.includes(fileExtension)) {
+        throw new Error(`Unsupported file type. Please upload one of: ${supportedTypes.join(', ').toUpperCase()}`);
+      }
+    }
 
     const response = await axios.post(`${API_BASE_URL}/sources/edit`, formData, {
       headers: {

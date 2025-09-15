@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
 import { ClientContextDisplay } from "@/components/ClientContextDisplay";
+import { ClientAutoSelector } from "@/components/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getReferences } from "@/actions/knowledge";
@@ -41,11 +42,10 @@ export default async function Page() {
     getSources()
   ]);
   
-  console.log('Channels page - references received:', references.length, references);
-  console.log('Channels page - sources received:', sources.length, sources);
 
   return (
     <div>
+      <ClientAutoSelector />
       <ClientContextDisplay />
       <DashBoard references={references} sources={sources} />
     </div>

@@ -3,6 +3,7 @@
 import { DashboardLayout } from "../lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
+import { useDataWithCache } from "@/hooks/useDataWithCache"
 import type { ReferenceResponse } from "@/lib/schemas"
 
 interface KnowledgeBasePageProps {
@@ -10,12 +11,14 @@ interface KnowledgeBasePageProps {
 }
 
 function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
-  // Debug logging
-  console.log('KnowledgeBasePage - references:', references)
-  console.log('KnowledgeBasePage - references count:', references.length)
+  // Use caching for references
+  const {
+    data: cachedReferences
+  } = useDataWithCache(references, { cacheKey: 'references' })
+
 
   // Create a map to access content by id for the render functions
-  const contentMap = new Map(references.map(ref => [ref._id, ref.content]))
+  const contentMap = new Map(cachedReferences.map(ref => [ref._id, ref.content]))
 
   // Create columns function that takes contentMap as parameter
   const columns: Column[] = [
@@ -73,7 +76,7 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
   ]
 
   // Transform references to table data format
-  const data = references.map((ref) => ({
+  const data = cachedReferences.map((ref) => ({
     id: ref._id,
     nombre: ref.title || 'Sin título',
     tipo: ref.type,
@@ -88,20 +91,8 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
     <DashboardLayout
       title="Listado Knowledge Base"
       breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Knowledge Base" }]}
-      onAddClick={() => console.log("Add clicked")}
+      onAddClick={() => {}}
     >
-      {/* Debug section - remove in production */}
-      <div className="mb-4 p-4 bg-gray-100 rounded-lg">
-        <h3 className="font-bold mb-2">Debug Info:</h3>
-        <p>References count: {references.length}</p>
-        <p>Data count: {data.length}</p>
-        <details className="mt-2">
-          <summary className="cursor-pointer font-medium">Raw References Data</summary>
-          <pre className="mt-2 text-xs bg-white p-2 rounded overflow-auto max-h-40">
-            {JSON.stringify(references, null, 2)}
-          </pre>
-        </details>
-      </div>
       
       <DataTable
         columns={columns}

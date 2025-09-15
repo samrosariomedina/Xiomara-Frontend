@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
 import { knowledgeBaseSchema, type KnowledgeBaseInput } from '@/lib/schemas'
 import { useKnowledge } from '@/hooks/useKnowledge'
+import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
 import {
@@ -30,6 +31,10 @@ interface KnowledgeBaseFormProps {
 }
 
 export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormProps) {
+  // Use caching for references
+  const {
+    data: cachedReferences
+  } = useDataWithCache(references, { cacheKey: 'references' })
   const [showForm, setShowForm] = useState(false)
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("text")
   
@@ -65,7 +70,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   }
 
   // Transform references to SourceItem format for display
-  const sources: SourceItem[] = references.map((ref, index) => {
+  const sources: SourceItem[] = cachedReferences.map((ref, index) => {
     // Handle both old string content and new object content
     const content = typeof ref.content === 'string' ? ref.content : ref.content;
     const displayName = ref.title || `Knowledge Item ${index + 1}`;
@@ -122,7 +127,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       <div>
         <HeaderControls title={t('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6">
-          <SourcesList sources={sources} onKebabClick={(id) => console.log("kebab", id)} />
+          <SourcesList sources={sources} onKebabClick={(id) => {}} />
         </div>
       </div>
     )

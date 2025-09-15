@@ -4,6 +4,7 @@ import { MetricCard } from "@/components/ui/metric-card"
 import { Users,  FileText, Ear,  Globe } from "lucide-react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useClient } from "@/context/ClientContext"
+import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
 interface MetricsCardsProps {
@@ -12,6 +13,15 @@ interface MetricsCardsProps {
 }
 
 export function MetricsCards({ references, sources }: MetricsCardsProps) {
+  // Use caching for references
+  const {
+    data: cachedReferences
+  } = useDataWithCache(references, { cacheKey: 'references' })
+
+  // Use caching for sources
+  const {
+    data: cachedSources
+  } = useDataWithCache(sources, { cacheKey: 'sources' })
   // Get selected client from context
   const { selectedClient } = useClient()
   
@@ -36,13 +46,13 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
     },
     {
       title: "Knowledge base",
-      value: references.length.toString(),
+      value: cachedReferences.length.toString(),
       icon: Globe,
       iconColor: "text-gray-600",
     },
     {
       title: "Generales",
-      value: sources.length.toString(),
+      value: cachedSources.length.toString(),
       icon: FileText,
       iconColor: "text-gray-600",
     },

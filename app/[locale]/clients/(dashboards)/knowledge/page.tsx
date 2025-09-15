@@ -1,5 +1,6 @@
 import KnowledgeBasePage from "@/components/pages/listsknowledgePage";
 import { Navbar } from "@/components/Navbar";
+import { ClientAutoSelector } from "@/components/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getReferences } from "@/actions/knowledge";
@@ -15,10 +16,10 @@ export default async function KnowledgeListPage(){
 
   // Fetch references data server-side
   const references = await getReferences();
-  console.log('Knowledge page - references received:', references.length, references);
 
    return ( 
     <>
+    <ClientAutoSelector />
     <Navbar />
     <KnowledgeBasePage references={references} />
     </>
