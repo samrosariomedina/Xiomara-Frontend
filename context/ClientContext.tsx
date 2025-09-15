@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useState, useCallback, useEffect } from 'react'
 import { ClientResponse } from '@/lib/schemas'
-import { getSelectedClientFromCache, saveSelectedClientToCache, clearSelectedClientFromCache } from '@/lib/dataPersistence'
+import { getSelectedClientFromCache, saveSelectedClientToCache, clearSelectedClientFromCache, type ClientData } from '@/lib/dataPersistence'
 
 // Client context type
 export interface ClientContextType {
@@ -29,7 +29,16 @@ export function ClientProvider({ children }: ClientProviderProps) {
   useEffect(() => {
     const savedClient = getSelectedClientFromCache()
     if (savedClient) {
-      setSelectedClientState(savedClient)
+      // Convert ClientData to ClientResponse format
+      const clientResponse: ClientResponse = {
+        _id: savedClient._id,
+        title: savedClient.title,
+        parent: savedClient.parent || null,
+        items: savedClient.items || {},
+        metadata: savedClient.metadata || null,
+        timestamp: savedClient.timestamp || new Date().toISOString()
+      }
+      setSelectedClientState(clientResponse)
     }
     setIsInitialized(true)
   }, [])
@@ -40,7 +49,16 @@ export function ClientProvider({ children }: ClientProviderProps) {
     
     // Save to localStorage
     if (client) {
-      saveSelectedClientToCache(client)
+      // Convert ClientResponse to ClientData format
+      const clientData: ClientData = {
+        _id: client._id,
+        title: client.title,
+        parent: client.parent,
+        items: client.items,
+        metadata: client.metadata,
+        timestamp: client.timestamp
+      }
+      saveSelectedClientToCache(clientData)
     } else {
       clearSelectedClientFromCache()
     }

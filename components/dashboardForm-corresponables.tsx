@@ -74,13 +74,16 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   } = useCorresponsables(selectedClient?._id)
 
   // Convert corresponsables to SourceItem format for display
-  const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, index) => ({
+  const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, ) => ({
     id: corresponsable._id,
     name: corresponsable.title || 'Unnamed',
     type: "corresponsable",
     category: "Corresponsable",
     timestamp: formatDateSafe(corresponsable.timestamp),
   }))
+
+  // Local state for managing sources list
+  const [localSources, setLocalSources] = useState<SourceItem[]>(sources)
 
   // Account type options
   const accountTypeOptions = [
@@ -118,7 +121,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
     }
 
     setErrors({}) // Clear any previous errors
-    const id = sources.length + 1
+    const id = localSources.length + 1
     const newItem: SourceItem = {
       id,
       name: form.name || "Nombre",
@@ -126,7 +129,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
       category: "Marketing",
       timestamp: "20min",
     }
-    setSources([...sources, newItem])
+    setLocalSources([...localSources, newItem])
     onSubmit?.(form)
     setForm({ name: "", whatsapp: "", other: "", accountType: "", invitationMethods: { whatsapp: false, email: false, copyLink: false } })
     setShowForm(false)
@@ -166,19 +169,19 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   }
 
   // list view
-  if (sources.length > 0 && !showForm) {
+  if (localSources.length > 0 && !showForm) {
     return (
       <div>
   <HeaderControls title={tMain('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6">
-          <SourcesList sources={sources} onKebabClick={(id) => console.log("kebab", id)} />
+          <SourcesList sources={localSources} onKebabClick={(id) => console.log("kebab", id)} />
         </div>
       </div>
     )
   }
 
   // empty state
-  if (!showForm && sources.length === 0) {
+  if (!showForm && localSources.length === 0) {
     return (
       <>
   <HeaderControls title={tMain('title')} actions={headerActionsPlain} />

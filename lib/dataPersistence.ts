@@ -5,10 +5,19 @@ import type { ReferenceResponse, SourceResponse } from '@/lib/schemas'
 // Define a proper type for client data
 export interface ClientData {
   _id: string
-  title: string
-  description?: string
-  createdAt?: string
-  updatedAt?: string
+  title: string | null
+  parent?: string | null
+  items?: Record<string, string[]>
+  metadata?: {
+    type: string
+    industry: string
+    description?: string
+    contactName: string
+    whatsapp: string
+    position: string
+    email: string
+  } | null
+  timestamp?: string
   [key: string]: unknown // Allow additional properties
 }
 

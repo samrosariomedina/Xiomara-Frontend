@@ -4,9 +4,7 @@ import { useTranslations } from 'next-intl'
 import { type BrandGuidesInput } from '@/lib/schemas'
 import { forwardRef, useImperativeHandle } from "react"
 
-interface BrandGuidesFormProps {
-  // Brand guides form is currently empty and always valid
-}
+
 
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
@@ -14,7 +12,7 @@ type ChildFormRef<T = unknown> = {
   reset: () => void
 }
 
-export const BrandGuidesForm = forwardRef<ChildFormRef<BrandGuidesInput>, BrandGuidesFormProps>(function BrandGuidesForm(
+export const BrandGuidesForm = forwardRef<ChildFormRef<BrandGuidesInput>>(function BrandGuidesForm(
   _props,
   ref
 ) {
