@@ -33,6 +33,7 @@ type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
   reset: () => void
+  submit?: () => Promise<boolean>
 }
 
 export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModalProps) {
@@ -167,83 +168,17 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
           return
         }
 
-        // Validate connect form
-        const connectValid = await connectFormRef.current?.validate()
-        if (!connectValid) {
-          toast.error(t('validation.fillConnectFields') || 'Please fill all required fields in the Connect Correspondents form')
+        // Use the new submit method from ConnectCorrespondentsForm
+        const submitSuccess = await connectFormRef.current?.submit()
+        if (!submitSuccess) {
+          toast.error(t('validation.correspondentsSubmissionFailed') || 'Failed to create corresponsables')
           return
         }
 
-        // Get connect form data and handle corresponsables
-        const connectData = connectFormRef.current?.getValues() as { correspondents: Array<{
-          id?: string;
-          clientName: string;
-          email: string;
-          whatsapp: string;
-          accountType: "premium" | "standard" | "basic";
-          invitationMethods: {
-            whatsapp: boolean;
-            email: boolean;
-            copyLink: boolean;
-          };
-        }> } || { correspondents: [] }
-        
-        if (!connectData.correspondents || connectData.correspondents.length === 0) {
-          toast.error(t('validation.addCorrespondent') || 'Please add at least one correspondent')
-          return
-        }
-
-        try {
-          // Separate new corresponsables from updates
-          // Only create new corresponsables that have actual data (not empty fields)
-          const newCorrespondents = connectData.correspondents.filter(c => 
-            !c.id && c.clientName.trim() && c.whatsapp.trim()
-          )
-          const updateCorrespondents = connectData.correspondents.filter(c => c.id)
-          
-          console.log('All correspondents:', connectData.correspondents)
-          console.log('New correspondents to create:', newCorrespondents)
-          console.log('Existing correspondents to update:', updateCorrespondents)
-
-          // Create new corresponsables
-          if (newCorrespondents.length > 0) {
-            await createCorresponsables({
-              folderId: folderId,
-              correspondents: newCorrespondents.map(c => ({
-                clientName: c.clientName,
-                email: c.email,
-                whatsapp: c.whatsapp,
-                accountType: c.accountType,
-                invitationMethods: c.invitationMethods
-              }))
-            })
-          }
-
-          // Update existing corresponsables
-          if (updateCorrespondents.length > 0) {
-            for (const correspondent of updateCorrespondents) {
-              if (correspondent.id) {
-                await updateCorresponsable({
-                  listenerId: correspondent.id,
-                  data: {
-                    title: correspondent.clientName,
-                    origin: correspondent.whatsapp,
-                    enabled: true,
-                    email: correspondent.email
-                  }
-                })
-              }
-            }
-          }
-
-          toast.success('Corresponsables updated successfully!')
-          handleClose()
-          return
-        } catch (error) {
-          console.error('Failed to update corresponsables:', error)
-          toast.error('Failed to update corresponsables')
-          return
-        }
+        // If we reach here, the submit was successful
+        toast.success('Corresponsables created successfully!')
+        handleClose()
+        return
       } else if (activeTab === "brand") {
         // For brand tab, just show info message
         toast.info(t('validation.switchToGeneral') || 'Please switch to General Information tab to create the client.')

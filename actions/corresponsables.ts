@@ -43,9 +43,14 @@ export async function createCorresponsableAction(folderId: string, data: {
     }
 
     // Create WhatsApp listener for the corresponsable
+    const sanitizedWhatsapp = data.whatsapp.replace(/[\s\-\+]/g, ""); // Sanitize WhatsApp number
+    console.log('Original WhatsApp number:', data.whatsapp);
+    console.log('Sanitized WhatsApp number:', sanitizedWhatsapp);
+    console.log('WhatsApp number length:', sanitizedWhatsapp.length);
+    
     const listenerData = {
       type: "whatsapp",
-      origin: data.whatsapp.replace(/[\s\-\+]/g, ""), // Sanitize WhatsApp number
+      origin: sanitizedWhatsapp,
       title: data.clientName,
       enabled: true,
       reference: true, // Create a reference for this listener
@@ -53,6 +58,8 @@ export async function createCorresponsableAction(folderId: string, data: {
         email: data.email || ""
       }
     };
+    
+    console.log('Listener data being sent:', listenerData);
 
     const response = await axios.post(`${BACKEND_URL}/listeners/add`, listenerData, {
       headers: {
@@ -518,6 +525,185 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to remove corresponsable'
+    };
+  }
+}
+
+/**
+ * Server action to get share URL for a listener
+ */
+export async function getShareUrlAction(listenerId: string) {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await axios.post(`${BACKEND_URL}/listeners/share`, {
+      listener: listenerId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      return {
+        success: true,
+        data: response.data
+      };
+    } else {
+      throw new Error('Failed to get share URL');
+    }
+  } catch (error: unknown) {
+    console.error('Get share URL error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Authentication required'
+        };
+      } else if (axiosError.response?.status === 404) {
+        return {
+          success: false,
+          error: 'Listener not found'
+        };
+      } else if (axiosError.response?.status === 501) {
+        return {
+          success: false,
+          error: 'WhatsApp not configured'
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get share URL'
+    };
+  }
+}
+
+/**
+ * Server action to create corresponsable with sharing
+ */
+export async function createCorresponsableWithSharingAction(
+  folderId: string, 
+  data: {
+    clientName: string;
+    email: string;
+    whatsapp: string;
+    accountType: "premium" | "standard" | "basic";
+    invitationMethods?: {
+      whatsapp: boolean;
+      email: boolean;
+      copyLink: boolean;
+    };
+  }
+) {
+  try {
+    // First create the corresponsable
+    const createResult = await createCorresponsableAction(folderId, data);
+    
+    if (!createResult.success) {
+      return createResult;
+    }
+
+    const listenerId = createResult.data._id;
+    // Note: Sharing results are handled by the frontend useSharing hook
+
+    // Get share URL for sharing operations
+    const shareUrlResult = await getShareUrlAction(listenerId);
+    
+    if (shareUrlResult.success) {
+      const shareUrl = shareUrlResult.data;
+      const message = `Hola ${data.clientName}, te invito a conectarte con nuestro sistema de corresponsales. ${shareUrl}`;
+      
+      // Return sharing data for frontend execution
+      return {
+        success: true,
+        data: {
+          listener: createResult.data,
+          shareUrl,
+          message,
+          invitationMethods: data.invitationMethods || {
+            whatsapp: false,
+            email: false,
+            copyLink: false
+          }
+        }
+      };
+    } else {
+      // Even if sharing fails, return the created listener
+      return {
+        success: true,
+        data: {
+          listener: createResult.data,
+          shareUrl: null,
+          message: null,
+          invitationMethods: data.invitationMethods || {
+            whatsapp: false,
+            email: false,
+            copyLink: false
+          },
+          sharingError: shareUrlResult.error
+        }
+      };
+    }
+  } catch (error: unknown) {
+    console.error('Create corresponsable with sharing error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create corresponsable with sharing'
+    };
+  }
+}
+
+/**
+ * Server action to create multiple corresponsables with sharing
+ */
+export async function createCorresponsablesWithSharingAction(
+  folderId: string,
+  correspondents: Array<{
+    clientName: string;
+    email: string;
+    whatsapp: string;
+    accountType: "premium" | "standard" | "basic";
+    invitationMethods?: {
+      whatsapp: boolean;
+      email: boolean;
+      copyLink: boolean;
+    };
+  }>
+) {
+  try {
+    if (!correspondents || correspondents.length === 0) {
+      return {
+        success: true,
+        data: []
+      };
+    }
+
+    const results = [];
+
+    for (const correspondent of correspondents) {
+      const result = await createCorresponsableWithSharingAction(folderId, correspondent);
+      results.push(result);
+    }
+
+    // Revalidate the clients page to show fresh data
+    revalidatePath('/clients');
+    return {
+      success: true,
+      data: results
+    };
+  } catch (error: unknown) {
+    console.error('Create corresponsables with sharing error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create corresponsables with sharing'
     };
   }
 }

@@ -18,6 +18,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { type ConnectCorrespondentsInput, connectCorrespondentsSchema } from '@/lib/schemas'
 import { forwardRef, useImperativeHandle, useState, useRef, useEffect } from "react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
+import { useSharing } from "../hooks/useSharing"
+import { createCorresponsableWithSharingAction, updateCorresponsableAction, getShareUrlAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
 
 interface ConnectCorrespondentsFormProps {
@@ -52,6 +54,7 @@ type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
   reset: () => void
+  submit: () => Promise<boolean>
 }
 
 export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespondentsInput>, ConnectCorrespondentsFormProps>(function ConnectCorrespondentsForm({
@@ -59,6 +62,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   initialCorresponsables = []
 }, ref) {
   const t = useTranslations('CLIENT_FORM');
+  const { executeSharing } = useSharing();
 
   // CSV upload state
   const [selectedCsvFile, setSelectedCsvFile] = useState<File | null>(null);
@@ -78,11 +82,12 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     title?: string;
     origin?: string;
     metadata?: { email?: string };
+    email?: string; // Direct email field if available
   }>): CorrespondentFormData[] => {
     const correspondents = corresponsablesData.map(corresponsable => ({
       id: corresponsable._id, // Store the original ID for updates
       clientName: corresponsable.title || "",
-      email: corresponsable.metadata?.email || "", // Get email from metadata
+      email: corresponsable.metadata?.email || corresponsable.email || "", // Get email from metadata or direct field
       whatsapp: corresponsable.origin || "",
       accountType: "basic" as const, // Default account type
       invitationMethods: {
@@ -131,14 +136,12 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   const initializedRef = useRef(false);
   
   useEffect(() => {
-    if (!initializedRef.current || corresponsablesToUse.length > 0) {
-      const correspondentsData = getCorrespondentsFromData(corresponsablesToUse);
-      console.log('Initializing form with corresponsables data:', correspondentsData);
-      form.reset({ correspondents: correspondentsData });
-      initializedRef.current = true;
-    }
+    // Always reinitialize when corresponsables data changes
+    const correspondentsData = getCorrespondentsFromData(corresponsablesToUse);
+    form.reset({ correspondents: correspondentsData });
+    initializedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [corresponsablesToUse.length, folderId]);
+  }, [corresponsablesToUse, folderId]);
   
   // Form validity is managed internally - no need to notify parent
 
@@ -202,6 +205,96 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     }
   };
 
+  // Add sharing execution to form submission
+  const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData) => {
+    if (!folderId) return;
+
+
+    try {
+      // Check if this is an existing corresponsable (has an ID) or a new one
+      if (correspondent.id && correspondent.id.trim() !== "") {
+        // Update existing corresponsable
+        const updateResult = await updateCorresponsableAction(correspondent.id, {
+          title: correspondent.clientName,
+          origin: correspondent.whatsapp,
+          enabled: true,
+          email: correspondent.email
+        });
+
+        // Execute sharing for existing corresponsables if methods are selected (regardless of update success)
+        if (correspondent.invitationMethods && (correspondent.invitationMethods.whatsapp || correspondent.invitationMethods.email || correspondent.invitationMethods.copyLink)) {
+          // Get share URL for the existing listener
+          const shareUrlResult = await getShareUrlAction(correspondent.id);
+          
+          if (shareUrlResult.success) {
+            const shareUrl = shareUrlResult.data;
+            const message = `Hola ${correspondent.clientName}, te invito a conectarte con nuestro sistema de corresponsales. ${shareUrl}`;
+            
+            await executeSharing(
+              {
+                shareUrl,
+                message,
+                email: correspondent.email,
+                clientName: correspondent.clientName
+              },
+              correspondent.invitationMethods
+            );
+          } else {
+            toast.warning(`Sharing failed: ${shareUrlResult.error}`);
+          }
+        }
+
+        if (updateResult.success) {
+          toast.success(`Corresponsable ${correspondent.clientName} updated successfully`);
+        } else {
+          toast.error(updateResult.error || 'Failed to update corresponsable');
+        }
+        return;
+      }
+
+      // Create new corresponsable
+      const result = await createCorresponsableWithSharingAction(folderId, {
+        clientName: correspondent.clientName,
+        email: correspondent.email,
+        whatsapp: correspondent.whatsapp,
+        accountType: correspondent.accountType,
+        invitationMethods: correspondent.invitationMethods
+      });
+
+      if (result.success && result.data) {
+        const { shareUrl, message, invitationMethods, sharingError } = result.data;
+        
+        if (sharingError) {
+          toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
+        }
+
+        // Execute sharing if methods are selected and we have the data
+        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.email || invitationMethods.copyLink)) {
+          if (shareUrl && message) {
+            await executeSharing(
+              {
+                shareUrl,
+                message,
+                email: correspondent.email,
+                clientName: correspondent.clientName
+              },
+              invitationMethods
+            );
+          } else {
+            toast.warning('Corresponsable created but sharing data unavailable');
+          }
+        }
+
+        toast.success(`Corresponsable ${correspondent.clientName} created successfully`);
+      } else {
+        toast.error(result.error || 'Failed to create corresponsable');
+      }
+    } catch (error) {
+      console.error('Error creating corresponsable:', error);
+      toast.error('Failed to create corresponsable');
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     validate: async () => {
       return await form.trigger();
@@ -212,6 +305,27 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       setSelectedCsvFile(null);
       if (csvFileInputRef.current) {
         csvFileInputRef.current.value = '';
+      }
+    },
+    submit: async () => {
+      const formData = form.getValues();
+      const validCorrespondents = formData.correspondents.filter(
+        (correspondent) => correspondent.clientName.trim() && correspondent.whatsapp.trim()
+      );
+      
+      if (validCorrespondents.length === 0) {
+        toast.warning('Please add at least one correspondent with name and WhatsApp number');
+        return false;
+      }
+
+      try {
+        for (const correspondent of validCorrespondents) {
+          await handleCorrespondentSubmission(correspondent);
+        }
+        return true;
+      } catch (error) {
+        console.error('Error submitting correspondents:', error);
+        return false;
       }
     }
   }))
@@ -427,6 +541,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                 <label className="flex items-center space-x-2 text-xs text-gray-700">
                   <Checkbox
                     id={`whatsapp-${index}`}
+                    checked={watch(`correspondents.${index}.invitationMethods.whatsapp`) || false}
                     onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.whatsapp`, !!checked)}
                     className="border-gray-300 h-4 w-4"
                   />
@@ -436,6 +551,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                 <label className="flex items-center space-x-2 text-xs text-gray-700">
                   <Checkbox
                     id={`email-${index}`}
+                    checked={watch(`correspondents.${index}.invitationMethods.email`) || false}
                     onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.email`, !!checked)}
                     className="border-gray-300 h-4 w-4"
                   />
@@ -445,6 +561,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                 <label className="flex items-center space-x-2 text-xs text-gray-700">
                   <Checkbox
                     id={`copyLink-${index}`}
+                    checked={watch(`correspondents.${index}.invitationMethods.copyLink`) || false}
                     onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.copyLink`, !!checked)}
                     className="border-gray-300 h-4 w-4"
                   />
