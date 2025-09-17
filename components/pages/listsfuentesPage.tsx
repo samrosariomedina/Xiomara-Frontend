@@ -38,7 +38,7 @@ function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
   return (
     <DashboardLayout
       title="Listado Fuentes Generales"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href :"/dashboard" }, { label: "Listado Fuentes Generales" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
       onAddClick={() => {}}
     >
       <DataTable

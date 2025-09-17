@@ -90,7 +90,7 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
   return (
     <DashboardLayout
       title="Listado Knowledge Base"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Knowledge Base" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/clients/channels" }, { label: "Listado Knowledge Base" }]}
       onAddClick={() => {}}
     >
       

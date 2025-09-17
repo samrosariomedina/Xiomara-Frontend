@@ -26,7 +26,7 @@ function MediaListeningPage() {
   return (
     <DashboardLayout
       title="Listado Media Listening"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/dashboard" }, { label: "Listado Media Listening" }]}
+      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/clients/channels" }, { label: "Listado Media Listening" }]}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable

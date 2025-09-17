@@ -8,8 +8,8 @@ const intlMiddleware = createMiddleware(routing);
 
 // Define protected routes that require authentication
 const protectedRoutes = [
-  '/dashboard',
-  // '/clients',
+  '/clients',
+  // '/dashboard',
 ];
 
 // Create authentication middleware

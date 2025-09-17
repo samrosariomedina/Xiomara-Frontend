@@ -15,7 +15,7 @@ export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
   const { locale } = params
   const title = 'Dashboard | Xiomara'
   const description = 'Overview and metrics for your clients and campaigns.'
-  const path = `/${locale}/dashboard`
+  const path = `/${locale}/clients`
 
   return {
     title,

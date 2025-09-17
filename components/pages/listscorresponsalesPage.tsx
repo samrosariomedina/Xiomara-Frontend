@@ -84,7 +84,7 @@ const fuentesData = Array.from({ length: 25 }, () => ({
       title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
       breadcrumbs={[
         { label: "Dashboard" }, 
-        { label: "Clientes" , href: "/dashboard" }, 
+        { label: "Clientes" , href: "/clients/channels" }, 
         { label: "Listado Corresponsales" }
       ]}
       onAddClick={() => console.log("Add clicked")}
