@@ -33,7 +33,7 @@ type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
   getValues: () => T
   reset: () => void
-  submit?: () => Promise<boolean>
+  submit: () => Promise<boolean>
 }
 
 export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModalProps) {
@@ -169,7 +169,12 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
         }
 
         // Use the new submit method from ConnectCorrespondentsForm
-        const submitSuccess = await connectFormRef.current?.submit()
+        if (!connectFormRef.current) {
+          toast.error(t('validation.correspondentsSubmissionFailed') || 'Failed to create corresponsables')
+          return
+        }
+        
+        const submitSuccess = await connectFormRef.current.submit()
         if (!submitSuccess) {
           toast.error(t('validation.correspondentsSubmissionFailed') || 'Failed to create corresponsables')
           return
