@@ -11,48 +11,31 @@ import { Pagination } from "@/components/ui/pagination"
 import { Client } from "@/utils/types"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "sonner"
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
-import { deleteClientAction, getClientsAction } from "@/actions/clients"
-import { ClientResponse } from "@/lib/schemas"
+import { useMutation } from "@tanstack/react-query"
+import { deleteClientAction } from "@/actions/clients"
+import { ClientResponse, CampaignResponse } from "@/lib/schemas"
 import { formatDateSafe } from "@/lib/utils"
 
 interface ClientsPageProps {
   initialClients: ClientResponse[]
+  initialCampaigns: CampaignResponse[]
 }
 
-function ClientsPage({ initialClients }: ClientsPageProps) {
-  const queryClient = useQueryClient()
+function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
   const t = useTranslations('CLIENTS')
 
-  // Real-time query for clients with initial data
-  const {
-    data: clientsData = initialClients,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const result = await getClientsAction()
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch clients')
-      }
-      return result.data || []
-    },
-    initialData: initialClients,
-    staleTime: 30 * 1000, // 30 seconds for more real-time updates
-    retry: 2,
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    refetchInterval: 60 * 1000 // Refetch every minute for real-time updates
-  })
+  // Use server-fetched data directly
+  const clientsData = initialClients
+  const isLoading = false
 
   // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: deleteClientAction,
     onSuccess: () => {
-      // Invalidate and refetch clients
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
       toast.success(t('clientDeleted') || 'Client deleted successfully')
+      // Since we're not using React Query for data fetching anymore,
+      // we need to reload the page to refresh data
+      window.location.reload()
     },
     onError: (error: unknown) => {
       console.error('Error deleting client:', error)
@@ -162,31 +145,6 @@ function ClientsPage({ initialClients }: ClientsPageProps) {
  }
 
  // Handle error state
- if (error) {
-   return (
-     <div className="min-h-screen bg-[#F7F9FF]">
-       <Navbar />
-       <main className="px-6 py-8">
-         <div className="max-w-[86rem] mx-auto">
-           <div className="text-center py-12">
-             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-               {t('errorTitle') || 'Error loading clients'}
-             </h2>
-             <p className="text-gray-600 mb-6">
-               {error instanceof Error ? error.message : (t('errorMessage') || 'Something went wrong while loading clients')}
-             </p>
-             <button
-               onClick={() => refetch()}
-               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-             >
-               {t('retry') || 'Try Again'}
-             </button>
-           </div>
-         </div>
-       </main>
-     </div>
-   )
- }
  
 
 
@@ -206,8 +164,9 @@ function ClientsPage({ initialClients }: ClientsPageProps) {
             </div>
           ) : hasClients ? (
             <>
-              <ClientsList 
-                clients={paginatedClients} 
+              <ClientsList
+                clients={paginatedClients}
+                campaigns={initialCampaigns}
                 onDelete={handleDeleteClient}
                 onEdit={openEditModal}
               />

@@ -300,3 +300,38 @@ export const csvUploadSchema = z.object({
 });
 
 export type CsvUploadInput = z.infer<typeof csvUploadSchema>;
+
+// Campaign Form Schema
+export const createCampaignSchema = z.object({
+  name: z.string().min(1, 'Campaign name is required').max(100, 'Campaign name must be less than 100 characters'),
+  type: z.enum(['Comunicado', 'Redes Sociales', 'Blog post', 'Email newsletter', 'Other'], {
+    message: 'Please select a valid campaign type'
+  }),
+  startDate: z.string().min(1, 'Start date is required')
+    .refine((date) => {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    }, {
+      message: 'Start date must be today or in the future'
+    }),
+  description: z.string().optional()
+});
+
+export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+
+// Campaign response type from backend
+export interface CampaignResponse {
+  _id: string;
+  title: string | null;
+  parent: string | null;
+  items: Record<string, string[]>;
+  metadata: {
+    type: string;
+    campaignType: string;
+    startDate: string;
+    description?: string;
+  } | null;
+  timestamp: string;
+}

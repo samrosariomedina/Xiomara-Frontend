@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -8,7 +9,6 @@ import {
   Plus,
   TrendingUp,
   TrendingDown,
-  Ear,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,39 +17,31 @@ import { CampaignRow } from "./clientPage-campaignRows"
 import { useRouter, usePathname } from 'next/navigation'
 import { useClient } from '@/context/ClientContext'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
+import { CreateCampaignDialog } from "./CreateCampaignDialog"
 
 export function ClientCard({
   client,
+  campaigns = [],
   isExpanded,
   onToggle,
   onEditClient,
   onMenuOpen,
   t
 }: ClientCardProps) {
-  // defensive: ensure campaignDetails is an array before checking length or mapping
-  const details = Array.isArray(client.campaignDetails) ? client.campaignDetails : []
-  
-  // Force some test data if no campaigns exist
-  const testDetails = details.length === 0 ? [
-    {
-      id: 'test-1',
-      name: 'Test Campaign 1',
-      createdDate: '2024-01-15',
-      connectedSources: { whatsapp: 2, email: 1, other: 0 },
-      status: 'Activa',
-    },
-    {
-      id: 'test-2',
-      name: 'Test Campaign 2',
-      createdDate: '2024-01-10',
-      connectedSources: { whatsapp: 1, email: 2, other: 1 },
-      status: 'Inactiva',
-    }
-  ] : details
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Use real campaigns data passed as props
+  const campaignDetails = (campaigns || []).map(campaign => ({
+    id: campaign._id,
+    name: campaign.title || 'Unnamed Campaign',
+    createdDate: new Date(campaign.timestamp).toLocaleDateString(),
+    connectedSources: { whatsapp: 0, email: 0, other: 0 }, // TODO: calculate from actual sources
+    status: 'Activa', // TODO: determine status from metadata
+  }))
 
   const router = useRouter()
   const pathname = usePathname()
-  const { setSelectedClient, selectedClient } = useClient()
+  const { setSelectedClient } = useClient()
 
   const goToChannels = () => {
     // Set the client context before navigating
@@ -165,6 +157,7 @@ export function ClientCard({
               variant="outline"
               size="sm"
               className="text-[#31499F] border-[#ffff] hover:bg-blue-50 bg-[#f7f9ff] rounded-full"
+              onClick={() => setIsCreateDialogOpen(true)}
             >
               <Plus className="h-3 w-3 mr-1" />
               {t('createCampaign')}
@@ -221,9 +214,9 @@ export function ClientCard({
 
       {/* Expanded Campaign Details */}
       {isExpanded && (
-        testDetails.length > 0 ? (
+        campaignDetails.length > 0 ? (
           <div className="border-t border-gray-100 bg-gray-50/30">
-            {testDetails.map((campaign, index) => (
+            {campaignDetails.map((campaign, index) => (
               <CampaignRow
                 key={campaign.id}
                 campaign={campaign}
@@ -255,6 +248,14 @@ export function ClientCard({
           </div>
         )
       )}
+
+      {/* Create Campaign Dialog */}
+      <CreateCampaignDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        clientId={String(client.id)}
+        clientName={client.name}
+      />
     </div>
   )
 }

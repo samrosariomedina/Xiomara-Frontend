@@ -21,6 +21,7 @@ export type Client = {
 
 export interface ClientsListProps {
   clients?: Client[]
+  campaigns?: any[]
   onDelete?: (clientId: string) => Promise<void>
   onEdit?: (client: Client) => void
   itemsPerPage?: number
@@ -28,6 +29,7 @@ export interface ClientsListProps {
 
 export interface ClientCardProps {
   client: Client
+  campaigns?: any[]
   isExpanded: boolean
   onToggle: (clientId: number | string) => void
   onDeleteClient: (clientId: string | number) => Promise<void>

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import ClientsPage from '@/components/pages/clientsPage'
 import { getClientsAction } from '@/actions/clients'
-import { ClientResponse } from '@/lib/schemas'
+import { getAllCampaignsAction } from '@/actions/campaigns'
+import { ClientResponse, CampaignResponse } from '@/lib/schemas'
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };
@@ -26,7 +27,7 @@ export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
 async function getClientsData(): Promise<ClientResponse[]> {
   try {
     const result = await getClientsAction()
-    console.log('result', result); 
+    console.log('result', result);
     return result.success ? result.data : []
 
   } catch (error) {
@@ -35,8 +36,24 @@ async function getClientsData(): Promise<ClientResponse[]> {
   }
 }
 
-export default async function Page() {
-  const clientsData = await getClientsData()
+async function getCampaignsData(): Promise<CampaignResponse[]> {
+  try {
+    const result = await getAllCampaignsAction()
+    console.log('campaigns result', result);
+    console.log('Campaigns data:', result.success ? result.data : []);
+    return result.success ? result.data : []
 
-  return <ClientsPage initialClients={clientsData} />
+  } catch (error) {
+    console.error('Failed to fetch campaigns:', error)
+    return []
+  }
+}
+
+export default async function Page() {
+  const [clientsData, campaignsData] = await Promise.all([
+    getClientsData(),
+    getCampaignsData()
+  ])
+
+  return <ClientsPage initialClients={clientsData} initialCampaigns={campaignsData} />
 }
