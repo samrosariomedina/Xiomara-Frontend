@@ -14,6 +14,7 @@ export const routes = {
     signup: '/auth/signup',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
+    pending: '/auth/pending',
   },
 
   // Clients routes

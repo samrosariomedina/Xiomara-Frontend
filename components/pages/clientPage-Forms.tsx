@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClientAction, editClientAction } from "@/actions/clients"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
+import { useRouter } from "next/navigation"
 
 import { useRef } from 'react'
 import { GeneralInformationForm } from "../clientsForm-generalInformation"
@@ -45,6 +46,7 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
 
   // Direct TanStack Query mutations
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   // Create client mutation
   const createClientMutation = useMutation({
@@ -53,6 +55,8 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       if (result.success) {
         // Invalidate clients query to refresh the list
         queryClient.invalidateQueries({ queryKey: ['clients'] })
+        // Refresh the server components to show the new client immediately
+        router.refresh()
         toast.success(t('clientCreated') || 'Client created successfully!')
       }
     },
@@ -70,6 +74,8 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       if (result.success) {
         // Invalidate clients query to refresh the list
         queryClient.invalidateQueries({ queryKey: ['clients'] })
+        // Refresh the server components to show the updated client immediately
+        router.refresh()
         toast.success(t('clientUpdated') || 'Client updated successfully!')
       }
     },

@@ -17,6 +17,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { generalInformationSchema, type GeneralInformationInput } from '@/lib/schemas'
 import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react"
 import Image from "next/image"
+import { useMutation } from "@tanstack/react-query"
+import { uploadImageAction } from '@/actions/images'
+import { toast } from "sonner"
+import { AlertCircle } from "lucide-react"
 
 type ChildFormRef<T = unknown> = {
   validate: () => Promise<boolean>
@@ -35,6 +39,7 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
   const t = useTranslations('CLIENT_FORM');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
   const [selectedIndustry, setSelectedIndustry] = useState<string>(initialValues?.industry || "");
   const [selectedPosition, setSelectedPosition] = useState<string>(initialValues?.position || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,14 +51,43 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
       industry: initialValues?.industry || "tecnologia",
       description: initialValues?.description || "",
       contactName: initialValues?.contactName || "",
-      whatsapp: initialValues?.whatsapp || "",
+      whatsapp: initialValues?.whatsapp || undefined, // Optional field
       position: initialValues?.position || "ceo",
-      email: initialValues?.email || "",
+      email: initialValues?.email || undefined, // Optional field
     },
     mode: "onChange"
   });
   
   const { register, setValue, formState: { errors }, watch } = form;
+
+  // Image upload mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const result = await uploadImageAction({
+        file,
+        title: file.name,
+        metadata: {
+          type: 'client_logo',
+          clientName: form.getValues('clientName') || 'Unknown Client'
+        }
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to upload image');
+      }
+      return result.data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        setUploadedImageId(data._id);
+        toast.success('Logo uploaded successfully');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message, {
+        icon: <AlertCircle className="h-4 w-4" />
+      });
+    }
+  });
 
   // Expose validate and getValues to parent via ref
   useImperativeHandle(ref, () => ({
@@ -62,11 +96,20 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
     },
     getValues: () => {
       const values = form.getValues() as GeneralInformationInput;
-      return { ...values, logoFile: selectedFile };
+      return { 
+        ...values, 
+        logoFile: selectedFile,
+        uploadedImageId: uploadedImageId
+      };
     },
     reset: () => {
       form.reset();
       setSelectedFile(null);
+      setUploadedImageId(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -109,6 +152,9 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
     // Create preview URL for the image
     const fileUrl = URL.createObjectURL(file);
     setPreviewUrl(fileUrl);
+    
+    // Automatically upload the image
+    uploadImageMutation.mutate(file);
   };
   
   // Trigger the file input click
@@ -123,6 +169,7 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
     }
     setSelectedFile(null);
     setPreviewUrl(null);
+    setUploadedImageId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -241,12 +288,19 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
                       <p className="text-gray-500 text-xs">
                         {selectedFile && (selectedFile.size / 1024 / 1024).toFixed(2)} MB
                       </p>
+                      {uploadImageMutation.isPending && (
+                        <p className="text-blue-600 text-xs">Uploading...</p>
+                      )}
+                      {uploadedImageId && (
+                        <p className="text-green-600 text-xs">✓ Uploaded successfully</p>
+                      )}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={handleRemoveFile}
                     className="p-1 rounded-full hover:bg-gray-200"
+                    disabled={uploadImageMutation.isPending}
                   >
                     <X className="h-4 w-4 text-gray-500" />
                   </button>

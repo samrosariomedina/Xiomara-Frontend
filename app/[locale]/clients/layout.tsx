@@ -1,13 +1,20 @@
 import { ClientProvider } from '@/context/ClientContext'
+import { TemplatesProvider } from '@/context/TemplatesContext'
+import { getTemplates } from '@/actions/templates'
 
-export default function ClientsLayout({
+export default async function ClientsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Fetch templates server-side
+  const templates = await getTemplates()
+
   return (
     <ClientProvider>
-      {children}
+      <TemplatesProvider templates={templates}>
+        {children}
+      </TemplatesProvider>
     </ClientProvider>
   )
 }

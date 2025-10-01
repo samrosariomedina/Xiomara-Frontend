@@ -10,13 +10,38 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Drawer } from "@/components/ui/drawer"
+import { SourcesDrawerForm } from "@/components/SourcesDrawerForm"
 import { useTranslations } from 'next-intl'
+import type { SourceResponse } from '@/lib/schemas'
 // custom inline list rendering — keep component-specific imports above
 
-export default function FuentesCard() {
+interface FuentesCardProps {
+  sources: SourceResponse[]
+  filteredSources: SourceResponse[]
+  selectedSourceIds: string[]
+  isLoading: boolean
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  onSourceSelection: (sourceId: string, isSelected: boolean) => void
+  onSourceAdded: () => void
+}
+
+export default function FuentesCard({
+  sources,
+  filteredSources,
+  selectedSourceIds,
+  isLoading,
+  searchQuery,
+  onSearchChange,
+  onSourceSelection,
+  onSourceAdded
+}: FuentesCardProps) {
   const t = useTranslations('FUENTES')
-  const [sources, setSources] = useState<Array<{ name: string; type: "image" | "text" | "url"; category: string; timestamp: string }>>([])
   const [selectedGroup, setSelectedGroup] = useState("topic")
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  
+  console.log('Sources in FuentesCard:', sources.length)
 
   // Group options
   const groupOptions = [
@@ -30,17 +55,20 @@ export default function FuentesCard() {
   }
 
   const handleFuentesOpen = () => {
-    // add some dummy items when user clicks Add
-    const dummy = Array.from({ length: 4 }).map((_, i) => ({
-      name: `Imagen de campaña publicitaria ${i + 1}`,
-      type: "image" as const,
-      category: "Tecnologia",
-      timestamp: "hace 2 horas",
-    }))
-    setSources((s) => [...s, ...dummy])
+    setIsDrawerOpen(true)
+  }
+
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false)
+  }
+
+  const handleSourceAdded = async () => {
+    // Call parent handler to refresh sources
+    onSourceAdded()
   }
 
   return (
+    <>
     <div className="bg-white rounded-lg p-3 md:p-4 w-full shadow-sm h-full flex flex-col">
       <style>{`.fuentes-scroll::-webkit-scrollbar{display:none;} .fuentes-scroll{-ms-overflow-style:none; scrollbar-width:none;}`}</style>
       <div className="flex items-center justify-between mb-3 md:mb-4 lg:mb-6">
@@ -59,7 +87,13 @@ export default function FuentesCard() {
                 <span className="absolute inset-y-0 left-2 md:left-3 flex items-center pointer-events-none">
                   <Search className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
                 </span>
-                <Input placeholder="Buscar Fuentes" className="pl-8 md:pl-10 bg-[#f7f9ff] border-gray-200 text-xs md:text-sm h-8 md:h-10" suppressHydrationWarning />
+                <Input 
+                  placeholder="Buscar Fuentes" 
+                  className="pl-8 md:pl-10 bg-[#f7f9ff] border-gray-200 text-xs md:text-sm h-8 md:h-10" 
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  suppressHydrationWarning 
+                />
               </div>
             </div>
             <button className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 text-gray-600" aria-label="filters">
@@ -106,7 +140,19 @@ export default function FuentesCard() {
 
         {/* central content area: either empty-state or the list (scrollable) */}
         <div className="flex-1 min-h-0 flex flex-col">
-          {sources.length === 0 ? (
+          {isLoading ? (
+            <div className="flex-1 min-h-0 flex items-center justify-center text-center">
+              <div className="flex flex-col items-center gap-3 md:gap-4 px-2">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-2 border-[#31499f] border-t-transparent"></div>
+                </div>
+                <div>
+                  <p className="text-sm md:text-base font-medium text-gray-700 mb-1">Cargando fuentes...</p>
+                  <p className="text-xs md:text-sm text-gray-500">Obteniendo tus fuentes</p>
+                </div>
+              </div>
+            </div>
+          ) : filteredSources.length === 0 ? (
             <div className="flex-1 min-h-0 flex items-center justify-center text-center">
               <div className="flex flex-col items-center gap-3 md:gap-4 px-2">
                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex items-center justify-center">
@@ -124,23 +170,44 @@ export default function FuentesCard() {
             </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-auto space-y-2 md:space-y-3 fuentes-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {sources.map((s, idx) => (
-                <div key={idx} className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 hover:bg-gray-50 transition-colors">
+              {filteredSources.map((source, idx) => (
+                <div key={source._id || idx} className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start gap-2 md:gap-3">
-                    <input type="checkbox" className="h-3 w-3 md:h-4 md:w-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <input 
+                      type="checkbox" 
+                      className="h-3 w-3 md:h-4 md:w-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      checked={selectedSourceIds.includes(source._id || '')}
+                      onChange={(e) => onSourceSelection(source._id || '', e.target.checked)}
+                    />
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1.5 md:mb-2">
-                        <h4 className="text-xs md:text-sm font-medium text-gray-900 truncate pr-1 md:pr-2">{s.name}</h4>
-                        <span className="text-xs text-gray-500 flex-shrink-0">{s.timestamp}</span>
+                        <h4 className="text-xs md:text-sm font-medium text-gray-900 truncate pr-1 md:pr-2">{source.title || 'Sin título'}</h4>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          {source.timestamp ? new Date(source.timestamp).toLocaleDateString() : 'Sin fecha'}
+                        </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-start gap-2 md:gap-3">
                         <div className="inline-flex items-center text-xs text-[#31499f] gap-1">
-                          <ImageIcon className="h-3 w-3" />
-                          <span>Imagen</span>
+                          {source.type === 'file' ? (
+                            <FileText className="h-3 w-3" />
+                          ) : source.type === 'webpage' ? (
+                            <ImageIcon className="h-3 w-3" />
+                          ) : (
+                            <FileText className="h-3 w-3" />
+                          )}
+                          <span>
+                            {source.type === 'file' ? 'Archivo' : 
+                             source.type === 'webpage' ? 'Web' : 
+                             source.type === 'text' ? 'Texto' : 'Fuente'}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-600 font-medium bg-[#f0f4ff] px-1.5 py-0.5 md:p-1 rounded-full">{s.category}</span>
+                        <span className="text-xs text-gray-600 font-medium bg-[#f0f4ff] px-1.5 py-0.5 md:p-1 rounded-full">
+                          {source.type === 'file' ? 'Archivo' : 
+                           source.type === 'webpage' ? 'Web' : 
+                           source.type === 'text' ? 'Texto' : 'General'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -152,5 +219,18 @@ export default function FuentesCard() {
       </div>
   {/* list rendering is now inside the main flex area so it shares the same scrollable space as the empty state */}
     </div>
+    
+    {/* Sources Drawer */}
+    <Drawer
+      isOpen={isDrawerOpen}
+      onClose={handleDrawerClose}
+      title="Agregar Fuente"
+    >
+      <SourcesDrawerForm
+        onClose={handleDrawerClose}
+        onSuccess={handleSourceAdded}
+      />
+    </Drawer>
+  </>
   )
 }

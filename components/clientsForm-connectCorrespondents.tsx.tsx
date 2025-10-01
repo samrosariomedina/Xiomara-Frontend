@@ -21,6 +21,7 @@ import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useSharing } from "../hooks/useSharing"
 import { createCorresponsableWithSharingAction, updateCorresponsableAction, getShareUrlAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
+import { TelegramTokenDialog } from "./TelegramTokenDialog"
 
 interface ConnectCorrespondentsFormProps {
   folderId?: string | null;
@@ -43,8 +44,10 @@ interface CorrespondentFormData {
   email: string;
   whatsapp: string;
   accountType: "premium" | "standard" | "basic";
+  telegramToken?: string; // Store the telegram bot token
   invitationMethods?: {
     whatsapp: boolean;
+    telegram: boolean;
     email: boolean;
     copyLink: boolean;
   };
@@ -67,6 +70,10 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   // CSV upload state
   const [selectedCsvFile, setSelectedCsvFile] = useState<File | null>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Telegram dialog state
+  const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
+  const [currentTelegramIndex, setCurrentTelegramIndex] = useState<number | null>(null);
 
   // Use corresponsables hook
   const { 
@@ -92,6 +99,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       accountType: "basic" as const, // Default account type
       invitationMethods: {
         whatsapp: false,
+        telegram: false,
         email: false,
         copyLink: false,
       },
@@ -104,8 +112,10 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       email: "",
       whatsapp: "",
       accountType: "basic" as const,
+      telegramToken: "",
       invitationMethods: {
         whatsapp: false,
+        telegram: false,
         email: false,
         copyLink: false,
       },
@@ -152,8 +162,10 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       email: "",
       whatsapp: "",
       accountType: "basic" as const,
+      telegramToken: "",
       invitationMethods: {
         whatsapp: false,
+        telegram: false,
         email: false,
         copyLink: false,
       },
@@ -205,6 +217,48 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     }
   };
 
+  // Telegram dialog handlers
+  const handleTelegramToggle = (index: number, checked: boolean) => {
+    const currentToken = watch(`correspondents.${index}.telegramToken`);
+    
+    if (checked) {
+      // If token already exists, just enable telegram
+      if (currentToken && currentToken.trim()) {
+        setValue(`correspondents.${index}.invitationMethods.telegram`, true);
+        toast.success('Telegram enabled with existing token');
+      } else {
+        // Open dialog to get token
+        setCurrentTelegramIndex(index);
+        setTelegramDialogOpen(true);
+      }
+    } else {
+      // Disable telegram and clear token
+      setValue(`correspondents.${index}.invitationMethods.telegram`, false);
+      setValue(`correspondents.${index}.telegramToken`, "");
+      toast.info('Telegram disabled and token cleared');
+    }
+  };
+
+  const handleTelegramTokenConfirm = (token: string) => {
+    if (currentTelegramIndex !== null) {
+      setValue(`correspondents.${currentTelegramIndex}.telegramToken`, token);
+      setValue(`correspondents.${currentTelegramIndex}.invitationMethods.telegram`, true);
+      toast.success('Telegram token saved and enabled');
+    }
+    setTelegramDialogOpen(false);
+    setCurrentTelegramIndex(null);
+  };
+
+  const handleTelegramDialogClose = () => {
+    // If dialog is closed without confirming, uncheck the telegram option
+    if (currentTelegramIndex !== null) {
+      setValue(`correspondents.${currentTelegramIndex}.invitationMethods.telegram`, false);
+      toast.info('Telegram dialog cancelled');
+    }
+    setTelegramDialogOpen(false);
+    setCurrentTelegramIndex(null);
+  };
+
   // Add sharing execution to form submission
   const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData) => {
     if (!folderId) return;
@@ -222,7 +276,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         });
 
         // Execute sharing for existing corresponsables if methods are selected (regardless of update success)
-        if (correspondent.invitationMethods && (correspondent.invitationMethods.whatsapp || correspondent.invitationMethods.email || correspondent.invitationMethods.copyLink)) {
+        if (correspondent.invitationMethods && (correspondent.invitationMethods.whatsapp || correspondent.invitationMethods.telegram || correspondent.invitationMethods.email || correspondent.invitationMethods.copyLink)) {
           // Get share URL for the existing listener
           const shareUrlResult = await getShareUrlAction(correspondent.id);
           
@@ -253,23 +307,33 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       }
 
       // Create new corresponsable
+      console.log('Creating corresponsable with data:', {
+        clientName: correspondent.clientName,
+        email: correspondent.email,
+        whatsapp: correspondent.whatsapp,
+        accountType: correspondent.accountType,
+        telegramToken: correspondent.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
+        invitationMethods: correspondent.invitationMethods
+      });
+      
       const result = await createCorresponsableWithSharingAction(folderId, {
         clientName: correspondent.clientName,
         email: correspondent.email,
         whatsapp: correspondent.whatsapp,
         accountType: correspondent.accountType,
+        telegramToken: correspondent.telegramToken,
         invitationMethods: correspondent.invitationMethods
       });
 
       if (result.success && result.data) {
-        const { shareUrl, message, invitationMethods, sharingError } = result.data;
+        const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
         
         if (sharingError) {
           toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
         }
 
         // Execute sharing if methods are selected and we have the data
-        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.email || invitationMethods.copyLink)) {
+        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
           if (shareUrl && message) {
             await executeSharing(
               {
@@ -285,7 +349,9 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           }
         }
 
-        toast.success(`Corresponsable ${correspondent.clientName} created successfully`);
+        const listenerCount = listeners ? listeners.length : 1;
+        const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
+        toast.success(`Corresponsable ${correspondent.clientName} created successfully with ${listenerText}`);
       } else {
         toast.error(result.error || 'Failed to create corresponsable');
       }
@@ -310,11 +376,15 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     submit: async () => {
       const formData = form.getValues();
       const validCorrespondents = formData.correspondents.filter(
-        (correspondent) => correspondent.clientName.trim() && correspondent.whatsapp.trim()
+        (correspondent) => {
+          const hasBasicInfo = correspondent.clientName.trim() && correspondent.whatsapp.trim();
+          const hasTelegramWithToken = correspondent.invitationMethods?.telegram ? correspondent.telegramToken?.trim() : true;
+          return hasBasicInfo && hasTelegramWithToken;
+        }
       );
       
       if (validCorrespondents.length === 0) {
-        toast.warning('Please add at least one correspondent with name and WhatsApp number');
+        toast.warning('Please add at least one correspondent with name, WhatsApp number, and valid Telegram token (if Telegram is selected)');
         return false;
       }
 
@@ -550,6 +620,23 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
 
                 <label className="flex items-center space-x-2 text-xs text-gray-700">
                   <Checkbox
+                    id={`telegram-${index}`}
+                    checked={watch(`correspondents.${index}.invitationMethods.telegram`) || false}
+                    onCheckedChange={(checked) => handleTelegramToggle(index, !!checked)}
+                    className="border-gray-300 h-4 w-4"
+                  />
+                  <span>{t('correspondents.sendTelegram')}</span>
+                  {watch(`correspondents.${index}.telegramToken`) ? (
+                    <span className="text-xs text-green-600 font-medium">✓ Token configured</span>
+                  ) : (
+                    watch(`correspondents.${index}.invitationMethods.telegram`) && (
+                      <span className="text-xs text-orange-600">⚠ Token needed</span>
+                    )
+                  )}
+                </label>
+
+                <label className="flex items-center space-x-2 text-xs text-gray-700">
+                  <Checkbox
                     id={`email-${index}`}
                     checked={watch(`correspondents.${index}.invitationMethods.email`) || false}
                     onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.email`, !!checked)}
@@ -573,6 +660,17 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         ))}
       </div>
 
+      {/* Telegram Token Dialog */}
+      <TelegramTokenDialog
+        isOpen={telegramDialogOpen}
+        onClose={handleTelegramDialogClose}
+        onConfirm={handleTelegramTokenConfirm}
+        correspondentName={
+          currentTelegramIndex !== null 
+            ? watch(`correspondents.${currentTelegramIndex}.clientName`) || 'Correspondent'
+            : 'Correspondent'
+        }
+      />
 
     </div>
   );

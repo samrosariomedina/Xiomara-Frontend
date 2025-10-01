@@ -22,6 +22,100 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+
+/**
+ * Server action to create Telegram listeners
+ */
+export async function createTelegramListenerAction(folderId: string, data: {
+  clientName: string;
+  email: string;
+  accountType: "premium" | "standard" | "basic";
+  telegramToken: string;
+}) {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    // Use the user-provided token as origin - backend handles the rest
+    const listenerData = {
+      type: "telegram",
+      origin: data.telegramToken,
+      title: data.clientName,
+      enabled: true,
+      reference: false, // Create a reference for this listener
+      metadata: {
+        email: data.email || ""
+      }
+    };
+    
+    console.log('Telegram listener data being sent:', listenerData);
+    console.log('Backend URL:', BACKEND_URL);
+
+    const response = await axios.post(`${BACKEND_URL}/listeners/add`, listenerData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Backend response status:', response.status);
+    console.log('Backend response data:', response.data);
+
+    if (response.status === 200) {
+      const createdListener = response.data;
+      
+      // Link the listener to the client folder
+      await axios.post(`${BACKEND_URL}/folders/push`, {
+        folder: folderId,
+        listeners: [createdListener._id]
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Revalidate the clients page to show fresh data
+      revalidatePath('/clients');
+      return {
+        success: true,
+        data: createdListener
+      };
+    } else {
+      throw new Error('Failed to create Telegram listener');
+    }
+  } catch (error: unknown) {
+    console.error('Create Telegram listener error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
+      console.error('Axios error details:', {
+        status: axiosError.response?.status,
+        data: axiosError.response?.data
+      });
+      
+      if (axiosError.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Authentication required'
+        };
+      } else if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: `Invalid data provided: ${axiosError.response?.data ? String(axiosError.response.data) : 'Unknown error'}`
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create Telegram listener'
+    };
+  }
+}
+
 /**
  * Server action to create individual corresponsables (listeners)
  */
@@ -32,6 +126,7 @@ export async function createCorresponsableAction(folderId: string, data: {
   accountType: "premium" | "standard" | "basic";
   invitationMethods?: {
     whatsapp: boolean;
+    telegram: boolean;
     email: boolean;
     copyLink: boolean;
   };
@@ -128,6 +223,7 @@ export async function createCorresponsablesAction(
     accountType: "premium" | "standard" | "basic";
     invitationMethods?: {
       whatsapp: boolean;
+      telegram: boolean;
       email: boolean;
       copyLink: boolean;
     };
@@ -398,7 +494,7 @@ export async function updateCorresponsableAction(
     console.log('Updating corresponsable with data:', updateData);
     console.log('Listener ID being used:', listenerId);
     console.log('Original data received:', data);
-    console.log('Data being sent to backend:', JSON.stringify(updateData, null, 2));
+    console.log('Data being sent to backend:', updateData);
 
     const response = await axios.post(`${BACKEND_URL}/listeners/edit`, updateData, {
       headers: {
@@ -442,17 +538,17 @@ export async function updateCorresponsableAction(
       } else if (axiosError.response?.status === 404) {
         return {
           success: false,
-          error: `Corresponsable not found. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+          error: `Corresponsable not found. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
         };
       } else if (axiosError.response?.status === 400) {
         return {
           success: false,
-          error: `Bad request. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+          error: `Bad request. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
         };
       } else if (axiosError.response?.status === 500) {
         return {
           success: false,
-          error: `Server error. Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`
+          error: `Server error. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
         };
       }
     }
@@ -596,26 +692,79 @@ export async function createCorresponsableWithSharingAction(
     email: string;
     whatsapp: string;
     accountType: "premium" | "standard" | "basic";
+    telegramToken?: string;
     invitationMethods?: {
       whatsapp: boolean;
+      telegram: boolean;
       email: boolean;
       copyLink: boolean;
     };
   }
 ) {
   try {
-    // First create the corresponsable
-    const createResult = await createCorresponsableAction(folderId, data);
-    
-    if (!createResult.success) {
-      return createResult;
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
     }
 
-    const listenerId = createResult.data._id;
+    const createdListeners = [];
+    const listenerIds = [];
+
+    console.log('=== INVITATION METHODS DEBUG ===');
+    console.log('Full data received:', data);
+    console.log('Invitation methods selected:', data.invitationMethods);
+    console.log('Telegram selected:', data.invitationMethods?.telegram);
+    console.log('WhatsApp selected:', data.invitationMethods?.whatsapp);
+    console.log('Telegram token provided:', data.telegramToken ? 'YES' : 'NO');
+    console.log('Telegram token value:', data.telegramToken ? 'TOKEN_EXISTS' : 'NO_TOKEN');
+
+    // Create Telegram listener if requested and token provided
+    if (data.invitationMethods?.telegram && data.telegramToken) {
+      console.log('Creating Telegram listener for:', data.clientName);
+      const telegramResult = await createTelegramListenerAction(folderId, {
+        clientName: data.clientName,
+        email: data.email,
+        accountType: data.accountType,
+        telegramToken: data.telegramToken
+      });
+      
+      console.log('Telegram creation result:', telegramResult);
+      
+      if (telegramResult.success) {
+        createdListeners.push(telegramResult.data);
+        listenerIds.push(telegramResult.data._id);
+        console.log('Telegram listener added to created listeners');
+      } else {
+        console.error('Telegram listener creation failed:', telegramResult.error);
+      }
+    }
+
+    // Create WhatsApp listener if requested (and not Telegram-only)
+    if (data.invitationMethods?.whatsapp) {
+      console.log('Creating WhatsApp listener for:', data.clientName);
+      const whatsappResult = await createCorresponsableAction(folderId, data);
+      if (whatsappResult.success) {
+        createdListeners.push(whatsappResult.data);
+        listenerIds.push(whatsappResult.data._id);
+        console.log('WhatsApp listener added to created listeners');
+      }
+    }
+
+    // If no listeners were created, return error instead of creating default
+    if (createdListeners.length === 0) {
+      console.log('No listeners created - no valid invitation methods selected');
+      return {
+        success: false,
+        error: 'No valid invitation methods selected. Please select WhatsApp or Telegram with a valid token.'
+      };
+    }
+
+    // Get share URL for the first listener (for sharing operations)
+    const primaryListenerId = listenerIds[0];
     // Note: Sharing results are handled by the frontend useSharing hook
 
     // Get share URL for sharing operations
-    const shareUrlResult = await getShareUrlAction(listenerId);
+    const shareUrlResult = await getShareUrlAction(primaryListenerId);
     
     if (shareUrlResult.success) {
       const shareUrl = shareUrlResult.data;
@@ -625,26 +774,28 @@ export async function createCorresponsableWithSharingAction(
       return {
         success: true,
         data: {
-          listener: createResult.data,
+          listeners: createdListeners,
           shareUrl,
           message,
           invitationMethods: data.invitationMethods || {
             whatsapp: false,
+            telegram: false,
             email: false,
             copyLink: false
           }
         }
       };
     } else {
-      // Even if sharing fails, return the created listener
+      // Even if sharing fails, return the created listeners
       return {
         success: true,
         data: {
-          listener: createResult.data,
+          listeners: createdListeners,
           shareUrl: null,
           message: null,
           invitationMethods: data.invitationMethods || {
             whatsapp: false,
+            telegram: false,
             email: false,
             copyLink: false
           },
@@ -673,6 +824,7 @@ export async function createCorresponsablesWithSharingAction(
     accountType: "premium" | "standard" | "basic";
     invitationMethods?: {
       whatsapp: boolean;
+      telegram: boolean;
       email: boolean;
       copyLink: boolean;
     };

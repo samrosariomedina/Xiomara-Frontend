@@ -37,13 +37,22 @@ export const clientSchema = z.object({
 	logoFile: z.instanceof(File).optional().nullable(), // File object for logo upload
 	contactName: z.string().min(1, 'Contact name is required'),
 	whatsapp: z.string()
-		.min(1, 'WhatsApp number is required')
-		.regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
+		.optional()
+		.or(z.literal(""))
+		.refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
+			message: 'WhatsApp number can only contain digits and +()-',
+		}),
 	position: z.string().min(1, 'Position is required'),
-	email: z.string().min(1, 'Email is required').email('Invalid email'),
+	email: z.string()
+		.optional()
+		.or(z.literal(""))
+		.refine(val => !val || z.string().email().safeParse(val).success, {
+			message: 'Invalid email format',
+		}),
 	corresponsalClientName: z.string().optional(),
 	corresponsalWhatsapp: z.string()
 		.optional()
+		.or(z.literal(""))
 		.refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
 			message: 'WhatsApp number can only contain digits and +()-',
 		}),
@@ -51,6 +60,7 @@ export const clientSchema = z.object({
 	accountType: z.enum(['premium', 'standard', 'basic']).optional(),
 	invitationMethods: z.object({
 		whatsapp: z.boolean().default(false),
+		telegram: z.boolean().default(false),
 		email: z.boolean().default(false),
 		copyLink: z.boolean().default(false)
 	}).optional()
@@ -99,6 +109,7 @@ const correspondentSchema = z.object({
   accountType: z.enum(['premium', 'standard', 'basic']),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
+    telegram: z.boolean(),
     email: z.boolean(),
     copyLink: z.boolean()
   }).optional()
@@ -124,10 +135,11 @@ export const corresponsablesSchema = z.object({
   }),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
+    telegram: z.boolean(),
     email: z.boolean(),
     copyLink: z.boolean(),
   }).refine(
-    data => data.whatsapp || data.email || data.copyLink,
+    data => data.whatsapp || data.telegram || data.email || data.copyLink,
     {
       message: 'At least one invitation method must be selected',
       path: ['invitationMethods'],

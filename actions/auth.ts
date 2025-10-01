@@ -1,6 +1,6 @@
 'use server'
 
-import { LoginInput, SignupInput, User } from "@/lib/types";
+import { LoginInput, SignupInput, User, LoginResponse } from "@/lib/types";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import axios from "axios";
@@ -10,7 +10,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 /**
  * Server action to login a user
  */
-export async function loginAction(credentials: LoginInput) {
+export async function loginAction(credentials: LoginInput): Promise<LoginResponse> {
   try {
     const response = await axios.post(`${BACKEND_URL}/auth/login`, {
       email: credentials.email,
@@ -28,12 +28,41 @@ export async function loginAction(credentials: LoginInput) {
         sameSite: 'lax'
       });
       
-      revalidatePath('/');
-      
-      return { 
-        success: true, 
-        token: response.data.token 
-      };
+      // Check user approval status
+      try {
+        const profileResult = await getUserProfileAction();
+        if (profileResult.success && profileResult.user) {
+          const isApproved = profileResult.user.approved;
+          
+          revalidatePath('/');
+          
+          return { 
+            success: true, 
+            token: response.data.token,
+            user: profileResult.user,
+            approved: isApproved
+          };
+        } else {
+          // If profile fetch fails, still allow login but mark as unknown approval
+          revalidatePath('/');
+          
+          return { 
+            success: true, 
+            token: response.data.token,
+            approved: false // Default to false for safety
+          };
+        }
+      } catch (profileError) {
+        console.error('Profile fetch error during login:', profileError);
+        // If profile check fails, still allow login but mark as unknown approval
+        revalidatePath('/');
+        
+        return { 
+          success: true, 
+          token: response.data.token,
+          approved: false // Default to false for safety
+        };
+      }
     } else {
       throw new Error('Authentication failed');
     }
@@ -210,64 +239,6 @@ export async function logoutAction() {
   }
 }
 
-/**
- * Server action to reset password (for authenticated users)
- */
-export async function resetPasswordAction(oldPassword: string, newPassword: string) {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('authToken')?.value;
-
-    if (!token) {
-      return {
-        success: false,
-        error: 'Authentication required'
-      };
-    }
-
-    const response = await axios.post(`${BACKEND_URL}/auth/reset`, {
-      password_old: oldPassword,
-      password_new: newPassword
-    }, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.status === 200) {
-      return { success: true };
-    } else {
-      throw new Error('Password reset failed');
-    }
-  } catch (error: unknown) {
-    console.error('Reset password error:', error);
-
-    if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { status?: number } };
-      if (axiosError.response?.status === 400) {
-        return {
-          success: false,
-          error: 'Both old and new passwords are required'
-        };
-      } else if (axiosError.response?.status === 401) {
-        return {
-          success: false,
-          error: 'Authentication required'
-        };
-      } else if (axiosError.response?.status === 403) {
-        return {
-          success: false,
-          error: 'Current password is incorrect'
-        };
-      }
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Password reset failed. Please try again.'
-    };
-  }
-}
 
 /**
  * Server action to send forgot password email
@@ -349,6 +320,77 @@ export async function recoverPasswordAction(token: string, password: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Password recovery failed. Please try again.'
+    };
+  }
+}
+
+/**
+ * Server action to reset password for authenticated user
+ */
+export async function resetPasswordAction(data: {
+  passwordOld: string;
+  passwordNew: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('authToken')?.value;
+
+    if (!token) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    // Validate input data
+    if (!data.passwordOld || typeof data.passwordOld !== 'string' || data.passwordOld.trim() === '') {
+      return { success: false, error: 'Current password is required' };
+    }
+
+    if (!data.passwordNew || typeof data.passwordNew !== 'string' || data.passwordNew.trim() === '') {
+      return { success: false, error: 'New password is required' };
+    }
+
+    // Debug logging to help identify the issue
+    console.log('Reset password request:', {
+      passwordOldLength: data.passwordOld?.length || 0,
+      passwordNewLength: data.passwordNew?.length || 0,
+      passwordOldType: typeof data.passwordOld,
+      passwordNewType: typeof data.passwordNew,
+      hasToken: !!token
+    });
+
+    const response = await axios.post(`${BACKEND_URL}/auth/reset`, {
+      token: token,
+      password_old: data.passwordOld,
+      password_new: data.passwordNew
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      return { success: true };
+    } else {
+      throw new Error('Failed to reset password');
+    }
+  } catch (error: unknown) {
+    console.error('Reset password error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
+      if (axiosError.response?.status === 401) {
+        return { success: false, error: 'Authentication required' };
+      } else if (axiosError.response?.status === 403) {
+        return { success: false, error: 'Current password is incorrect' };
+      } else if (axiosError.response?.status === 400) {
+        return { success: false, error: 'Both old and new passwords are required' };
+      } else if (axiosError.response?.status === 500) {
+        return { success: false, error: 'Server error: Unable to process password reset. This may be due to account configuration issues. Please contact support.' };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Password reset failed. Please try again.'
     };
   }
 }

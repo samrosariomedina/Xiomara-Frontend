@@ -41,7 +41,15 @@ export default function LoginForm() {
       }
       return result
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Check if user is approved
+      if (result.approved === false) {
+        // User is not approved, redirect to pending page
+        router.push(routes.auth.pending)
+        return
+      }
+      
+      // User is approved, continue with normal flow
       toast.success(t("loginSuccess"))
       router.push(routes.clients.page)
       router.refresh() // Refresh to update server components

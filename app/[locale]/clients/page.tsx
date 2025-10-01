@@ -31,7 +31,10 @@ async function getClientsData(): Promise<ClientResponse[]> {
     return result.success ? result.data : []
 
   } catch (error) {
-    console.error('Failed to fetch clients:', error)
+    // Don't log authentication errors as they're expected during logout
+    if (!error.message?.includes('Authentication required')) {
+      console.error('Failed to fetch clients:', error)
+    }
     return []
   }
 }
@@ -44,7 +47,10 @@ async function getCampaignsData(): Promise<CampaignResponse[]> {
     return result.success ? result.data : []
 
   } catch (error) {
-    console.error('Failed to fetch campaigns:', error)
+    // Don't log authentication errors as they're expected during logout
+    if (!error.message?.includes('Authentication required')) {
+      console.error('Failed to fetch campaigns:', error)
+    }
     return []
   }
 }

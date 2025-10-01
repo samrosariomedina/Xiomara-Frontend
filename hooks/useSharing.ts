@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 interface SharingOptions {
   whatsapp: boolean;
+  telegram: boolean;
   email: boolean;
   copyLink: boolean;
 }
@@ -39,6 +40,29 @@ export function useSharing() {
     } catch (error) {
       console.error('WhatsApp sharing error:', error);
       toast.error('Failed to share via WhatsApp');
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  };
+
+  const shareViaTelegram = async (telegramUrl: string) => {
+    try {
+      console.log('Telegram sharing - URL:', telegramUrl);
+      console.log('Navigator.share available:', !!navigator.share);
+      
+      if (navigator.share) {
+        await navigator.share({
+          url: telegramUrl
+        });
+        toast.success('Telegram share initiated');
+      } else {
+        console.log('Opening Telegram URL:', telegramUrl);
+        window.open(telegramUrl, '_blank');
+        toast.success('Telegram opened in new tab');
+      }
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Telegram sharing error:', error);
+      toast.error('Failed to share via Telegram');
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
@@ -104,6 +128,7 @@ export function useSharing() {
     setIsSharing(true);
     const results = {
       whatsapp: { success: false, error: null as string | null },
+      telegram: { success: false, error: null as string | null },
       email: { success: false, error: null as string | null },
       copyLink: { success: false, error: null as string | null }
     };
@@ -115,6 +140,14 @@ export function useSharing() {
         const whatsappResult = await shareViaWhatsApp(sharingData.message);
         results.whatsapp = whatsappResult;
         console.log('WhatsApp sharing result:', whatsappResult);
+      }
+
+      // Execute Telegram sharing
+      if (options.telegram) {
+        console.log('Executing Telegram sharing...');
+        const telegramResult = await shareViaTelegram(sharingData.shareUrl);
+        results.telegram = telegramResult;
+        console.log('Telegram sharing result:', telegramResult);
       }
 
       // Execute email sharing
@@ -148,6 +181,7 @@ export function useSharing() {
   return {
     isSharing,
     shareViaWhatsApp,
+    shareViaTelegram,
     shareViaEmail,
     copyToClipboard,
     executeSharing

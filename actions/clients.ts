@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import axios from "axios";
 import FormData from 'form-data';
+import { revalidatePath } from "next/cache";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -13,7 +14,10 @@ async function getAuthToken(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('authToken')?.value || null;
-    console.log('Auth token check:', token ? 'Found token' : 'No token found');
+    // Only log when no token found during non-logout scenarios
+    if (!token) {
+      console.log('Auth token check: No token found');
+    }
     return token;
   } catch (error) {
     console.error('Error getting auth token:', error);
@@ -29,10 +33,11 @@ export async function createClientAction(data: {
     industry: string;
     description?: string;
     contactName: string;
-    whatsapp: string;
+    whatsapp?: string;
     position: string;
-    email: string;
-  logoFile?: File;
+    email?: string;
+    logoFile?: File;
+    uploadedImageId?: string;
 }) {
   try {
     const token = await getAuthToken();
@@ -46,9 +51,11 @@ export async function createClientAction(data: {
       industry: data.industry,
       description: data.description || null,
       contactName: data.contactName,
-      whatsapp: data.whatsapp.replace(/[\s\-\+]/g, ""), // Sanitize WhatsApp number
+      whatsapp: data.whatsapp ? data.whatsapp.replace(/[\s\-\+]/g, "") : null, // Sanitize WhatsApp number if provided
       position: data.position,
-      email: data.email
+      email: data.email || null,
+      logoImageId: data.uploadedImageId || null, // Reference to uploaded logo
+      createdAt: new Date().toISOString()
     };
 
     // First, create the client folder
@@ -110,6 +117,10 @@ export async function createClientAction(data: {
         }
       }
 
+      // Revalidate the clients page to show the new client immediately
+      revalidatePath('/clients');
+      revalidatePath('/');
+      
       return {
         success: true,
         data: clientData

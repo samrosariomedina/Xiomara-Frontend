@@ -1,7 +1,9 @@
 import React from 'react'
 import { ChevronRight, MoreVertical, Wrench } from 'lucide-react'
+import { useTemplates } from '@/context/TemplatesContext'
 
 export default function OutputCard() {
+    const { templates } = useTemplates()
     return (
         <div className="bg-white rounded-lg p-3 md:p-4 lg:p-6 w-full shadow-sm h-full flex flex-col">
             <header className="flex items-center justify-between mb-3 md:mb-4">
@@ -17,21 +19,23 @@ export default function OutputCard() {
                 </div>
 
                 <ul className="space-y-1.5 md:space-y-2">
-                    <li className="flex items-center justify-between p-2 md:p-3 rounded-md hover:bg-gray-50">
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-100" />
-                            <div className="text-xs md:text-sm text-gray-700">Template solo texto</div>
-                        </div>
-                        <ChevronRight className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
-                    </li>
-
-                    <li className="flex items-center justify-between p-2 md:p-3 rounded-md hover:bg-gray-50">
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-100" />
-                            <div className="text-xs md:text-sm text-gray-700">Template con imagen</div>
-                        </div>
-                        <ChevronRight className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
-                    </li>
+                    {templates.length > 0 ? (
+                        templates.slice(0, 3).map((template) => (
+                            <li key={template._id} className="flex items-center justify-between p-2 md:p-3 rounded-md hover:bg-gray-50">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-100" />
+                                    <div className="text-xs md:text-sm text-gray-700 truncate">
+                                        {template.title || 'Sin título'}
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
+                            </li>
+                        ))
+                    ) : (
+                        <li className="flex items-center justify-center p-2 md:p-3 rounded-md">
+                            <div className="text-xs md:text-sm text-gray-500">No hay templates disponibles</div>
+                        </li>
+                    )}
                 </ul>
             </section>
 

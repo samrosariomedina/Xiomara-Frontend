@@ -22,5 +22,6 @@ export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
 }
 
 export default function Page() {
+  // Templates are now available via TemplatesContext (fetched in layout)
   return <ContentEnginePage />
 }

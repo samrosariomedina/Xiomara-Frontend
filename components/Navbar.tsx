@@ -1,14 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { Bell, ChevronDown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useTranslations } from 'next-intl'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { routes } from '@/lib/routes'
-import { toast } from "sonner"
 import { useAuth } from '@/context/AuthContext'
+import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
 
 export function Navbar() {
   const t = useTranslations('NAVBAR')
@@ -16,16 +16,14 @@ export function Navbar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { logout, user } = useAuth()
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
   
   const handleLogout = async () => {
-    try {
-      await logout() // Call the logout function from useAuth
-      toast.success(t('logoutSuccess'))
-      router.push(routes.auth.login)
-    } catch (error) {
-      console.error('Logout error:', error)
-      toast.error(t('logoutError'))
-    }
+    await logout() // This will handle the loading state and redirect
+  }
+
+  const handleResetPasswordClick = () => {
+    setIsResetPasswordOpen(true)
   }
 
   const toggleLocale = () => {
@@ -85,6 +83,9 @@ export function Navbar() {
               )}
               <DropdownMenuItem>{t('profile')}</DropdownMenuItem>
               <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleResetPasswordClick}>
+                Reset Password
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={toggleLocale}>
                 {((pathname || '/').split('/')[1] === 'es') ? 'English' : 'Español'}
               </DropdownMenuItem>
@@ -93,6 +94,12 @@ export function Navbar() {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Reset Password Dialog */}
+      <ResetPasswordDialog
+        isOpen={isResetPasswordOpen}
+        onClose={() => setIsResetPasswordOpen(false)}
+      />
     </nav>
   )
 }

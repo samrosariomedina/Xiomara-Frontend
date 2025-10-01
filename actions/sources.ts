@@ -86,6 +86,38 @@ export async function getSources(): Promise<SourceResponse[]> {
   }
 }
 
+// Server action to get sources for content engine
+export async function getContentEngineSources(): Promise<SourceResponse[]> {
+  try {
+    const token = await getAuthToken();
+    
+    if (!token) {
+      return [];
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/sources`, {
+      types: ['text', 'file', 'webpage'] // Filter for manually added sources
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    return response.data || []
+  } catch (error) {
+    console.error('Get content engine sources error:', error)
+    if (axios.isAxiosError(error)) {
+      console.error('Content engine sources API error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+    }
+    return []
+  }
+}
+
 // Create a new source
 export async function createSourceAction(data: {
   name: string;
@@ -121,7 +153,14 @@ export async function createSourceAction(data: {
       content = data.file.name; // Use filename as content for now
     } else if (data.url) {
       sourceType = 'webpage';
-      content = data.url;
+      content = data.url.trim();
+      
+      // Validate URL format before sending
+      try {
+        new URL(content);
+      } catch {
+        throw new Error('Invalid URL format. Please enter a valid URL starting with http:// or https://');
+      }
     } else if (data.text) {
       sourceType = 'text';
       content = data.text;
@@ -147,6 +186,13 @@ export async function createSourceAction(data: {
       }
     }
 
+    console.log('Sending source data:', {
+      type: sourceType,
+      content: content,
+      hasFile: !!data.file,
+      url: data.url
+    })
+
     const response = await axios.post(`${API_BASE_URL}/sources/add`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -157,6 +203,7 @@ export async function createSourceAction(data: {
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')
     revalidatePath('/clients/dashboards/fuentes')
+    revalidatePath('/clients/content-engine')
     return response.data
   } catch (error) {
     console.error('Create source error:', error)
@@ -244,6 +291,7 @@ export async function editSourceAction(
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')
     revalidatePath('/clients/dashboards/fuentes')
+    revalidatePath('/clients/content-engine')
     return response.data
   } catch (error) {
     console.error('Edit source error:', error)
@@ -274,6 +322,7 @@ export async function removeSourceAction(sourceId: string): Promise<void> {
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')
     revalidatePath('/clients/dashboards/fuentes')
+    revalidatePath('/clients/content-engine')
   } catch (error) {
     console.error('Remove source error:', error)
     if (axios.isAxiosError(error)) {

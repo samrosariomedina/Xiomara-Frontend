@@ -6,16 +6,60 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PostEditor from './contentEnginePage-postEdit'
 import EditForm from './contentEnginePage-editForm'
+import { useTemplates } from '@/context/TemplatesContext'
+import { useMutation } from '@tanstack/react-query'
+import { generateSummaryAction } from '@/actions/summaries'
+import type { SummaryResponse } from '@/actions/summaries'
+import { toast } from 'sonner'
 
-export default function ChatCard() {
-    const [hasContent, setHasContent] = useState(false)
+interface ChatCardProps {
+  selectedSourceIds: string[]
+  generatedSummary: SummaryResponse | null
+  isGeneratingSummary: boolean
+  onSummaryGenerated: (summary: SummaryResponse | null) => void
+  onGeneratingChange: (isGenerating: boolean) => void
+}
+
+export default function ChatCard({
+  selectedSourceIds,
+  generatedSummary,
+  isGeneratingSummary,
+  onSummaryGenerated,
+  onGeneratingChange
+}: ChatCardProps) {
+    const { templates } = useTemplates()
+    console.log('Templates available in ChatCard:', templates.length)
     const [showPostEditor, setShowPostEditor] = useState(false)
     const [showEditForm, setShowEditForm] = useState(false)
     const [selectedPlatform, setSelectedPlatform] = useState('')
-    const [contentText, setContentText] = useState(`<p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p><p>Lorem ipsum dolor sit amet consectetur. Nunc commodo eu arcu orci. Elementum cursus vitae vel lectus lorem malesuada eleifend facilisis urna. Sit sed sed senectus vulputate eu eleifend vestibulum. Tristique cras venenatis nibh libero nisl amet ac. Non elit at nibh at. Quam facilisis amet mi elementum.</p>`)
+
+    // React Query mutation for summary generation
+    const generateSummaryMutation = useMutation({
+        mutationFn: (sourceIds: string[]) => generateSummaryAction(sourceIds),
+        onMutate: () => {
+            onGeneratingChange(true)
+        },
+        onSuccess: (summary) => {
+            onSummaryGenerated(summary)
+            onGeneratingChange(false)
+            toast.success('Summary generated successfully!')
+        },
+        onError: (error: Error) => {
+            onGeneratingChange(false)
+            toast.error(error.message || 'Failed to generate summary')
+        }
+    })
+
+    // Check if we have content (either generated summary or selected sources)
+    const hasContent = generatedSummary !== null
 
     const handleAddSources = () => {
-        setHasContent(true)
+        if (selectedSourceIds.length === 0) {
+            toast.error('Please select at least one source to generate a summary')
+            return
+        }
+        
+        generateSummaryMutation.mutate(selectedSourceIds)
     }
 
     const handleSocialMediaClick = (platform: string) => {
@@ -28,7 +72,15 @@ export default function ChatCard() {
     }
 
     const handleSaveContent = (title: string, content: string) => {
-        setContentText(content)
+        // Update the generated summary with edited content
+        if (generatedSummary) {
+            const updatedSummary = {
+                ...generatedSummary,
+                title,
+                content
+            }
+            onSummaryGenerated(updatedSummary)
+        }
     }
 
     return (
@@ -38,7 +90,16 @@ export default function ChatCard() {
             </header>
 
             <main className="flex-1 min-h-0 flex flex-col">
-                {!hasContent ? (
+                {isGeneratingSummary ? (
+                    // Loading state
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-4 text-center px-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#31499f] border-t-transparent"></div>
+                            <p className="text-lg font-medium text-gray-900">Generating summary...</p>
+                            <p className="text-sm text-gray-500">Processing {selectedSourceIds.length} source{selectedSourceIds.length !== 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                ) : !hasContent ? (
                     // Empty state (Image 1)
                     <div className="flex-1 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4 text-center px-4">
@@ -47,9 +108,15 @@ export default function ChatCard() {
                                 onClick={handleAddSources}
                                 className="inline-flex items-center space-x-2 bg-[#f7f9ff] text-[#31499f] hover:bg-[#e7e9ff] border border-transparent rounded-full" 
                                 variant="ghost"
+                                disabled={selectedSourceIds.length === 0}
                             >
                                 <Plus className="h-4 w-4" />
-                                <span className="font-medium">Agregar fuentes</span>
+                                <span className="font-medium">
+                                    {selectedSourceIds.length === 0 
+                                        ? 'Select sources to generate summary'
+                                        : `Generate summary from ${selectedSourceIds.length} source${selectedSourceIds.length !== 1 ? 's' : ''}`
+                                    }
+                                </span>
                             </Button>
                         </div>
                     </div>
@@ -58,11 +125,22 @@ export default function ChatCard() {
                     <div className="flex-1 flex flex-col space-y-6 overflow-y-auto">
                         {/* Content Summary */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                           
+                            {generatedSummary?.title && (
+                                <h4 className="text-lg font-semibold text-gray-900 mb-3">{generatedSummary.title}</h4>
+                            )}
                             
-                            <div className=" text-sm text-gray-700 leading-relaxed">
-                                <div dangerouslySetInnerHTML={{ __html: contentText }} />
+                            <div className="text-sm text-gray-700 leading-relaxed">
+                                <div className="whitespace-pre-wrap">{generatedSummary?.content}</div>
                             </div>
+                            
+                            {generatedSummary?.sources && generatedSummary.sources.length > 0 && (
+                                <div className="mt-4 pt-3 border-t border-gray-200">
+                                    <p className="text-xs text-gray-500 mb-2">Generated from {generatedSummary.sources.length} source{generatedSummary.sources.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-gray-400">
+                                        Created: {new Date(generatedSummary.timestamp).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            )}
                             
                             {/* Action buttons for content */}
                             <div className="flex items-center justify-end gap-2 mt-4">
@@ -158,20 +236,23 @@ export default function ChatCard() {
                         </div>
                     </div>
                 )}
+
+                {/* Footer */}
                 <footer className="mt-6">
-                <div className="flex items-center gap-3 bg-[#f7f9ff] rounded-full px-4 py-3">
-                    <Input placeholder="Type message" className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" suppressHydrationWarning />
-                    <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
-                        <ImageIcon className="h-4 w-4" />
-                    </button>
-                    <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
-                        <Mic className="h-4 w-4" />
-                    </button>
-                    <button className="p-2 rounded-full text-white bg-[#31499f] hover:bg-[#2a3d85] transition-colors">
-                        <Send className="h-4 w-4" />
-                    </button>
-                </div>
-            </footer>
+                    <div className="flex items-center gap-3 bg-[#f7f9ff] rounded-full px-4 py-3">
+                        <Input placeholder="Type message" className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" suppressHydrationWarning />
+                        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+                            <ImageIcon className="h-4 w-4" />
+                        </button>
+                        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+                            <Mic className="h-4 w-4" />
+                        </button>
+                        <button className="p-2 rounded-full text-white bg-[#31499f] hover:bg-[#2a3d85] transition-colors">
+                            <Send className="h-4 w-4" />
+                        </button>
+                    </div>
+                </footer>
+
                 {/* Directives - Now outside the scrollable content area */}
                 {hasContent && (
                     <div className="flex gap-2 overflow-x-auto mt-4 pb-2">
@@ -191,8 +272,6 @@ export default function ChatCard() {
                 )}
             </main>
 
-            
-
             {/* Post Editor Modal */}
             <PostEditor 
                 isOpen={showPostEditor}
@@ -205,7 +284,7 @@ export default function ChatCard() {
                 isOpen={showEditForm}
                 onClose={() => setShowEditForm(false)}
                 onSave={handleSaveContent}
-                initialContent={contentText}
+                initialContent={generatedSummary?.content || ''}
             />
         </div>
     )

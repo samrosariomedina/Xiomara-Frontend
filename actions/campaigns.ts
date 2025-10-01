@@ -13,7 +13,10 @@ async function getAuthToken(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('authToken')?.value || null;
-    console.log('Auth token check:', token ? 'Found token' : 'No token found');
+    // Only log when no token found during non-logout scenarios
+    if (!token) {
+      console.log('Auth token check: No token found');
+    }
     return token;
   } catch (error) {
     console.error('Error getting auth token:', error);

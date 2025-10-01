@@ -18,12 +18,22 @@ export interface AuthContextType {
   isAuthenticated: boolean
   logout: () => Promise<void>
   refetchUser: () => void
+  isLoggingOut: boolean
 }
 
 // API response types
 export interface ApiResponse<T> {
   success: boolean
   data?: T
+  error?: string
+}
+
+// Login response type
+export interface LoginResponse {
+  success: boolean
+  token?: string
+  user?: User
+  approved?: boolean
   error?: string
 }
 

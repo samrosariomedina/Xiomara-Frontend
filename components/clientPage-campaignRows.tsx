@@ -5,10 +5,12 @@ import {
   Globe,
   Users,
   MoreVertical,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CampaignRowProps } from "../utils/types"
+import { useRouter } from "next/navigation"
 
 export function CampaignRow({ 
   campaign, 
@@ -17,6 +19,11 @@ export function CampaignRow({
   onMenuOpen, 
   t 
 }: CampaignRowProps) {
+  const router = useRouter()
+
+  const handleManageCampaign = () => {
+    router.push(`/clients/content-engine?clientId=${clientId}&campaignId=${campaign.id}`)
+  }
   return (
     <div className="px-4 py-4 hover:bg-[#f7f9ff] transition-colors">
   {/* Desktop Campaign Layout */}
@@ -78,21 +85,32 @@ export function CampaignRow({
               {campaign.status}
             </Badge>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 rounded-full"
-            onClick={(e) => {
-              if (typeof window === 'undefined') return; // Skip on server-side
-              
-              const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
-              const left = rect ? rect.right - 208 : window.innerWidth - 208
-              const top = rect ? rect.bottom + 8 : 100
-              onMenuOpen({ clientId, campaignId: campaign.id, left, top })
-            }}
-          >
-            <MoreVertical className="h-4 w-4 text-[#000000] " />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs bg-white hover:bg-gray-50 border-gray-300"
+              onClick={handleManageCampaign}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Gestionar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-full"
+              onClick={(e) => {
+                if (typeof window === 'undefined') return; // Skip on server-side
+                
+                const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
+                const left = rect ? rect.right - 208 : window.innerWidth - 208
+                const top = rect ? rect.bottom + 8 : 100
+                onMenuOpen({ clientId, campaignId: campaign.id, left, top })
+              }}
+            >
+              <MoreVertical className="h-4 w-4 text-[#000000] " />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -160,6 +178,19 @@ export function CampaignRow({
                 {campaign.status}
               </Badge>
             </div>
+          </div>
+
+          {/* Manage Campaign Button for Mobile */}
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-4 text-xs bg-white hover:bg-gray-50 border-gray-300"
+              onClick={handleManageCampaign}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Gestionar Campaña
+            </Button>
           </div>
         </div>
       </div>

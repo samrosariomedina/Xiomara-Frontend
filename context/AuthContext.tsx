@@ -1,7 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, ReactNode } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import React, { createContext, useContext, ReactNode, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getUserProfileAction, logoutAction } from '@/actions/auth'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -22,6 +22,7 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
   const t = useTranslations('AUTH')
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Query for user profile
   const {
@@ -43,28 +44,25 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
 
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: logoutAction,
-    onSuccess: () => {
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      
+      // Call logout action
+      await logoutAction()
+      
       // Clear user data from cache
       queryClient.setQueryData(['user'], null)
       queryClient.clear()
       
-      // Show success message
-      toast.success(t('logoutSuccess'))
-      
       // Redirect to login
       router.push(routes.auth.login)
-    },
-    onError: (error: Error) => {
+    } catch (error) {
       console.error('Logout error:', error)
       toast.error(t('logoutError'))
-    },
-  })
-
-  const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   const value: AuthContextType = {
@@ -73,11 +71,21 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
     isAuthenticated: !!user,
     logout: handleLogout,
     refetchUser,
+    isLoggingOut,
   }
 
   return (
     <AuthContext.Provider value={value}>
       {children}
+      {/* Logout Loading Overlay */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4 shadow-xl">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-700 font-medium">Logging out...</p>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   )
 }
