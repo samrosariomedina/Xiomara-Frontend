@@ -112,7 +112,6 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       email: "",
       whatsapp: "",
       accountType: "basic" as const,
-      telegramToken: "",
       invitationMethods: {
         whatsapp: false,
         telegram: false,

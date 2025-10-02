@@ -3,11 +3,16 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { useMutation } from '@tanstack/react-query'
+import { editSummaryAction } from '@/actions/summaries'
+import type { SummaryResponse } from '@/actions/summaries'
+import { toast } from 'sonner'
 
 interface EditFormProps {
     isOpen: boolean
     onClose: () => void
-    onSave: (title: string, content: string) => void
+    onSave: (updatedSummary: SummaryResponse) => void
+    summaryId?: string
     initialTitle?: string
     initialContent?: string
 }
@@ -16,15 +21,44 @@ export default function EditForm({
     isOpen, 
     onClose, 
     onSave, 
+    summaryId,
+    initialTitle = "",
     initialContent = "" 
 }: EditFormProps) {
+    const [title, setTitle] = useState(initialTitle)
     const [content, setContent] = useState(initialContent)
     const [isAnimating, setIsAnimating] = useState(false)
+
+    // React Query mutation for editing summary
+    const editSummaryMutation = useMutation({
+        mutationFn: ({ summaryId, title, content }: { summaryId: string, title?: string, content?: string }) => 
+            editSummaryAction(summaryId, title, content),
+        onSuccess: (updatedData) => {
+            toast.success('Summary updated successfully!')
+            // Create a complete summary response object
+            const updatedSummary: SummaryResponse = {
+                _id: summaryId!,
+                title: title || initialTitle,
+                content: content,
+                timestamp: new Date().toISOString(),
+                sources: [], // Will be updated by parent with actual data
+                edited: true
+            }
+            onSave(updatedSummary)
+            handleClose()
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to update summary')
+        }
+    })
 
     useEffect(() => {
         if (isOpen) {
             setIsAnimating(true)
-            setContent(initialContent)
+            // Set content and title properly
+            console.log('EditForm received:', { initialTitle, initialContent })
+            setTitle(initialTitle || '')
+            setContent(initialContent || '')
             // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden'
         } else {
@@ -35,7 +69,7 @@ export default function EditForm({
         return () => {
             document.body.style.overflow = 'unset'
         }
-    }, [isOpen, initialContent])
+    }, [isOpen, initialTitle, initialContent])
 
     const handleClose = () => {
         setIsAnimating(false)
@@ -45,8 +79,21 @@ export default function EditForm({
     }
 
     const handleSave = () => {
-        onSave("", content)
-        handleClose()
+        if (!summaryId) {
+            toast.error('Cannot save: Summary ID is missing')
+            return
+        }
+
+        if (!content.trim()) {
+            toast.error('Content cannot be empty')
+            return
+        }
+
+        editSummaryMutation.mutate({
+            summaryId,
+            title: title.trim() || undefined,
+            content: content.trim()
+        })
     }
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -75,7 +122,7 @@ export default function EditForm({
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Post</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Edit Summary</h2>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -89,6 +136,17 @@ export default function EditForm({
                 {/* Content */}
                 <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
                     <div className="space-y-4 sm:space-y-6">
+
+                        {/* Title Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Title</label>
+                            <Input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Enter summary title..."
+                                className="w-full"
+                            />
+                        </div>
 
                         {/* Content Editor */}
                         <div className="space-y-2">
@@ -118,9 +176,10 @@ export default function EditForm({
                     </Button>
                     <Button
                         onClick={handleSave}
-                        className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-[#31499f] hover:bg-[#2a3d85] text-white order-1 sm:order-2"
+                        disabled={editSummaryMutation.isPending}
+                        className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-[#31499f] hover:bg-[#2a3d85] text-white order-1 sm:order-2 disabled:opacity-50"
                     >
-                        Generar
+                        {editSummaryMutation.isPending ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </div>
             </div>

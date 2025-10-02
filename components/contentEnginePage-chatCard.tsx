@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, ImageIcon, Mic, Send, Edit, Copy,  Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,45 +8,85 @@ import PostEditor from './contentEnginePage-postEdit'
 import EditForm from './contentEnginePage-editForm'
 import { useTemplates } from '@/context/TemplatesContext'
 import { useMutation } from '@tanstack/react-query'
-import { generateSummaryAction } from '@/actions/summaries'
+import { generateSummaryAction, chatWithSummaryAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
+import { generateOutputAction } from '@/actions/outputs'
 import { toast } from 'sonner'
 
 interface ChatCardProps {
   selectedSourceIds: string[]
-  generatedSummary: SummaryResponse | null
-  isGeneratingSummary: boolean
-  onSummaryGenerated: (summary: SummaryResponse | null) => void
-  onGeneratingChange: (isGenerating: boolean) => void
 }
 
 export default function ChatCard({
-  selectedSourceIds,
-  generatedSummary,
-  isGeneratingSummary,
-  onSummaryGenerated,
-  onGeneratingChange
+  selectedSourceIds
 }: ChatCardProps) {
     const { templates } = useTemplates()
     console.log('Templates available in ChatCard:', templates.length)
+    
+    // Local state for this component
     const [showPostEditor, setShowPostEditor] = useState(false)
     const [showEditForm, setShowEditForm] = useState(false)
     const [selectedPlatform, setSelectedPlatform] = useState('')
+    const [generatedSummary, setGeneratedSummary] = useState<SummaryResponse | null>(null)
+    const [promptText, setPromptText] = useState('')
 
-    // React Query mutation for summary generation
+    // Load summary from localStorage on mount
+    useEffect(() => {
+        const savedSummary = localStorage.getItem('contentEngine_summary')
+        if (savedSummary) {
+            try {
+                setGeneratedSummary(JSON.parse(savedSummary))
+            } catch (error) {
+                console.error('Error parsing saved summary:', error)
+                localStorage.removeItem('contentEngine_summary')
+            }
+        }
+    }, [])
+
+    // Save summary to localStorage when it changes
+    useEffect(() => {
+        if (generatedSummary) {
+            localStorage.setItem('contentEngine_summary', JSON.stringify(generatedSummary))
+        } else {
+            localStorage.removeItem('contentEngine_summary')
+        }
+    }, [generatedSummary])
+
+    // React Query mutation for initial summary generation
     const generateSummaryMutation = useMutation({
-        mutationFn: (sourceIds: string[]) => generateSummaryAction(sourceIds),
-        onMutate: () => {
-            onGeneratingChange(true)
-        },
+        mutationFn: ({ sourceIds, prompts }: { sourceIds: string[], prompts?: string[] }) => 
+            generateSummaryAction(sourceIds, prompts),
         onSuccess: (summary) => {
-            onSummaryGenerated(summary)
-            onGeneratingChange(false)
+            setGeneratedSummary(summary)
             toast.success('Summary generated successfully!')
         },
         onError: (error: Error) => {
-            onGeneratingChange(false)
             toast.error(error.message || 'Failed to generate summary')
+        }
+    })
+
+    // React Query mutation for chat-based summary modification
+    const chatMutation = useMutation({
+        mutationFn: ({ summary, prompt }: { summary: SummaryResponse, prompt: string }) => 
+            chatWithSummaryAction(summary, prompt),
+        onSuccess: (summary) => {
+            setGeneratedSummary(summary)
+            toast.success('Summary updated successfully!')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to update summary')
+        }
+    })
+
+    // React Query mutation for output generation
+    const generateOutputMutation = useMutation({
+        mutationFn: (summaryId: string) => generateOutputAction(summaryId),
+        onSuccess: (output) => {
+            toast.success('Output generated successfully!')
+            console.log('Generated output:', output)
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to generate output')
         }
     })
 
@@ -59,7 +99,29 @@ export default function ChatCard({
             return
         }
         
-        generateSummaryMutation.mutate(selectedSourceIds)
+        generateSummaryMutation.mutate({ sourceIds: selectedSourceIds })
+    }
+
+    const handleSendPrompt = () => {
+        if (!promptText.trim()) {
+            toast.error('Please enter a prompt')
+            return
+        }
+        
+        // If we have an existing summary, use chat functionality
+        if (generatedSummary) {
+            chatMutation.mutate({ summary: generatedSummary, prompt: promptText.trim() })
+        } else {
+            // If no existing summary, require source selection for initial generation
+            if (selectedSourceIds.length === 0) {
+                toast.error('Please select at least one source to generate a summary')
+                return
+            }
+            const prompts = [promptText.trim()]
+            generateSummaryMutation.mutate({ sourceIds: selectedSourceIds, prompts })
+        }
+        
+        setPromptText('') // Clear the prompt after sending
     }
 
     const handleSocialMediaClick = (platform: string) => {
@@ -67,36 +129,66 @@ export default function ChatCard({
         setShowPostEditor(true)
     }
 
+    const handleGenerateOutput = () => {
+        if (!generatedSummary?._id) {
+            toast.error('Please generate a summary first')
+            return
+        }
+        
+        generateOutputMutation.mutate(generatedSummary._id)
+    }
+
     const handleEditClick = () => {
         setShowEditForm(true)
     }
 
-    const handleSaveContent = (title: string, content: string) => {
-        // Update the generated summary with edited content
+
+    const handleSaveContent = (updatedSummary: SummaryResponse) => {
+        // Update the generated summary with the backend response
         if (generatedSummary) {
-            const updatedSummary = {
+            const mergedSummary = {
                 ...generatedSummary,
-                title,
-                content
+                ...updatedSummary,
+                // Preserve important metadata from original
+                _id: generatedSummary._id,
+                sources: generatedSummary.sources,
+                references: generatedSummary.references,
+                timestamp: generatedSummary.timestamp,
+                edited: true
             }
-            onSummaryGenerated(updatedSummary)
+            setGeneratedSummary(mergedSummary)
         }
     }
 
     return (
         <div className="bg-white rounded-lg p-4 md:p-6 w-full md:w-full shadow-sm h-full flex flex-col">
             <header className="mb-4 md:mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Chat</h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Chat</h3>
+                    {generatedSummary && (
+                        <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>Chat Mode</span>
+                        </div>
+                    )}
+                </div>
             </header>
 
             <main className="flex-1 min-h-0 flex flex-col">
-                {isGeneratingSummary ? (
+                {(generateSummaryMutation.isPending || chatMutation.isPending) ? (
                     // Loading state
                     <div className="flex-1 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4 text-center px-4">
                             <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#31499f] border-t-transparent"></div>
-                            <p className="text-lg font-medium text-gray-900">Generating summary...</p>
-                            <p className="text-sm text-gray-500">Processing {selectedSourceIds.length} source{selectedSourceIds.length !== 1 ? 's' : ''}</p>
+                            <p className="text-lg font-medium text-gray-900">
+                                {chatMutation.isPending ? 'Updating summary...' : 'Generating summary...'}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                {chatMutation.isPending 
+                                    ? 'Processing your request...' 
+                                    : `Processing ${selectedSourceIds.length} source${selectedSourceIds.length !== 1 ? 's' : ''}`
+                                }
+                            </p>
                         </div>
                     </div>
                 ) : !hasContent ? (
@@ -130,7 +222,10 @@ export default function ChatCard({
                             )}
                             
                             <div className="text-sm text-gray-700 leading-relaxed">
-                                <div className="whitespace-pre-wrap">{generatedSummary?.content}</div>
+                                <div 
+                                    className="whitespace-pre-wrap prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: generatedSummary?.content || '' }}
+                                />
                             </div>
                             
                             {generatedSummary?.sources && generatedSummary.sources.length > 0 && (
@@ -158,17 +253,40 @@ export default function ChatCard({
                         
                         {/* Action Buttons */}
                         <div className="flex flex-wrap gap-2 md:gap-3 justify-between">
-                            <Button variant="outline" className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => handleSocialMediaClick('Blog Post')}
+                                className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]"
+                            >
                                 <Paperclip className="h-3 w-3 md:h-4 md:w-4" />
-                                <span className="ml-1 md:ml-2 truncate">Crear nota</span>
+                                <span className="ml-1 md:ml-2 truncate">Blog Post</span>
                             </Button>
-                            <Button variant="outline" className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => handleSocialMediaClick('News Release')}
+                                className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]"
+                            >
                                 <Paperclip className="h-3 w-3 md:h-4 md:w-4" />
-                                <span className="ml-1 md:ml-2 truncate">Social media</span>
+                                <span className="ml-1 md:ml-2 truncate">News Release</span>
                             </Button>
-                            <Button variant="outline" className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => handleSocialMediaClick('Article')}
+                                className="flex items-center rounded-full flex-1 min-w-0 text-xs md:text-sm text-[#31499f] border-[#31499f] hover:bg-[#f7f9ff]"
+                            >
                                 <Paperclip className="h-3 w-3 md:h-4 md:w-4" />
-                                <span className="ml-1 md:ml-2 truncate">Blog post</span>
+                                <span className="ml-1 md:ml-2 truncate">Article</span>
+                            </Button>
+                        </div>
+                        
+                        {/* Generate Output Button */}
+                        <div className="pt-3 md:pt-4">
+                            <Button 
+                                onClick={handleGenerateOutput}
+                                disabled={!generatedSummary || generateOutputMutation.isPending}
+                                className="w-full bg-[#31499f] hover:bg-[#2a3d85] text-white rounded-full disabled:opacity-50"
+                            >
+                                {generateOutputMutation.isPending ? 'Generating Output...' : 'Generate Output'}
                             </Button>
                         </div>
                         
@@ -240,14 +358,46 @@ export default function ChatCard({
                 {/* Footer */}
                 <footer className="mt-6">
                     <div className="flex items-center gap-3 bg-[#f7f9ff] rounded-full px-4 py-3">
-                        <Input placeholder="Type message" className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" suppressHydrationWarning />
-                        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+                        <Input 
+                            placeholder={
+                                generatedSummary 
+                                    ? "Chat with your summary..." 
+                                    : "Type a prompt to customize your summary..."
+                            }
+                            className="bg-transparent border-0 ring-0 shadow-none focus-visible:ring-0 px-2 text-sm" 
+                            value={promptText}
+                            onChange={(e) => setPromptText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault()
+                                    handleSendPrompt()
+                                }
+                            }}
+                            disabled={generateSummaryMutation.isPending || chatMutation.isPending}
+                            suppressHydrationWarning 
+                        />
+                        <button 
+                            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+                            disabled={generateSummaryMutation.isPending || chatMutation.isPending}
+                        >
                             <ImageIcon className="h-4 w-4" />
                         </button>
-                        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+                        <button 
+                            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+                            disabled={generateSummaryMutation.isPending || chatMutation.isPending}
+                        >
                             <Mic className="h-4 w-4" />
                         </button>
-                        <button className="p-2 rounded-full text-white bg-[#31499f] hover:bg-[#2a3d85] transition-colors">
+                        <button 
+                            onClick={handleSendPrompt}
+                            disabled={
+                                generateSummaryMutation.isPending || 
+                                chatMutation.isPending || 
+                                !promptText.trim() ||
+                                (!generatedSummary && selectedSourceIds.length === 0)
+                            }
+                            className="p-2 rounded-full text-white bg-[#31499f] hover:bg-[#2a3d85] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             <Send className="h-4 w-4" />
                         </button>
                     </div>
@@ -277,6 +427,10 @@ export default function ChatCard({
                 isOpen={showPostEditor}
                 onClose={() => setShowPostEditor(false)}
                 platform={selectedPlatform}
+                onSummarySaved={() => {
+                    // Optionally refresh or update something when a summary is saved
+                    toast.success('Summary saved to database!')
+                }}
             />
 
             {/* Edit Form Modal */}
@@ -284,6 +438,8 @@ export default function ChatCard({
                 isOpen={showEditForm}
                 onClose={() => setShowEditForm(false)}
                 onSave={handleSaveContent}
+                summaryId={generatedSummary?._id}
+                initialTitle={generatedSummary?.title || ''}
                 initialContent={generatedSummary?.content || ''}
             />
         </div>

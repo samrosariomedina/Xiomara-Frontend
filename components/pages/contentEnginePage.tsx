@@ -8,7 +8,6 @@ import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'
 import type { SourceResponse } from '@/lib/schemas'
-import type { SummaryResponse } from '@/actions/summaries'
 
 export default function ContentEnginePage(){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
@@ -21,10 +20,6 @@ export default function ContentEnginePage(){
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([])
     const [isLoadingSources, setIsLoadingSources] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
-    
-    // Summary state
-    const [generatedSummary, setGeneratedSummary] = useState<SummaryResponse | null>(null)
-    const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
 
     // Function to refresh sources
     const refreshSources = async () => {
@@ -40,25 +35,6 @@ export default function ContentEnginePage(){
         }
     }
 
-    // Load summary from localStorage on mount
-    useEffect(() => {
-        const savedSummary = localStorage.getItem('contentEngine_summary')
-        if (savedSummary) {
-            try {
-                setGeneratedSummary(JSON.parse(savedSummary))
-            } catch (error) {
-                console.error('Error parsing saved summary:', error)
-                localStorage.removeItem('contentEngine_summary')
-            }
-        }
-    }, [])
-
-    // Save summary to localStorage when it changes
-    useEffect(() => {
-        if (generatedSummary) {
-            localStorage.setItem('contentEngine_summary', JSON.stringify(generatedSummary))
-        }
-    }, [generatedSummary])
 
     // Fetch sources on component mount
     useEffect(() => {
@@ -165,10 +141,6 @@ export default function ContentEnginePage(){
                                 <div className="h-full">
                                     <ChatCard 
                                         selectedSourceIds={selectedSourceIds}
-                                        generatedSummary={generatedSummary}
-                                        isGeneratingSummary={isGeneratingSummary}
-                                        onSummaryGenerated={setGeneratedSummary}
-                                        onGeneratingChange={setIsGeneratingSummary}
                                     />
                                 </div>
                             </section>
@@ -204,10 +176,6 @@ export default function ContentEnginePage(){
                             <div className="h-full">
                                 <ChatCard 
                                     selectedSourceIds={selectedSourceIds}
-                                    generatedSummary={generatedSummary}
-                                    isGeneratingSummary={isGeneratingSummary}
-                                    onSummaryGenerated={setGeneratedSummary}
-                                    onGeneratingChange={setIsGeneratingSummary}
                                 />
                             </div>
                         )}

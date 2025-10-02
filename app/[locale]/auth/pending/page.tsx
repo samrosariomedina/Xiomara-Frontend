@@ -56,7 +56,7 @@ export default function PendingApprovalPage() {
           </div>
           <ul className="text-sm text-amber-700 space-y-1 text-left">
             <li>• Administrator will review your account</li>
-            <li>• You'll receive an email notification once approved</li>
+            <li>• You&apso;ll receive an email notification once approved</li>
             <li>• This process typically takes 24-48 hours</li>
           </ul>
         </div>

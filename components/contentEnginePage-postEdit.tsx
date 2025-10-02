@@ -5,21 +5,46 @@ import { X, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RichTextEditor } from './ui/rich-text-editor'
 import { FileUpload } from './ui/file-upload'
+import { useMutation } from '@tanstack/react-query'
+import { addSummaryAction } from '@/actions/summaries'
+import { toast } from 'sonner'
 
 interface PostEditorProps {
     isOpen: boolean
     onClose: () => void
     platform?: string
+    onSummarySaved?: () => void
 }
 
-export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
+export default function PostEditor({ isOpen, onClose, onSummarySaved }: PostEditorProps) {
     const [selectedPosts, setSelectedPosts] = useState<number[]>([])
-     const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
         name: "",
         file: null as File | null,
         url: "",
         text: "",
-      })
+    })
+
+    // React Query mutation for saving summary
+    const saveSummaryMutation = useMutation({
+        mutationFn: ({ title, content }: { title: string, content: string }) => 
+            addSummaryAction(title, content),
+        onSuccess: (summary) => {
+            toast.success('Summary saved successfully!')
+            onSummarySaved?.()
+            onClose()
+            // Reset form
+            setFormData({
+                name: "",
+                file: null,
+                url: "",
+                text: "",
+            })
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to save summary')
+        }
+    })
 
     if (!isOpen) return null
 
@@ -29,6 +54,19 @@ export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
                 ? prev.filter(i => i !== index)
                 : [...prev, index]
         )
+    }
+
+    const handleSave = () => {
+        if (!formData.text.trim()) {
+            toast.error('Please enter some content before saving')
+            return
+        }
+
+        const title = formData.name.trim() || 'Untitled Summary'
+        saveSummaryMutation.mutate({ 
+            title, 
+            content: formData.text 
+        })
     }
 
     const posts = Array.from({ length: 9 }, (_, i) => ({
@@ -104,9 +142,21 @@ export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
                         <div className="border-t border-gray-200 pt-6 mt-6">
                             <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 md:mb-6">Edit Content</h3>
 
+                            {/* Title Section */}
+                            <div className="mb-4 md:mb-6 w-full">
+                                <label className="text-xs md:text-sm font-medium text-gray-700 mb-2 md:mb-3 block">Title</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Enter summary title..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                />
+                            </div>
+
                             {/* Post Copy Section */}
                             <div className="mb-4 md:mb-6 w-full">
-                                <label className="text-xs md:text-sm font-medium text-gray-700 mb-2 md:mb-3 block">Post Copy</label>
+                                <label className="text-xs md:text-sm font-medium text-gray-700 mb-2 md:mb-3 block">Content</label>
                                 <div className="w-full">
                                     <RichTextEditor 
                                                   value={formData.text} 
@@ -155,9 +205,11 @@ export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
                                     Cancelar
                                 </Button>
                                 <Button 
-                                    className="flex-1 rounded-full bg-[#31499f] hover:bg-blue-900 text-xs md:text-sm py-2 md:py-3 w-full"
+                                    onClick={handleSave}
+                                    disabled={saveSummaryMutation.isPending}
+                                    className="flex-1 rounded-full bg-[#31499f] hover:bg-blue-900 text-xs md:text-sm py-2 md:py-3 w-full disabled:opacity-50"
                                 >
-                                    Generar
+                                    {saveSummaryMutation.isPending ? 'Guardando...' : 'Generar'}
                                 </Button>
                             </div>
                         </div>
@@ -168,9 +220,21 @@ export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
                 <div className="hidden lg:flex w-96 p-6 bg-gray-50 overflow-y-auto flex-col">
                     <h3 className="text-lg font-semibold text-gray-900 mb-6">Edit Content</h3>
 
+                    {/* Title Section */}
+                    <div className="mb-6 w-full">
+                        <label className="text-sm font-medium text-gray-700 mb-3 block">Title</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Enter summary title..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                    </div>
+
                     {/* Post Copy Section */}
                     <div className="mb-6 w-full">
-                        <label className="text-sm font-medium text-gray-700 mb-3 block">Post Copy</label>
+                        <label className="text-sm font-medium text-gray-700 mb-3 block">Content</label>
                         <div className="w-full">
                             <RichTextEditor 
                                           value={formData.text} 
@@ -219,9 +283,11 @@ export default function PostEditor({ isOpen, onClose }: PostEditorProps) {
                             Cancelar
                         </Button>
                         <Button 
-                            className="flex-1 rounded-full bg-[#31499f] hover:bg-blue-900 text-sm py-3"
+                            onClick={handleSave}
+                            disabled={saveSummaryMutation.isPending}
+                            className="flex-1 rounded-full bg-[#31499f] hover:bg-blue-900 text-sm py-3 disabled:opacity-50"
                         >
-                            Generar
+                            {saveSummaryMutation.isPending ? 'Guardando...' : 'Generar'}
                         </Button>
                     </div>
                 </div>

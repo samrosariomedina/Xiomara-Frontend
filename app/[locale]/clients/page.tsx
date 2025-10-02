@@ -7,6 +7,16 @@ import { ClientResponse, CampaignResponse } from '@/lib/schemas'
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error';
+}
+
 export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
   const params = await props.params;
   const { locale } = params
@@ -30,9 +40,10 @@ async function getClientsData(): Promise<ClientResponse[]> {
     console.log('result', result);
     return result.success ? result.data : []
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error)
     // Don't log authentication errors as they're expected during logout
-    if (!error.message?.includes('Authentication required')) {
+    if (!errorMessage.includes('Authentication required')) {
       console.error('Failed to fetch clients:', error)
     }
     return []
@@ -46,9 +57,10 @@ async function getCampaignsData(): Promise<CampaignResponse[]> {
     console.log('Campaigns data:', result.success ? result.data : []);
     return result.success ? result.data : []
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error)
     // Don't log authentication errors as they're expected during logout
-    if (!error.message?.includes('Authentication required')) {
+    if (!errorMessage.includes('Authentication required')) {
       console.error('Failed to fetch campaigns:', error)
     }
     return []

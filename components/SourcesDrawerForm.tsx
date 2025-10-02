@@ -12,7 +12,6 @@ import { UrlInput } from "@/components/ui/url-input"
 import { useTranslations } from 'next-intl'
 import { fuentesGeneralesSchema, type FuentesGeneralesInput } from '@/lib/schemas'
 import { createSourceAction } from '@/actions/sources'
-import { useRouter } from 'next/navigation'
 
 interface SourcesDrawerFormProps {
   onClose: () => void
@@ -21,7 +20,6 @@ interface SourcesDrawerFormProps {
 
 export function SourcesDrawerForm({ onClose, onSuccess }: SourcesDrawerFormProps) {
   const t = useTranslations('FUENTES')
-  const router = useRouter()
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -92,7 +90,7 @@ export function SourcesDrawerForm({ onClose, onSuccess }: SourcesDrawerFormProps
           className={`w-full bg-[#f7f9ff] ${errors.name ? 'border-red-500' : ''}`}
           placeholder={t('form.namePlaceholder')}
         />
-        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
       </div>
 
       {/* Horizontal tabs */}
@@ -176,12 +174,6 @@ export function SourcesDrawerForm({ onClose, onSuccess }: SourcesDrawerFormProps
         )}
       </div>
       
-      {/* General validation error */}
-      {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-600 text-sm">{errors.general}</p>
-        </div>
-      )}
       
       {/* Action buttons */}
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
