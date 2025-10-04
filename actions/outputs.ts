@@ -41,7 +41,83 @@ export interface OutputGenerationOptions {
   timezone?: number
 }
 
-// Generate output from summary with optional templates
+// Generate output from summary with specific template
+export async function generateOutputForTemplateAction(
+  summaryId: string,
+  templateId: string,
+  prompts?: string[],
+  options?: OutputGenerationOptions
+): Promise<OutputResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    if (!summaryId) {
+      throw new Error('Summary ID is required');
+    }
+
+    if (!templateId) {
+      throw new Error('Template ID is required');
+    }
+
+    const requestBody = {
+      summary: summaryId,
+      templates: [templateId], // Single template
+      directives: [], // Required by backend
+      prompts: prompts || [], // Optional custom prompts
+      options: {
+        temperature: options?.temperature || 0.7,
+        top_p: options?.top_p || 0.9,
+        timezone: options?.timezone || 0,
+        ...options
+      }
+    }
+
+    console.log('Generating output for template:', requestBody)
+
+    const response = await axios.post(`${API_BASE_URL}/outputs/generate`, requestBody, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    return response.data
+  } catch (error) {
+    console.error('Generate output for template error:', error)
+    if (axios.isAxiosError(error)) {
+      console.error('Template output generation API error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        },
+        message: error.message
+      });
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        throw new Error('Invalid request: Please check your summary and template selection')
+      } else if (error.response?.status === 404) {
+        throw new Error('Summary or template not found')
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Please try again or contact support if the issue persists')
+      }
+      
+      const errorMessage = error.response?.data?.message || error.response?.data || 'Failed to generate output'
+      throw new Error(errorMessage)
+    }
+    throw new Error('Network error: Please check your connection and try again')
+  }
+}
+
+// Generate output from summary with optional templates (legacy function)
 export async function generateOutputAction(
   summaryId: string,
   templates?: string[],
@@ -199,6 +275,24 @@ export async function getOutputsAction(): Promise<OutputResponse[]> {
       });
     }
     return []
+  }
+}
+
+// Get latest output for current user
+export async function getLatestOutputAction(): Promise<OutputResponse | null> {
+  try {
+    const outputs = await getOutputsAction()
+    if (outputs.length === 0) return null
+    
+    // Sort by timestamp and return the most recent
+    const sortedOutputs = outputs.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+    
+    return sortedOutputs[0]
+  } catch (error) {
+    console.error('Get latest output error:', error)
+    return null
   }
 }
 

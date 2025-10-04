@@ -7,7 +7,10 @@ import OutputCard from "@/components/contentEnginePage-outputCard"
 import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'
+import { getLatestOutputAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
+import type { OutputResponse } from '@/actions/outputs'
+import { useQuery } from '@tanstack/react-query'
 
 export default function ContentEnginePage(){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
@@ -20,6 +23,13 @@ export default function ContentEnginePage(){
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([])
     const [isLoadingSources, setIsLoadingSources] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+
+    // Server-side data fetching for latest output
+    const { data: latestOutput, isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
+        queryKey: ['latest-output-content-engine'],
+        queryFn: getLatestOutputAction,
+        staleTime: 30 * 1000, // 30 seconds
+    })
 
     // Function to refresh sources
     const refreshSources = async () => {
@@ -141,6 +151,7 @@ export default function ContentEnginePage(){
                                 <div className="h-full">
                                     <ChatCard 
                                         selectedSourceIds={selectedSourceIds}
+                                        onOutputGenerated={refetchOutput}
                                     />
                                 </div>
                             </section>
@@ -148,7 +159,10 @@ export default function ContentEnginePage(){
                             {/* Right column - Output */}
                             <aside className="w-80 h-full">
                                 <div className="h-full">
-                                    <OutputCard />
+                                    <OutputCard 
+                                        latestOutput={latestOutput || null}
+                                        isLoadingOutput={isLoadingOutput}
+                                    />
                                 </div>
                             </aside>
                         </div>
@@ -176,12 +190,16 @@ export default function ContentEnginePage(){
                             <div className="h-full">
                                 <ChatCard 
                                     selectedSourceIds={selectedSourceIds}
+                                    onOutputGenerated={refetchOutput}
                                 />
                             </div>
                         )}
                         {activeTab === 'output' && (
                             <div className="h-full">
-                                <OutputCard />
+                                <OutputCard 
+                                    latestOutput={latestOutput || null}
+                                    isLoadingOutput={isLoadingOutput}
+                                />
                             </div>
                         )}
                     </div>

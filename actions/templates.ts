@@ -30,7 +30,7 @@ export interface TemplateResponse {
 }
 
 // Get all templates
-export async function getTemplates(): Promise<TemplateResponse[]> {
+export async function getTemplates(userId?: string): Promise<TemplateResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -39,7 +39,8 @@ export async function getTemplates(): Promise<TemplateResponse[]> {
     }
 
     const response = await axios.post(`${API_BASE_URL}/templates`, {
-      // Fetch both global and user templates
+      // Send user ID if provided, otherwise let backend handle it
+      ...(userId && { user: userId })
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -62,7 +63,7 @@ export async function getTemplates(): Promise<TemplateResponse[]> {
 }
 
 // Get global templates only
-export async function getGlobalTemplates(): Promise<TemplateResponse[]> {
+export async function getGlobalTemplates(userId?: string): Promise<TemplateResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -71,7 +72,8 @@ export async function getGlobalTemplates(): Promise<TemplateResponse[]> {
     }
 
     const response = await axios.post(`${API_BASE_URL}/templates`, {
-      global: true
+      global: true,
+      ...(userId && { user: userId })
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -95,7 +97,7 @@ export async function getGlobalTemplates(): Promise<TemplateResponse[]> {
 }
 
 // Get user templates only
-export async function getUserTemplates(): Promise<TemplateResponse[]> {
+export async function getUserTemplates(userId?: string): Promise<TemplateResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -104,7 +106,8 @@ export async function getUserTemplates(): Promise<TemplateResponse[]> {
     }
 
     const response = await axios.post(`${API_BASE_URL}/templates`, {
-      global: false
+      global: false,
+      ...(userId && { user: userId })
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
