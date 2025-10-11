@@ -29,7 +29,7 @@ export interface TemplateResponse {
   user?: string;
 }
 
-// Get all templates
+// Get all templates (global + user's own templates)
 export async function getTemplates(userId?: string): Promise<TemplateResponse[]> {
   try {
     const token = await getAuthToken();
@@ -38,10 +38,11 @@ export async function getTemplates(userId?: string): Promise<TemplateResponse[]>
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/templates`, {
-      // Send user ID if provided, otherwise let backend handle it
-      ...(userId && { user: userId })
-    }, {
+    // Only send user parameter if specifically requested (for admin filtering)
+    // For regular users, let backend return global + user's own templates automatically
+    const requestBody = userId ? { user: userId } : {};
+    
+    const response = await axios.post(`${API_BASE_URL}/templates`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -71,17 +72,15 @@ export async function getGlobalTemplates(userId?: string): Promise<TemplateRespo
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/templates`, {
-      global: true,
-      ...(userId && { user: userId })
-    }, {
+    const requestBody = { global: true, ...(userId && { user: userId }) };
+    
+    const response = await axios.post(`${API_BASE_URL}/templates`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
 
-    console.log(response.data)   
     return response.data || []
   } catch (error) {
     console.error('Get global templates error:', error)
@@ -105,17 +104,15 @@ export async function getUserTemplates(userId?: string): Promise<TemplateRespons
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/templates`, {
-      global: false,
-      ...(userId && { user: userId })
-    }, {
+    const requestBody = { global: false, ...(userId && { user: userId }) };
+    
+    const response = await axios.post(`${API_BASE_URL}/templates`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
     
-    console.log(response.data); 
     return response.data || []
   } catch (error) {
     console.error('Get user templates error:', error)

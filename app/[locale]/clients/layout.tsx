@@ -8,12 +8,8 @@ export default async function ClientsLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Get user profile to pass user ID to templates
-  const userResult = await getUserProfileAction()
-  const userId = userResult.success ? userResult.user?._id : undefined
-  
-  // Fetch templates server-side with user ID
-  const templates = await getTemplates(userId)
+  // Fetch templates server-side (backend will automatically return global + user's own templates)
+  const templates = await getTemplates()
 
   return (
     <ClientProvider>
