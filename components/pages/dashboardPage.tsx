@@ -1,13 +1,13 @@
 
 "use client"
 
-import { DashboardHeader } from "@/components/dashboardPage-header";
+import { DashboardHeader } from "@/components/dashboard/dashboardPage-header";
 import { Navbar } from "@/components/Navbar";
-import {MetricsCards} from '@/components/dashboardPage-metricsCards'
-import { CorresponsablesSection } from "@/components/dashboardPage-corresspondableCard";
-import { FuentesGeneralesSection } from "@/components/dashboardPage-fuentesCard";
-import { KnowledgeBaseSection } from "@/components/dashboardPage-knowledgeCard";
-import { MediaListeningSection } from "@/components/dashboardPage-mediaCard";
+import {MetricsCards} from '@/components/dashboard/dashboardPage-metricsCards'
+import { CorresponsablesSection } from "@/components/dashboard/dashboardPage-corresspondableCard";
+import { FuentesGeneralesSection } from "@/components/dashboard/dashboardPage-fuentesCard";
+import { KnowledgeBaseSection } from "@/components/dashboard/dashboardPage-knowledgeCard";
+import { MediaListeningSection } from "@/components/dashboard/dashboardPage-mediaCard";
 import { useDataWithCache } from "@/hooks/useDataWithCache";
 import type { ReferenceResponse, SourceResponse } from "@/lib/schemas";
 

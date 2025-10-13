@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
-import { ClientContextDisplay } from "@/components/ClientContextDisplay";
-import { ClientAutoSelector } from "@/components/ClientAutoSelector";
+import { ClientContextDisplay } from "@/components/clients/ClientContextDisplay";
+import { ClientAutoSelector } from "@/components/clients/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getReferences } from "@/actions/knowledge";

@@ -1,16 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useTranslations } from 'next-intl'
 import RowActionsMenu from "./cards-rowActions"
-import { ClientsListProps, MenuOpenData } from "../utils/types"
+import { Client, ClientsListProps, MenuOpenData } from "../utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
+import { useMutation } from "@tanstack/react-query"
+import { deleteClientAction } from "@/actions/clients"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
-export function ClientsList({ clients = [], campaigns = [], onDelete, onEdit }: ClientsListProps) {
+export function ClientsList({ clients = [], campaigns = [] }: Omit<ClientsListProps, 'onDelete' | 'onEdit'>) {
   
   const t = useTranslations('CLIENTS');
   const [expandedClients, setExpandedClients] = useState<(number | string)[]>([])
   const [openMenuFor, setOpenMenuFor] = useState<MenuOpenData | null>(null)
+  const router = useRouter(); 
+
+  // Delete client mutation
+  const deleteClientMutation = useMutation({
+    mutationFn: deleteClientAction,
+    onSuccess: () => {
+      toast.success(t('clientDeleted') || 'Client deleted successfully')
+      router.refresh();
+
+    },
+    onError: (error: unknown) => {
+      console.error('Error deleting client:', error)
+      const errorMessage = error instanceof Error ? error.message : (t('deleteError') || 'Failed to delete client')
+      toast.error(errorMessage)
+    }
+  })
 
   const toggleClient = (clientId: number | string) => {
     setExpandedClients((prev) => 
@@ -20,12 +40,19 @@ export function ClientsList({ clients = [], campaigns = [], onDelete, onEdit }: 
     )
   }
 
-  // Handle deleting a client
-  const handleDeleteClient = async (clientId: string | number) => {
-    if (onDelete && typeof clientId === 'string') {
-      await onDelete(clientId);
+  // Local edit and delete functions
+  const handleEditClient = useCallback((client: Client) => {
+   
+    console.log('Edit client:', client)
+    // TODO: Implement edit functionality or pass to parent
+  }, []); 
+  
+
+  const handleDeleteClient = useCallback(async (clientId: string | number) => {
+    if (typeof clientId === 'string') {
+      await deleteClientMutation.mutateAsync(clientId)
     }
-  }
+  }, [deleteClientMutation]); 
 
   const handleMenuOpen = (menuData: MenuOpenData) => {
     setOpenMenuFor(menuData)
@@ -45,10 +72,8 @@ export function ClientsList({ clients = [], campaigns = [], onDelete, onEdit }: 
             const isExpanded = expandedClients.includes(client.id)
             // Filter campaigns for this client
             const clientCampaigns = (campaigns || []).filter(campaign => {
-              console.log('Campaign parent:', campaign.parent, 'Client ID:', client.id, 'Match:', campaign.parent === client.id.toString())
               return campaign.parent === client.id.toString()
             })
-            console.log(`Client ${client.id} has ${clientCampaigns.length} campaigns:`, clientCampaigns)
             return (
               <ClientCard
                 key={client.id}
@@ -57,7 +82,7 @@ export function ClientsList({ clients = [], campaigns = [], onDelete, onEdit }: 
                 isExpanded={isExpanded}
                 onToggle={toggleClient}
                 onDeleteClient={handleDeleteClient}
-                onEditClient={onEdit}
+                onEditClient={handleEditClient}
                 onMenuOpen={handleMenuOpen}
                 t={t}
               />
@@ -85,10 +110,10 @@ export function ClientsList({ clients = [], campaigns = [], onDelete, onEdit }: 
           left={openMenuFor.left}
           top={openMenuFor.top}
           onEdit={() => {
-            if (onEdit && openMenuFor.clientId) {
+            if (openMenuFor.clientId) {
               const client = clients.find(c => c.id === openMenuFor.clientId)
               if (client) {
-                onEdit(client)
+                handleEditClient(client)
               }
             }
             setOpenMenuFor(null)

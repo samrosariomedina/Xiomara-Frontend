@@ -2,20 +2,33 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface PaginationProps {
-  currentPage: number;
   totalPages: number;
-  onPageChange: (page: number) => void;
+  initialPage?: number;
 }
 
-export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({ totalPages, initialPage = 1 }: PaginationProps) {
+  const [currentPage, setCurrentPage] = useState(initialPage);
+
+  // Update current page when initialPage changes
+  useEffect(() => {
+    setCurrentPage(initialPage);
+  }, [initialPage]);
+
+  // Handle page change - completely self-contained
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
   // Create an array of page numbers to display
   const getPageNumbers = () => {
     // Always show first and last page
     // For pages in between, show current page and one page before and after
     const pageNumbers: (number | string)[] = [];
-    
+
     if (totalPages <= 7) {
       // If there are 7 or fewer pages, show all of them
       for (let i = 1; i <= totalPages; i++) {
@@ -58,7 +71,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         variant="ghost" 
         size="sm" 
         className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-        onClick={() => onPageChange(1)}
+        onClick={() => handlePageChange(1)}
         disabled={currentPage === 1}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -70,7 +83,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         variant="ghost" 
         size="sm" 
         className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -86,7 +99,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             className={`h-8 w-8 p-0 ${
               currentPage === page ? "bg-blue-900 hover:bg-blue-800" : "bg-white hover:bg-gray-100"
             }`}
-            onClick={() => onPageChange(page)}
+            onClick={() => handlePageChange(page)}
           >
             {page}
           </Button>
@@ -102,7 +115,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         variant="ghost"
         size="sm"
         className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
         <ChevronRight className="h-4 w-4" />
@@ -113,7 +126,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         variant="ghost"
         size="sm"
         className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-        onClick={() => onPageChange(totalPages)}
+        onClick={() => handlePageChange(totalPages)}
         disabled={currentPage === totalPages}
       >
         <ChevronRight className="h-4 w-4" />

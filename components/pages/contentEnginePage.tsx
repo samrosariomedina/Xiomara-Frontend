@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import ChatCard from "@/components/contentEnginePage-chatCard"
-import FuentesCard from "@/components/contentEnginePage-fuentesCard"
-import OutputCard from "@/components/contentEnginePage-outputCard"
+import ChatCard from "@/components/content-engine/contentEnginePage-chatCard"
+import FuentesCard from "@/components/content-engine/contentEnginePage-fuentesCard"
+import OutputCard from "@/components/content-engine/contentEnginePage-outputCard"
 import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'

@@ -1,7 +1,6 @@
 import { ClientProvider } from '@/context/ClientContext'
 import { TemplatesProvider } from '@/context/TemplatesContext'
 import { getTemplates } from '@/actions/templates'
-import { getUserProfileAction } from '@/actions/auth'
 
 export default async function ClientsLayout({
   children,

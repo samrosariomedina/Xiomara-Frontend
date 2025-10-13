@@ -1,6 +1,6 @@
 "use client"
 
-import { DashboardLayout } from "../lists-dashboard-layout"
+import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import { useDataWithCache } from "@/hooks/useDataWithCache"

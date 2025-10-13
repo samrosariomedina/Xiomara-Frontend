@@ -3,18 +3,15 @@
 import { ClientsHeader } from "@/components/clientsPage-header"
 import { EmptyState } from "@/components/clientsPage-emptyState"
 import { ClientsList } from "@/components/clientsPage-cardWrapper"
-import { useState, useMemo, useCallback, useRef, useEffect } from "react"
-import { ClientFormModal } from "@/components/pages/clientPage-Forms"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"
 import { Pagination } from "@/components/ui/pagination"
-import { Client } from "@/utils/types"
-import { Navbar } from "@/components/Navbar"
-import { toast } from "sonner"
-import { useMutation } from "@tanstack/react-query"
-import { deleteClientAction } from "@/actions/clients"
+    import { Navbar } from "@/components/Navbar"
 import { ClientResponse, CampaignResponse } from "@/lib/schemas"
+import { Client } from "@/utils/types"
 import { formatDateSafe } from "@/lib/utils"
+import { ClientFormModal } from "@/components/pages/clientPage-Forms"
 
 interface ClientsPageProps {
   initialClients: ClientResponse[]
@@ -28,37 +25,18 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
   const clientsData = initialClients
   const isLoading = false
 
-  // Delete client mutation
-  const deleteClientMutation = useMutation({
-    mutationFn: deleteClientAction,
-    onSuccess: () => {
-      toast.success(t('clientDeleted') || 'Client deleted successfully')
-      // Since we're not using React Query for data fetching anymore,
-      // we need to reload the page to refresh data
-      window.location.reload()
-    },
-    onError: (error: unknown) => {
-      console.error('Error deleting client:', error)
-      const errorMessage = error instanceof Error ? error.message : (t('deleteError') || 'Failed to delete client')
-      toast.error(errorMessage)
-    }
-  })
-
-  // Local state management
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editClient, setEditClient] = useState<{
-    id: string
-    name: string
-    industry: string
-    description?: string
-    contactName: string
-    whatsapp: string
-    position: string
-    email: string
-  } | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-
   const itemsPerPage = 8
+
+  // Modal state - only for opening the modal
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const openModal = () => {
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+  }
 
   // Use ref to store latest clientsData to avoid dependency issues
   const clientsDataRef = useRef(clientsData)
@@ -99,61 +77,28 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
     })
   }, [clientsData])
 
-  // Local state handlers with proper error handling
-  const openModal = useCallback(() => {
-    setEditClient(null)
-    setIsModalOpen(true)
-  }, [])
+  
 
-  const openEditModal = useCallback((client: Client) => {
-    // Find the original client data from clientsData using ref
-    const originalClient = clientsDataRef.current.find((c: ClientResponse) => c._id === client.id)
-    if (originalClient) {
-      setEditClient({
-        id: String(client.id),
-        name: client.name,
-        industry: originalClient.metadata?.industry || '',
-        description: originalClient.metadata?.description || '',
-        contactName: originalClient.metadata?.contactName || '',
-        whatsapp: originalClient.metadata?.whatsapp || '',
-        position: originalClient.metadata?.position || '',
-        email: originalClient.metadata?.email || ''
-      })
-    }
-    setIsModalOpen(true)
-  }, []) // No dependencies needed since we use ref
 
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false)
-    setEditClient(null)
-  }, [])
 
-  const handleDeleteClient = useCallback(async (clientId: string) => {
-    await deleteClientMutation.mutateAsync(clientId)
-  }, [deleteClientMutation])
  
  const hasClients = clients && clients.length > 0
  
- // Apply pagination to clients - memoized to prevent unnecessary recalculations
- const { currentItems: paginatedClients, pagination } = useMemo(() => {
-   return paginateItems(clients, currentPage, itemsPerPage)
- }, [clients, currentPage, itemsPerPage])
- 
- // Handle page change
- const handlePageChange = (page: number) => {
-   setCurrentPage(page)
- }
 
- // Handle error state
+  const currentPage = 1; 
+  const { currentItems: paginatedClients, pagination } = useMemo(() => {
+    return paginateItems(clients, currentPage, itemsPerPage)
+  }, [clients, currentPage, itemsPerPage])
  
 
+// Handle error state
 
    return (
     <div className="min-h-screen bg-[#F7F9FF]">
       <Navbar />
       <main className="px-6 py-8">
         <div className="max-w-[86rem] mx-auto">
-          <ClientsHeader onCreateClient={openModal} />
+            <ClientsHeader onCreateClient={openModal} />
           
           {isLoading ? (
             <div className="text-center py-12">
@@ -167,27 +112,25 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
               <ClientsList
                 clients={paginatedClients}
                 campaigns={initialCampaigns}
-                onDelete={handleDeleteClient}
-                onEdit={openEditModal}
               />
               {pagination.totalPages > 1 && (
                 <Pagination 
-                  currentPage={pagination.currentPage}
                   totalPages={pagination.totalPages}
-                  onPageChange={handlePageChange}
+                  initialPage={currentPage}
                 />
               )}
             </>
           ) : (
-            <EmptyState onAction={openModal} />
+              <EmptyState onCreateClient={openModal} />
           )}
         </div>
       </main>
       
+      {/* Client Form Modal */}
       <ClientFormModal 
         isOpen={isModalOpen} 
         onClose={closeModal}
-        editClient={editClient}
+        editClient={null}
       />
     </div>
   )

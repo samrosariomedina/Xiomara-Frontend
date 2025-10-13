@@ -15,7 +15,7 @@ import {
 import { useTranslations } from 'next-intl'
 
 interface ClientsHeaderProps {
-  onCreateClient?: () => void;
+  onCreateClient: () => void
 }
 
 export function ClientsHeader({ onCreateClient }: ClientsHeaderProps) {

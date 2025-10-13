@@ -1,9 +1,8 @@
 "use client"
-
-import { useState } from "react"
-import { DashboardLayout } from "../lists-dashboard-layout"
-import { DataTable, type Column } from "../lists-tableData"
 import withAuth from "@/lib/withAuth"
+import { useState } from "react"
+import { DashboardLayout } from   "@/components/dashboard/lists-dashboard-layout"
+import { DataTable, type Column } from "../lists-tableData"
 import { useClient } from "@/context/ClientContext"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"

@@ -16,18 +16,14 @@ import { ConnectCorrespondentsForm } from "../clientsForm-connectCorrespondents.
 import { BrandGuidesForm } from "../clientsForm-brandGuide"
 
 interface ClientFormModalProps {
+  // Remove isOpen, onClose, editClient props - modal will manage its own state
   isOpen: boolean
   onClose: () => void
-  editClient?: {
+  editClient: {
     id: string
     name: string
     industry: string
-    description?: string
-    contactName: string
-    whatsapp: string
-    position: string
-    email: string
-  } | null
+  } | null; 
 }
 
 type ChildFormRef<T = unknown> = {
@@ -37,8 +33,19 @@ type ChildFormRef<T = unknown> = {
   submit: () => Promise<boolean>
 }
 
-export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModalProps) {
+export function ClientFormModal({}: ClientFormModalProps) {
   const t = useTranslations('CLIENT_FORM');
+  const [isOpen, setIsOpen] = useState(false)
+  const [editClient, setEditClient] = useState<{
+    id: string
+    name: string
+    industry: string
+    description?: string
+    contactName: string
+    whatsapp: string
+    position: string
+    email: string
+  } | null>(null)
   const [activeTab, setActiveTab] = useState("general")
   const [isAnimating, setIsAnimating] = useState(false)
   // Mobile-specific state: track accordion panels
@@ -132,11 +139,21 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       document.body.style.overflow = "unset"
       document.body.style.paddingRight = ""
     }
-  }, [isOpen, onClose, editClient])
+  }, [isOpen, editClient?.id])
 
   // Track viewport to switch to mobile accordion behaviour
   // Note: responsive display handled by tailwind classes (md:hidden / md:block)
 
+
+  // Public methods to control the modal
+  const openModal = useCallback((clientToEdit?: typeof editClient) => {
+    setEditClient(clientToEdit || null)
+    setIsOpen(true)
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setIsOpen(false)
+  }, [])
 
   const handleClose = useCallback(() => {
     setIsAnimating(false)
@@ -149,9 +166,11 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       generalFormRef.current?.reset()
       connectFormRef.current?.reset()
       brandFormRef.current?.reset()
-      onClose()
+      // Reset edit client
+      setEditClient(null)
+      closeModal()
     }, 300)
-  }, [onClose])
+  }, [closeModal])
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -237,7 +256,8 @@ export function ClientFormModal({ isOpen, onClose, editClient }: ClientFormModal
       console.error('Submit error:', error)
       toast.error(error instanceof Error ? error.message : (t('validation.error') || 'An error occurred during submission'))
     }
-  }, [createClientMutation, editClientMutation, editClient, t, handleClose, activeTab, createdFolderId, createCorresponsables, updateCorresponsable])
+  }, [createClientMutation, editClientMutation, editClient?.id, t, handleClose, activeTab, createdFolderId, createCorresponsables, updateCorresponsable])
+
 
 
   if (!isOpen) return null

@@ -340,7 +340,7 @@ export async function deleteClientAction(clientId: string) {
         };
       }
     }
-    
+    revalidatePath('/clients');
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete client'

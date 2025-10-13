@@ -1,7 +1,7 @@
 "use client"
 
 import withAuth from "@/lib/withAuth"
-import { DashboardLayout } from "../lists-dashboard-layout"
+import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 
 const columns: Column[] = [
