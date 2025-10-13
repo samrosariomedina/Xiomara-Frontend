@@ -1,8 +1,8 @@
 "use client"
 
-import { ClientsHeader } from "@/components/clientsPage-header"
-import { EmptyState } from "@/components/clientsPage-emptyState"
-import { ClientsList } from "@/components/clientsPage-cardWrapper"
+import { ClientsHeader } from "@/components/clients/clientsPage-header"
+import { EmptyState } from "@/components/clients/clientsPage-emptyState"
+import { ClientsList } from "@/components/clients/clientsPage-cardWrapper"
 import { useState, useMemo, useRef, useEffect } from "react"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"

@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { EmptyFuentesGenerales } from "./icons/icons"
+import { EmptyFuentesGenerales } from "../icons/icons"
 import { formatDateSafe } from '@/lib/utils'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { SourceResponse } from '@/lib/schemas'

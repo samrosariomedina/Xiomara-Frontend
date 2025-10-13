@@ -4,19 +4,18 @@ import React, { useState, useEffect } from 'react'
 import { Plus, ImageIcon, Mic, Send, Edit, Copy,  Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import PostEditor from './contentEnginePage-postEdit'
-import EditForm from './contentEnginePage-editForm'
-import SummarySelectionDialog from './dialogs/SummarySelectionDialog'
-import SummariesViewDialog from './dialogs/SummariesViewDialog'
+import PostEditor from '@/components/content-engine/contentEnginePage-postEdit'
+import EditForm from '@/components/content-engine/contentEnginePage-editForm'
 import { useTemplates } from '@/context/TemplatesContext'
 import { useAuth } from '@/context/AuthContext'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { generateSummaryAction, iterateSummaryAction, getUserSummariesAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
 import { generateOutputAction, getLatestOutputAction } from '@/actions/outputs'
-import type { OutputResponse } from '@/actions/outputs'
 import { getContentEngineSources } from '@/actions/sources'
 import { toast } from 'sonner'
+import SummariesViewDialog from '../dialogs/SummariesViewDialog'
+import SummarySelectionDialog from '../dialogs/SummarySelectionDialog'
 
 interface ChatCardProps {
   selectedSourceIds: string[]
@@ -34,13 +33,13 @@ export default function ChatCard({
     // Local state for this component
     const [showPostEditor, setShowPostEditor] = useState(false)
     const [showEditForm, setShowEditForm] = useState(false)
-    const [selectedPlatform, setSelectedPlatform] = useState('')
+    const selectedPlatform = '';
     const [generatedSummary, setGeneratedSummary] = useState<SummaryResponse | null>(null)
     const [promptText, setPromptText] = useState('')
     const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
     // Server-side data fetching for sources (for summary generation dialog)
-    const { data: availableSources = [], isLoading: isLoadingSources, refetch: refetchSources } = useQuery({
+    const { data: availableSources = [], isLoading: isLoadingSources } = useQuery({
         queryKey: ['content-engine-sources-for-dialog'],
         queryFn: getContentEngineSources,
         staleTime: 5 * 60 * 1000, // 5 minutes
@@ -54,7 +53,7 @@ export default function ChatCard({
     })
 
     // Server-side data fetching for latest output (for output card)
-    const { data: latestOutput, isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
+    const { refetch: refetchOutput } = useQuery({
         queryKey: ['latest-output'],
         queryFn: getLatestOutputAction,
         enabled: !!generatedSummary, // Only fetch when we have a summary
@@ -268,9 +267,7 @@ export default function ChatCard({
     }
 
     // Handler to refresh sources when needed
-    const handleRefreshSources = () => {
-        refetchSources()
-    }
+
 
     // Helper function to check if a template is selected
     const isTemplateSelected = (platform: string): boolean => {

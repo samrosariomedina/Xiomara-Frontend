@@ -39,7 +39,7 @@ export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) 
   // Transform references to KnowledgeItem format
   const knowledgeItems: KnowledgeItem[] = cachedReferences.map((ref) => {
     // Handle both old string content and new object content
-    const content = typeof ref.content === 'string' ? ref.content : ref.content;
+    // const content = typeof ref.content === 'string' ? ref.content : ref.content;
     const displayName = ref.title || 'Untitled';
     
     // Get type display name

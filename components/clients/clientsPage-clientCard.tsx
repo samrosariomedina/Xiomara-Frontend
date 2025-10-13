@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ClientCardProps } from "../utils/types"
+import { ClientCardProps } from "@/utils/types"
 import { CampaignRow } from "./clientPage-campaignRows"
 import { useRouter, usePathname } from 'next/navigation'
 import { useClient } from '@/context/ClientContext'

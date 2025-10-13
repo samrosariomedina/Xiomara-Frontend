@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+'use client'
 import { ChevronRight, MoreVertical, Wrench, Copy } from 'lucide-react'
 import { useTemplates } from '@/context/TemplatesContext'
 import type { OutputResponse } from '@/actions/outputs'

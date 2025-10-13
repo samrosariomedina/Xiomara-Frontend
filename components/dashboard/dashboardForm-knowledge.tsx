@@ -5,8 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Plus, Eye, Brain, ChevronDown } from "lucide-react"
-import HeaderControls from "./ui/formsHeader-dashboard"
-import SourcesList, { SourceItem } from "./ui/formsLists-dashboard"
 import { FileUpload } from "@/components/ui/file-upload"
 import { UrlInput } from "@/components/ui/url-input"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -24,6 +22,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import HeaderControls from "../ui/formsHeader-dashboard"
+import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
@@ -72,7 +72,6 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   // Transform references to SourceItem format for display
   const sources: SourceItem[] = cachedReferences.map((ref, index) => {
     // Handle both old string content and new object content
-    const content = typeof ref.content === 'string' ? ref.content : ref.content;
     const displayName = ref.title || `Knowledge Item ${index + 1}`;
     
     return {
@@ -127,7 +126,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       <div>
         <HeaderControls title={t('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6">
-          <SourcesList sources={sources} onKebabClick={(id) => {}} />
+          <SourcesList sources={sources} onKebabClick={() => {}} />
         </div>
       </div>
     )

@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react"
 import { useTranslations } from 'next-intl'
 import RowActionsMenu from "./cards-rowActions"
-import { Client, ClientsListProps, MenuOpenData } from "../utils/types"
+import { Client, ClientsListProps, MenuOpenData } from "@/utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
 import { useMutation } from "@tanstack/react-query"
 import { deleteClientAction } from "@/actions/clients"

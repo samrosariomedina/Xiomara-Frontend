@@ -8,9 +8,9 @@ import { FileText, Plus, Eye } from "lucide-react"
 import { FileUpload } from "@/components/ui/file-upload"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { UrlInput } from "@/components/ui/url-input"
-import HeaderControls from "./ui/formsHeader-dashboard"
+import HeaderControls from "../ui/formsHeader-dashboard"
 import { useTranslations } from 'next-intl'
-import SourcesList from "./ui/formsLists-dashboard"
+import SourcesList from "../ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
 import { useSourcesMutations } from '@/hooks/useSources'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
@@ -133,7 +133,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       <div className="space-y-2">
   <HeaderControls title={t('title')} actions={headerActions} />
 
-  <SourcesList sources={sourcesList} onKebabClick={(id) => {}} />
+  <SourcesList sources={sourcesList} onKebabClick={() => {}} />
       </div>
     )
   }

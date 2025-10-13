@@ -3,8 +3,8 @@
 import React, { useState } from 'react'
 import { X, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { RichTextEditor } from './ui/rich-text-editor'
-import { FileUpload } from './ui/file-upload'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { FileUpload } from '@/components/ui/file-upload'
 import { useMutation } from '@tanstack/react-query'
 import { addSummaryAction } from '@/actions/summaries'
 import { toast } from 'sonner'
@@ -29,7 +29,7 @@ export default function PostEditor({ isOpen, onClose, onSummarySaved }: PostEdit
     const saveSummaryMutation = useMutation({
         mutationFn: ({ title, content }: { title: string, content: string }) => 
             addSummaryAction(title, content),
-        onSuccess: (summary) => {
+        onSuccess: () => {
             toast.success('Summary saved successfully!')
             onSummarySaved?.()
             onClose()

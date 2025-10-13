@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getClientsAction } from '@/actions/clients'
 
 export function ClientAutoSelector() {
-  const { selectedClient, setDefaultClient, isClientSelected } = useClient()
+  const { setDefaultClient, isClientSelected } = useClient()
 
   // Fetch clients to set a default one
   const { data: clients = [] } = useQuery({

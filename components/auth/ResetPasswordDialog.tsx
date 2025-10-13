@@ -37,7 +37,6 @@ interface ResetPasswordDialogProps {
 }
 
 export function ResetPasswordDialog({ isOpen, onClose }: ResetPasswordDialogProps) {
-  const t = useTranslations('AUTH')
   const [showPasswords, setShowPasswords] = useState({
     old: false,
     new: false,

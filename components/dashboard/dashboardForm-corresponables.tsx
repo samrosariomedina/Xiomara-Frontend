@@ -10,8 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
-import HeaderControls from "./ui/formsHeader-dashboard"
-import SourcesList, { SourceItem } from "./ui/formsLists-dashboard"
+import HeaderControls from "../ui/formsHeader-dashboard"
+import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
 import { corresponsablesSchema, validateForm } from '@/lib/schemas'
 import { useCorresponsables } from "@/hooks/useCorresponsables"

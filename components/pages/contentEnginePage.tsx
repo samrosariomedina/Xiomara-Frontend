@@ -9,7 +9,6 @@ import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'
 import { getLatestOutputAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
-import type { OutputResponse } from '@/actions/outputs'
 import { useQuery } from '@tanstack/react-query'
 
 export default function ContentEnginePage(){

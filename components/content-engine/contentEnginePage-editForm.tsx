@@ -33,7 +33,7 @@ export default function EditForm({
     const editSummaryMutation = useMutation({
         mutationFn: ({ summaryId, title, content }: { summaryId: string, title?: string, content?: string }) => 
             editSummaryAction(summaryId, title, content),
-        onSuccess: (updatedData) => {
+        onSuccess: () => {
             toast.success('Summary updated successfully!')
             // Create a complete summary response object
             const updatedSummary: SummaryResponse = {

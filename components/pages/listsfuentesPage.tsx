@@ -26,7 +26,7 @@ function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
   } = useDataWithCache(sources, { cacheKey: 'sources' })
 
   // Transform sources to table data format
-  const data = cachedSources.map((source, index) => ({
+  const data = cachedSources.map((source) => ({
     id: source._id,
     nombre: source.title || 'Sin título',
     tipo: source.type === 'generales' ? 'General' : source.type,

@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { type ConnectCorrespondentsInput, connectCorrespondentsSchema } from '@/lib/schemas'
 import { forwardRef, useImperativeHandle, useState, useRef, useEffect } from "react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
-import { useSharing } from "../hooks/useSharing"
+import { useSharing } from "@/hooks/useSharing" 
 import { createCorresponsableWithSharingAction, updateCorresponsableAction, getShareUrlAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
 import { TelegramTokenDialog } from "./TelegramTokenDialog"

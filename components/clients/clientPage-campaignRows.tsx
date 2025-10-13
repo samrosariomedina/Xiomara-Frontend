@@ -9,8 +9,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CampaignRowProps } from "../utils/types"
 import { useRouter } from "next/navigation"
+import { CampaignRowProps } from "@/utils/types"
 
 export function CampaignRow({ 
   campaign, 

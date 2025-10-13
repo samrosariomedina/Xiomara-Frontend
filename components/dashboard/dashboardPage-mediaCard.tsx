@@ -9,7 +9,6 @@ import { useTranslations } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyMediaListener } from "@/components/icons/icons"
-import { useClient } from "@/context/ClientContext"
 
 // const mediaItems = [
 //   {

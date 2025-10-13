@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "@/components/ui/pagination"
 import { usePagination } from "@/hooks/usePagination"
-import RowActionsMenu from "@/components/cards-rowActions"
+import RowActionsMenu from "@/components/clients/cards-rowActions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,7 +94,7 @@ export function DataTable({
     Object.values(row).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
-  const { currentItems, currentPage, totalPages, goToPage } = usePagination(filteredData, itemsPerPage, 1)
+  const { currentItems, currentPage, totalPages } = usePagination(filteredData, itemsPerPage, 1)
 
   // Handle loading state
   if (isLoading) {
@@ -582,7 +582,7 @@ export function DataTable({
     {/* Pagination (rendered outside the main container) */}
     <div className="flex flex-col items-end justify-end md:flex-row md:items-center md:justify-end px-6 py-4 space-y-4 md:space-y-0">
       <div className="mt-2 md:mt-0">
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
+        <Pagination initialPage={currentPage as number} totalPages={totalPages} />
       </div>
     </div>
 

@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useTranslations } from 'next-intl'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
+import { ResetPasswordDialog } from '@/components/auth/ResetPasswordDialog'
 
 export function Navbar() {
   const t = useTranslations('NAVBAR')

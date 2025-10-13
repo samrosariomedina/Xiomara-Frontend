@@ -11,9 +11,9 @@ import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useRouter } from "next/navigation"
 
 import { useRef } from 'react'
-import { GeneralInformationForm } from "../clientsForm-generalInformation"
-import { ConnectCorrespondentsForm } from "../clientsForm-connectCorrespondents.tsx"
-import { BrandGuidesForm } from "../clientsForm-brandGuide"
+import { GeneralInformationForm } from "@/components/clients/clientsForm-generalInformation"
+import { ConnectCorrespondentsForm } from "@/components/clients/clientsForm-connectCorrespondents.tsx"
+import { BrandGuidesForm } from "@/components/clients/clientsForm-brandGuide"
 
 interface ClientFormModalProps {
   // Remove isOpen, onClose, editClient props - modal will manage its own state
@@ -146,10 +146,10 @@ export function ClientFormModal({}: ClientFormModalProps) {
 
 
   // Public methods to control the modal
-  const openModal = useCallback((clientToEdit?: typeof editClient) => {
-    setEditClient(clientToEdit || null)
-    setIsOpen(true)
-  }, [])
+  // const openModal = useCallback((clientToEdit?: typeof editClient) => {
+  //   setEditClient(clientToEdit || null)
+  //   setIsOpen(true)
+  // }, [])
 
   const closeModal = useCallback(() => {
     setIsOpen(false)
