@@ -16,6 +16,7 @@ import { useSourcesMutations } from '@/hooks/useSources'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { formatDateSafe } from '@/lib/utils'
 import type { SourceResponse } from '@/lib/schemas'
+import { useRouter } from 'next/navigation'
 
 interface FormData {
   name: string
@@ -56,6 +57,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   })
 
   const { createSource, isCreating } = useSourcesMutations()
+  const router = useRouter()
 
   // Transform sources to SourceItem format for display
   const sourcesList: Source[] = cachedSources.map((source, index) => ({
@@ -112,7 +114,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const t = useTranslations('FUENTES')
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => {} , variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push('/clients/fuentes') , variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: t('form.addButton'), ariaLabel: t('form.addButton'), onClick: handleAddMore, variant: "soft" as const },
   ]
 
@@ -130,10 +132,11 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Image 5: Sources list view
   if (sourcesList.length > 0 && !showForm) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActions} />
-
-  <SourcesList sources={sourcesList} onKebabClick={() => {}} />
+  <div className="flex-1 overflow-hidden">
+    <SourcesList sources={sourcesList} onKebabClick={() => {}} />
+  </div>
       </div>
     )
   }
@@ -162,8 +165,9 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   // Images 2-4: Form with tabs
     return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActionsPlain} />
+  <div className="flex-1 overflow-y-auto">
       {/* Name input */}
       <div>
         <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
@@ -181,7 +185,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
       {/* Horizontal tabs */}
       <div>
-        <div className="mb-6">
+        <div className="my-6">
           <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
             <button
               type="button"
@@ -271,6 +275,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
                        </Button>
                      </div>
                    </div>
+  </div>
     </div>
   )
 })

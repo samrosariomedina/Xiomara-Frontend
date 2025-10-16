@@ -17,6 +17,7 @@ import { corresponsablesSchema, validateForm } from '@/lib/schemas'
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useClient } from "@/context/ClientContext"
 import { formatDateSafe } from "@/lib/utils"
+import { useRouter } from 'next/navigation'
 
 interface CorresponsableData {
   _id: string;
@@ -62,6 +63,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
 
   const tForm = useTranslations('CORRESPONSABLES_FORM')
   const tMain = useTranslations('CORRESPONSABLES')
+  const router = useRouter()
   
   // Get selected client from context
   const { selectedClient } = useClient()
@@ -98,7 +100,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   }
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: tForm('header.viewFullList'), ariaLabel: tForm('header.viewFullList'), onClick: () => {}, variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: tForm('header.viewFullList'), ariaLabel: tForm('header.viewFullList'), onClick: () => router.push('/clients/channels/corresponsales'), variant: "soft" as const },
     { icon: <Download className="h-4 w-4" />, label: tForm('header.uploadCSV'), ariaLabel: tForm('header.uploadCSV'), onClick: () => {}, variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: tForm('header.add'), ariaLabel: tForm('header.add'), onClick: () => setShowForm(true), variant: "soft" as const },
   ]
@@ -171,9 +173,9 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   // list view
   if (localSources.length > 0 && !showForm) {
     return (
-      <div>
+      <div className="h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActions} />
-        <div className="bg-white rounded-lg p-6">
+        <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
           <SourcesList sources={localSources} onKebabClick={(id) => console.log("kebab", id)} />
         </div>
       </div>
@@ -204,8 +206,9 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
 
   // form view
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActionsPlain } />
+  <div className="flex-1 overflow-y-auto">
 
       <div className="bg-white rounded-lg p-3 border border-gray-100">
     <p className=" pb-1 mb-1  font-semibold">{tForm('form.title')}</p>
@@ -411,6 +414,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
                              <Button onClick={handleAdd} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{tForm('form.addButton')}</Button>
                            </div>
                          </div>
+  </div>
     </div>
   )
 }

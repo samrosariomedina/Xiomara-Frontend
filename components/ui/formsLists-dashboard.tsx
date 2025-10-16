@@ -27,7 +27,7 @@ function getInitials(name: string) {
 export default function SourcesList({ sources, onKebabClick, className = "" }: SourcesListProps) {
   return (
     <div className={`w-full ${className}`}>
-      <div className="-mx-4 overflow-hidden">
+      <div className="-mx-4 max-h-136 overflow-y-auto scrollbar">
         {sources.map((source) => (
           <div
             key={source.id}

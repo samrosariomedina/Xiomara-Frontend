@@ -10,10 +10,12 @@ import { getContentEngineSources } from '@/actions/sources'
 import { getLatestOutputAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from "next/navigation"
 
 export default function ContentEnginePage(){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
     const { templates } = useTemplates()
+    const router = useRouter()
     console.log('Templates available:', templates.length)
     
     // Lifted state from FuentesCard
@@ -83,9 +85,34 @@ export default function ContentEnginePage(){
                 {/* Breadcrumb Navigation */}
                 <div className="lg:ml-17 lg:pt-2  p-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <button 
+                            onClick={() => window.history.back()}
+                            className="flex items-center gap-1 hover:text-[#31499f] transition-colors hover:cursor-pointer"
+                        >
+                            <svg 
+                                className="w-4 h-4" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth={2} 
+                                    d="M15 19l-7-7 7-7" 
+                                />
+                            </svg>
+                            <span>Volver</span>
+                        </button>
+                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push('/clients/channels')}>
+                        <span className="mx-2 h-full w-full">›</span>
                         <span>Listado Clientes</span>
-                        <span>›</span>
+
+                        </button>
+                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push('/clients/content-engine')}>
+                        <span className="mx-2 h-12 w-12">›</span>
                         <span>Campaña</span>
+                        </button>
                     </div>
                 </div>
 

@@ -71,7 +71,7 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-white border border-gray-200 rounded-lg overflow-y-auto max-h-96">
       <style jsx global>{`
         /* Custom Quill styles to match the design */
         .ql-snow .ql-toolbar {
@@ -79,6 +79,10 @@ export function RichTextEditor({
           border-bottom: 1px solid #e5e7eb;
           background: rgba(249, 250, 251, 0.8);
           padding: 8px 12px;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          z-index: 10;
         }
         
         .ql-snow .ql-toolbar .ql-formats {
@@ -120,6 +124,7 @@ export function RichTextEditor({
           font-size: 14px;
           line-height: 1.5;
           background: rgba(249, 250, 251, 0.3);
+          flex: 1;
         }
         
         .ql-snow .ql-editor {
@@ -166,7 +171,11 @@ export function RichTextEditor({
         modules={modules}
         formats={formats}
         placeholder={placeholder}
-        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+        style={{ 
+          height: 'auto', 
+          display: 'flex', 
+          flexDirection: 'column'
+        }}
         theme="snow"
       />
 

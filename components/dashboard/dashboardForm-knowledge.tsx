@@ -16,6 +16,7 @@ import { useKnowledge } from '@/hooks/useKnowledge'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   
   const { selectedClient } = useClient()
   const { createReference, isCreating } = useKnowledge()
+  const router = useRouter()
   
   const form = useForm<KnowledgeBaseInput>({
     resolver: zodResolver(knowledgeBaseSchema),
@@ -84,7 +86,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   })
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => {}, variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push('/clients/channels/knowledge'), variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: t('empty.addButton'), ariaLabel: t('empty.addButton'), onClick: () => setShowForm(true), variant: "soft" as const },
   ]
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
@@ -123,9 +125,9 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   // list view
   if (sources.length > 0 && !showForm) {
     return (
-      <div>
+      <div className="h-full flex flex-col">
         <HeaderControls title={t('title')} actions={headerActions} />
-        <div className="bg-white rounded-lg p-6">
+        <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
           <SourcesList sources={sources} onKebabClick={() => {}} />
         </div>
       </div>
@@ -156,10 +158,10 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
 
   // form view
   return (
-    <div className="space-y-6  ">
+    <div className="space-y-6 h-full flex flex-col">
       <HeaderControls title={t('title')} actions={headerActionsPlain} />
       {/* Constrain form width on desktop so it fits the panel */}
-      <div className=" lg:max-w-full lg:mx-auto">
+      <div className="lg:max-w-full lg:mx-auto flex-1 overflow-y-auto">
 
         <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
