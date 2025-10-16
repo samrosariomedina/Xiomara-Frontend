@@ -7,7 +7,7 @@ import { useState, useMemo, useRef, useEffect } from "react"
 import { useTranslations } from 'next-intl'
 import { paginateItems } from "@/utils/pagination"
 import { Pagination } from "@/components/ui/pagination"
-    import { Navbar } from "@/components/Navbar"
+import { Navbar } from "@/components/Navbar"
 import { ClientResponse, CampaignResponse } from "@/lib/schemas"
 import { Client } from "@/utils/types"
 import { formatDateSafe } from "@/lib/utils"

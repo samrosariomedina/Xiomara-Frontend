@@ -1,7 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from "react"
-import { ArrowLeft, ChevronDown} from "lucide-react"
-import { Button } from "@/components/ui/button"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslations } from 'next-intl'
 import { type GeneralInformationInput, type ConnectCorrespondentsInput, type BrandGuidesInput } from '@/lib/schemas'
 import { toast } from "sonner"
@@ -10,33 +8,16 @@ import { createClientAction, editClientAction } from "@/actions/clients"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useRouter } from "next/navigation"
 
-import { useRef } from 'react'
-import { GeneralInformationForm } from "@/components/clients/clientsForm-generalInformation"
-import { ConnectCorrespondentsForm } from "@/components/clients/clientsForm-connectCorrespondents.tsx"
-import { BrandGuidesForm } from "@/components/clients/clientsForm-brandGuide"
+import { ClientFormHeader } from "@/components/clients/ClientFormHeader"
+import { ClientFormTabs } from "@/components/clients/ClientFormTabs"
+import { ClientFormAccordion } from "@/components/clients/ClientFormAccordion"
+import { ClientFormContent } from "@/components/clients/ClientFormContent"
+import { ClientFormActions } from "@/components/clients/ClientFormActions"
 
 interface ClientFormModalProps {
-  // Remove isOpen, onClose, editClient props - modal will manage its own state
   isOpen: boolean
   onClose: () => void
   editClient: {
-    id: string
-    name: string
-    industry: string
-  } | null; 
-}
-
-type ChildFormRef<T = unknown> = {
-  validate: () => Promise<boolean>
-  getValues: () => T
-  reset: () => void
-  submit: () => Promise<boolean>
-}
-
-export function ClientFormModal({}: ClientFormModalProps) {
-  const t = useTranslations('CLIENT_FORM');
-  const [isOpen, setIsOpen] = useState(false)
-  const [editClient, setEditClient] = useState<{
     id: string
     name: string
     industry: string
@@ -45,10 +26,15 @@ export function ClientFormModal({}: ClientFormModalProps) {
     whatsapp: string
     position: string
     email: string
-  } | null>(null)
+  } | null
+}
+
+
+export function ClientFormModal({ isOpen, onClose, editClient: initialEditClient }: ClientFormModalProps) {
+  const t = useTranslations('CLIENT_FORM')
+  const [editClient, setEditClient] = useState(initialEditClient)
   const [activeTab, setActiveTab] = useState("general")
   const [isAnimating, setIsAnimating] = useState(false)
-  // Mobile-specific state: track accordion panels
   const [mobileExpanded, setMobileExpanded] = useState({ general: true, connect: false, brand: false })
 
   // Direct TanStack Query mutations
@@ -98,8 +84,6 @@ export function ClientFormModal({}: ClientFormModalProps) {
   
   // Use corresponsables hook
   const { 
-    createCorresponsables, 
-    updateCorresponsable,
     isCreating: isCreatingCorresponsables,
     isUpdating: isUpdatingCorresponsables,
     corresponsables,
@@ -107,9 +91,22 @@ export function ClientFormModal({}: ClientFormModalProps) {
   } = useCorresponsables(editClient?.id || createdFolderId || undefined)
 
   // Form refs - child forms will manage their own states
-  const generalFormRef = useRef<ChildFormRef<GeneralInformationInput> | null>(null)
-  const connectFormRef = useRef<ChildFormRef<ConnectCorrespondentsInput> | null>(null)
-  const brandFormRef = useRef<ChildFormRef<BrandGuidesInput> | null>(null)
+  const generalFormRef = useRef<{
+    validate: () => Promise<boolean>
+    getValues: () => GeneralInformationInput
+    reset: () => void
+  } | null>(null)
+  const connectFormRef = useRef<{
+    validate: () => Promise<boolean>
+    getValues: () => ConnectCorrespondentsInput
+    reset: () => void
+    submit: () => Promise<boolean>
+  } | null>(null)
+  const brandFormRef = useRef<{
+    validate: () => Promise<boolean>
+    getValues: () => BrandGuidesInput
+    reset: () => void
+  } | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return; // Skip on server-side
@@ -139,21 +136,11 @@ export function ClientFormModal({}: ClientFormModalProps) {
       document.body.style.overflow = "unset"
       document.body.style.paddingRight = ""
     }
-  }, [isOpen, editClient?.id])
+  }, [isOpen, editClient])
 
   // Track viewport to switch to mobile accordion behaviour
   // Note: responsive display handled by tailwind classes (md:hidden / md:block)
 
-
-  // Public methods to control the modal
-  // const openModal = useCallback((clientToEdit?: typeof editClient) => {
-  //   setEditClient(clientToEdit || null)
-  //   setIsOpen(true)
-  // }, [])
-
-  const closeModal = useCallback(() => {
-    setIsOpen(false)
-  }, [])
 
   const handleClose = useCallback(() => {
     setIsAnimating(false)
@@ -168,9 +155,9 @@ export function ClientFormModal({}: ClientFormModalProps) {
       brandFormRef.current?.reset()
       // Reset edit client
       setEditClient(null)
-      closeModal()
+      onClose()
     }, 300)
-  }, [closeModal])
+  }, [onClose])
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -256,11 +243,22 @@ export function ClientFormModal({}: ClientFormModalProps) {
       console.error('Submit error:', error)
       toast.error(error instanceof Error ? error.message : (t('validation.error') || 'An error occurred during submission'))
     }
-  }, [createClientMutation, editClientMutation, editClient?.id, t, handleClose, activeTab, createdFolderId, createCorresponsables, updateCorresponsable])
+  }, [createClientMutation, editClientMutation, editClient, t, handleClose, activeTab, createdFolderId])
 
 
+
+  // Optimized callback functions
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab)
+  }, [])
+
+  const handleMobileExpandedChange = useCallback((panel: string) => {
+    setMobileExpanded(prev => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))
+  }, [])
 
   if (!isOpen) return null
+
+  const isLoading = createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables || isUpdatingCorresponsables || isLoadingCorresponsables
 
   return (
     <>
@@ -277,190 +275,52 @@ export function ClientFormModal({}: ClientFormModalProps) {
         }`}
       >
         <div className="h-full flex flex-col">
-          {/* --- SIDEPANEL HEADER ---
-               Back button | Title | Close button
-               Edit inside this div to change header UI
-           */}
-          <div className="flex items-center justify-between px-6 py-6  bg-white flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleClose} 
-                className="p-1 h-8 w-8 hover:bg-gray-100"
-                type="button"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-2xl font-medium text-gray-600">
-                {editClient ? (t('editClient') || 'Edit Client') : (t('createClient') || 'Create Client')}
-              </h2>
+          <ClientFormHeader 
+            isEditMode={!!editClient}
+            onClose={handleClose}
+            t={t}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-4 pb-20">
+              <ClientFormTabs 
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                t={t}
+              />
+
+              <ClientFormAccordion
+                mobileExpanded={mobileExpanded}
+                onMobileExpandedChange={handleMobileExpandedChange}
+                editClient={editClient}
+                createdFolderId={createdFolderId}
+                corresponsables={corresponsables}
+                generalFormRef={generalFormRef}
+                connectFormRef={connectFormRef}
+                brandFormRef={brandFormRef}
+                t={t}
+              />
+
+              <ClientFormContent
+                activeTab={activeTab}
+                editClient={editClient}
+                createdFolderId={createdFolderId}
+                corresponsables={corresponsables}
+                generalFormRef={generalFormRef}
+                connectFormRef={connectFormRef}
+                brandFormRef={brandFormRef}
+              />
+
+              <ClientFormActions
+                activeTab={activeTab}
+                isEditMode={!!editClient}
+                isLoading={isLoading}
+                onClose={handleClose}
+                onSubmit={handleSubmit}
+                t={t}
+              />
             </div>
-            
           </div>
-
-                     {/* Content - takes remaining space and scrolls if needed */}
-           <div className="flex-1 overflow-y-auto">
-             <div className="px-4 pb-20">
-               {/* --- TABS: General / Brand / Connect --- */}
-               {/* Desktop tabs (hidden on medium and below). On mobile/md we render accordion below */}
-               <div className="hidden md:block">
-                 <div className="flex space-x-8 border-b border-gray-200 justify-around">
-                   <button
-                     onClick={() => setActiveTab("general")}
-                     className={`pb-4 pt-3 text-xs font-medium transition-colors relative ${
-                       activeTab === "general" ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
-                     }`}
-                     type="button"
-                   >
-                     {t('tabs.general')}
-                     {activeTab === "general" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900" />}
-                   </button>
-                   <button
-                     onClick={() => setActiveTab("connect")}
-                     className={`pb-4 pt-3 text-xs font-medium transition-colors relative ${
-                       activeTab === "connect" ? "text-[#31499F]" : "text-gray-500 hover:text-gray-700"
-                     }`}
-                     type="button"
-                   >
-                     {t('tabs.connect')}
-                     {activeTab === "connect" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#31499F]" />}
-                   </button>
-                   <button
-                     onClick={() => setActiveTab("brand")}
-                     className={`pb-4 pt-3 text-xs font-medium transition-colors relative ${
-                       activeTab === "brand" ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
-                     }`}
-                     type="button"
-                   >
-                     {t('tabs.brand')}
-                     {activeTab === "brand" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900" />}
-                   </button>
-                 </div>
-               </div>
-
-               {/* Mobile/Medium accordion: stacked dropdown forms */}
-               <div className="md:hidden mt-4">
-                 {/* General */}
-                 <div className=" rounded-lg mb-3 overflow-hidden">
-                   <button
-                     type="button"
-                     className="w-full flex items-center justify-between px-5 py-4 bg-gray-50"
-                     onClick={() => setMobileExpanded((s) => ({ ...s, general: !s.general }))}
-                   >
-                     <div className="text-sm font-medium">{t('tabs.general')}</div>
-                     <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.general ? 'rotate-180' : ''}`} />
-                   </button>
-                   <div className={`px-4 py-3 bg-white ${mobileExpanded.general ? 'block' : 'hidden'}`}>
-                     <GeneralInformationForm
-                       ref={generalFormRef}
-                       initialValues={editClient ? {
-                         clientName: editClient.name,
-                         industry: editClient.industry as "tecnologia" | "salud" | "educacion" | "finanzas" | "retail" | "manufactura",
-                         description: editClient.description,
-                         contactName: editClient.contactName,
-                         whatsapp: editClient.whatsapp,
-                         position: editClient.position as "ceo" | "cto" | "marketing" | "ventas" | "gerente" | "coordinador",
-                         email: editClient.email
-                       } : undefined}
-                     />
-                   </div>
-                 </div>
-
-                 {/* Connect */}
-                 <div className=" rounded-lg mb-3 overflow-hidden">
-                   <button
-                     type="button"
-                     className="w-full flex items-center justify-between px-5 py-4 bg-gray-50"
-                     onClick={() => setMobileExpanded((s) => ({ ...s, connect: !s.connect }))}
-                   >
-                     <div className="text-sm font-medium">{t('tabs.connect')}</div>
-                     <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.connect ? 'rotate-180' : ''}`} />
-                   </button>
-                   <div className={`px-4 py-3 bg-white ${mobileExpanded.connect ? 'block' : 'hidden'}`}>
-                     <ConnectCorrespondentsForm
-                       ref={connectFormRef}
-                       folderId={editClient ? editClient.id : createdFolderId}
-                       initialCorresponsables={corresponsables}
-                     />
-                   </div>
-                 </div>
-
-                 {/* Brand */}
-                 <div className=" rounded-lg mb-3 overflow-hidden">
-                   <button
-                     type="button"
-                     className="w-full flex items-center justify-between px-5 py-4 bg-gray-50"
-                     onClick={() => setMobileExpanded((s) => ({ ...s, brand: !s.brand }))}
-                   >
-                     <div className="text-sm font-medium">{t('tabs.brand')}</div>
-                     <ChevronDown className={`h-4 w-4 transform transition-transform ${mobileExpanded.brand ? 'rotate-180' : ''}`} />
-                   </button>
-                   <div className={`px-4 py-3 bg-white ${mobileExpanded.brand ? 'block' : 'hidden'}`}>
-                     <BrandGuidesForm
-                       ref={brandFormRef}
-                     />
-                   </div>
-                 </div>
-               </div>
-
-               {/* --- FORM CONTENT --- */}
-               {/* Render all forms but only show the active one (desktop/md and up) */}
-               <div className="hidden md:block">
-                 <div className={activeTab === "general" ? "block" : "hidden"}>
-                   <GeneralInformationForm
-                     ref={generalFormRef}
-                     initialValues={editClient ? {
-                       clientName: editClient.name,
-                       industry: editClient.industry as "tecnologia" | "salud" | "educacion" | "finanzas" | "retail" | "manufactura",
-                       description: editClient.description,
-                       contactName: editClient.contactName,
-                       whatsapp: editClient.whatsapp,
-                       position: editClient.position as "ceo" | "cto" | "marketing" | "ventas" | "gerente" | "coordinador",
-                       email: editClient.email
-                     } : undefined}
-                   />
-                 </div>
-                 <div className={activeTab === "brand" ? "block" : "hidden"}>
-                   <BrandGuidesForm
-                     ref={brandFormRef}
-                   />
-                 </div>
-                 <div className={activeTab === "connect" ? "block" : "hidden"}>
-                   <ConnectCorrespondentsForm
-                     ref={connectFormRef}
-                     folderId={editClient ? editClient.id : createdFolderId}
-                     initialCorresponsables={corresponsables}
-                   />
-                 </div>
-               </div>
-
-               {/* Buttons positioned below form content */}
-               <div className="mt-8 flex justify-end gap-3">
-                 <Button
-                   onClick={handleClose}
-                   className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]"
-                   disabled={createClientMutation.isPending}
-                 >
-                   {t('form.cancel')}
-                 </Button>
-                 <Button
-                   onClick={handleSubmit}
-                   className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
-                   disabled={createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables || isUpdatingCorresponsables || isLoadingCorresponsables}
-                 >
-                   {createClientMutation.isPending || editClientMutation.isPending || isCreatingCorresponsables || isUpdatingCorresponsables
-                     ? (editClient ? (t('updating') || 'Updating...') : (t('creating') || 'Creating...'))
-                     : activeTab === "general" 
-                       ? (editClient ? (t('form.update') || 'Update') : (t('form.submit') || 'Submit'))
-                     : activeTab === "connect"
-                       ? (t('correspondents.createCorresponsables') || 'Create Corresponsables')
-                       : (t('form.submit') || 'Submit')
-                   }
-                 </Button>
-               </div>
-             </div>
-           </div>
         </div>
       </div>
     </>
