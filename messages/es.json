@@ -65,6 +65,7 @@
         "campaigns": "Campañas",
         "createCampaign": "Crear campaña",
         "actions": {
+            "editClient": "Editar Cliente",
             "editCampaign": "Editar Campaña",
             "addSource": "Agregar Fuente",
             "delete": "Eliminar",

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
-import { ClientContextDisplay } from "@/components/clients/ClientContextDisplay";
 import { ClientAutoSelector } from "@/components/clients/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -46,7 +45,6 @@ export default async function Page() {
   return (
     <div>
       <ClientAutoSelector />
-      <ClientContextDisplay />
       <DashBoard references={references} sources={sources} />
     </div>
   )

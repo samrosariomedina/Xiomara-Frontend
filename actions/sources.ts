@@ -5,6 +5,7 @@ import { cookies } from "next/headers"
 import axios from 'axios'
 import FormData from 'form-data'
 import type { SourceResponse } from '@/lib/schemas'
+import { getCurrentUserIdAction } from "./auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -30,9 +31,19 @@ export async function getSourcesAction(): Promise<SourceResponse[]> {
       throw new Error('Authentication required');
     }
 
-    const response = await axios.post(`${API_BASE_URL}/sources`, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
+    // For non-admin users, let the backend handle user filtering automatically
+    // Only send user parameter for admin users who need to query other users' data
+    const requestBody: { types: string[] } = {
       types: ['text', 'file', 'webpage'] // Filter for manually added sources
-    }, {
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -59,9 +70,19 @@ export async function getSources(): Promise<SourceResponse[]> {
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/sources`, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+
+    // For non-admin users, let the backend handle user filtering automatically
+    const requestBody: { types: string[] } = {
       types: ['text', 'file', 'webpage'] // Filter for manually added sources
-    }, {
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -95,9 +116,19 @@ export async function getContentEngineSources(): Promise<SourceResponse[]> {
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/sources`, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+
+    // For non-admin users, let the backend handle user filtering automatically
+    const requestBody: { types: string[] } = {
       types: ['text', 'file', 'webpage'] // Filter for manually added sources
-    }, {
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -163,12 +194,26 @@ export async function createSourceAction(data: {
       }
     } else if (data.text) {
       sourceType = 'text';
-      content = data.text;
+      content = data.text.trim();
+      
+      // Validate that text content is not empty after processing
+      if (!content) {
+        throw new Error('Text content cannot be empty. Please enter some text.');
+      }
     }
 
     formData.append('type', sourceType)
-
     formData.append('content', content)
+    
+    // Additional logging for text sources
+    if (sourceType === 'text') {
+      console.log('Text source details:', {
+        originalText: data.text,
+        processedContent: content,
+        contentLength: content.length,
+        isEmpty: content.length === 0
+      });
+    }
 
     
     // Check file size and type
@@ -189,8 +234,10 @@ export async function createSourceAction(data: {
     console.log('Sending source data:', {
       type: sourceType,
       content: content,
+      contentLength: content.length,
       hasFile: !!data.file,
-      url: data.url
+      url: data.url,
+      text: data.text ? `Text length: ${data.text.length}` : 'No text'
     })
 
     const response = await axios.post(`${API_BASE_URL}/sources/add`, formData, {
@@ -257,10 +304,15 @@ export async function editSourceAction(
       content = data.file.name;
     } else if (data.url) {
       sourceType = 'webpage';
-      content = data.url;
+      content = data.url.trim();
     } else if (data.text) {
       sourceType = 'text';
-      content = data.text;
+      content = data.text.trim();
+      
+      // Validate that text content is not empty after processing
+      if (!content) {
+        throw new Error('Text content cannot be empty. Please enter some text.');
+      }
     }
 
     formData.append('type', sourceType)

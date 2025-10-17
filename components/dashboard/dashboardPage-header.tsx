@@ -3,17 +3,11 @@
 
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus, ChevronDown, Calendar } from "lucide-react"
+import { Plus } from "lucide-react"
 import { usePathname, useRouter } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { useTranslations } from 'next-intl'
 import { SourcesAdministrator } from '@/components/pages/dashboardPage-Forms'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
 interface DashboardHeaderProps {
@@ -23,8 +17,6 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
   const t = useTranslations('DASHBOARD')
-  const tFilters = useTranslations('FILTERS')
-  const [selected, setSelected] = useState('abril')
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
   const pathname = usePathname()
   const isEs = (pathname || '').split('/').filter(Boolean)[0] === 'es'
@@ -33,21 +25,6 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
   const goToClients = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.page, pathname || '/')
     router.push(localizedRoute)
-  }
-
-  // Use dataset shape for reuse across the app: { label, value }
-  const months = [
-    { label: tFilters('months.april'), value: 'april' },
-    { label: tFilters('months.march'), value: 'march' },
-    { label: tFilters('months.february'), value: 'february' },
-    { label: tFilters('months.january'), value: 'january' },
-    { label: tFilters('months.december'), value: 'december' },
-    { label: tFilters('months.november'), value: 'november' },
-  ]
-
-  const getSelectedLabel = () => {
-    const found = months.find(month => month.value === selected)
-    return found ? found.label : tFilters('date')
   }
 
   return (
@@ -91,34 +68,6 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
                 </div>
               </div>
 
-              {/* Date dropdown below title on mobile, inline on lg+ */}
-              <div className="relative mt-3 lg:mt-3 w-full lg:w-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full lg:w-auto justify-between bg-white border-gray-200"
-                    >
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                        <span>{getSelectedLabel()}</span>
-                      </div>
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    {months.map((month) => (
-                      <DropdownMenuItem 
-                        key={month.value}
-                        onClick={() => setSelected(month.value)}
-                        className={selected === month.value ? "bg-blue-50 text-blue-900" : ""}
-                      >
-                        {month.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
             </div>
           </div>
         </div>
@@ -151,34 +100,6 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
                 {t('title')}
               </h1>
 
-              {/* Date dropdown sits just to the right of title */}
-              <div className="ml-6">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="justify-between bg-white border-gray-200"
-                    >
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                        <span>{getSelectedLabel()}</span>
-                      </div>
-                      <ChevronDown className="h-4 w-4 ml-2 text-gray-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    {months.map((month) => (
-                      <DropdownMenuItem 
-                        key={month.value}
-                        onClick={() => setSelected(month.value)}
-                        className={selected === month.value ? "bg-blue-50 text-blue-900" : ""}
-                      >
-                        {month.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
             </div>
 
             <div className="flex items-center">

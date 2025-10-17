@@ -125,14 +125,15 @@ export const brandGuidesSchema = z.object({});
 
 // Corresponsables Form Schema
 export const corresponsablesSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  clientName: z.string().min(1, 'Client name is required').max(100, 'Client name must be less than 100 characters'),
+  email: z.string().email('Invalid email format').optional().or(z.literal("")),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
     .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
-  other: z.string().optional(),
-  accountType: z.enum(['admin', 'user', 'guest'], {
+  accountType: z.enum(['premium', 'standard', 'basic'], {
     message: 'Please select a valid account type',
   }),
+  telegramToken: z.string().optional(),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
     telegram: z.boolean(),
@@ -161,7 +162,14 @@ export const fuentesGeneralesSchema = z.object({
     ),
   text: z.string().optional(),
 }).refine(
-  (data) => data.file || data.url || data.text,
+  (data) => {
+    // Check if at least one content type is provided and not empty
+    const hasFile = data.file && data.file.size > 0;
+    const hasUrl = data.url && data.url.trim().length > 0;
+    const hasText = data.text && data.text.trim().length > 0;
+    
+    return hasFile || hasUrl || hasText;
+  },
   {
     message: 'At least one source (file, URL, or text) must be provided',
     path: ['general'],
@@ -321,7 +329,7 @@ export const createCampaignSchema = z.object({
   }),
   startDate: z.string().min(1, 'Start date is required')
     .refine((date) => {
-      const selectedDate = new Date(date);
+      const selectedDate = new Date(date + 'T00:00:00'); // Ensure timezone consistency
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return selectedDate >= today;

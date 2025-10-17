@@ -1,16 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import { useDataWithCache } from "@/hooks/useDataWithCache"
 import type { ReferenceResponse } from "@/lib/schemas"
+import SourcesAdministrator from "./dashboardPage-Forms"
 
 interface KnowledgeBasePageProps {
   references: ReferenceResponse[]
 }
 
 function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
+  const [isKnowledgeAdminOpen, setIsKnowledgeAdminOpen] = useState(false)
+  
   // Use caching for references
   const {
     data: cachedReferences
@@ -87,23 +91,42 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
   }))
 
 
+  const handleAddClick = () => {
+    setIsKnowledgeAdminOpen(true)
+  }
+
+  const handleCloseKnowledgeAdmin = () => {
+    setIsKnowledgeAdminOpen(false)
+  }
+
   return (
-    <DashboardLayout
-      title="Listado Knowledge Base"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/clients/channels" }, { label: "Listado Knowledge Base" }]}
-      onAddClick={() => {}}
-    >
-      
-      <DataTable
-        columns={columns}
-        data={data}
-        searchPlaceholder="Buscar Fuentes"
-        cardType="knowledge-base"
-        showAddButton={true}
-        addButtonText="Agregar Fuentes"
-        showUpdateButton={true}
+    <>
+      <DashboardLayout
+        title="Listado Knowledge Base"
+        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/clients/channels" }, { label: "Listado Knowledge Base" }]}
+        onAddClick={handleAddClick}
+        addButtonText="Agregar Knowledge Base"
+      >
+        
+        <DataTable
+          columns={columns}
+          data={data}
+          searchPlaceholder="Buscar Knowledge Base"
+          cardType="knowledge-base"
+          showAddButton={true}
+          addButtonText="Agregar Knowledge Base"
+          showUpdateButton={true}
+        />
+      </DashboardLayout>
+
+      <SourcesAdministrator
+        isOpen={isKnowledgeAdminOpen}
+        onClose={handleCloseKnowledgeAdmin}
+        references={cachedReferences}
+        sources={[]}
+        defaultTab="knowledge-base"
       />
-    </DashboardLayout>
+    </>
   )
 }
 

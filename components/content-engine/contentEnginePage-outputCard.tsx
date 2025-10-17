@@ -1,22 +1,75 @@
 'use client'
-import { ChevronRight, MoreVertical, Wrench, Copy } from 'lucide-react'
+import { ChevronRight, MoreVertical, Wrench, Copy, Edit, Trash2, Calendar } from 'lucide-react'
 import { useTemplates } from '@/context/TemplatesContext'
 import type { OutputResponse } from '@/actions/outputs'
+import { deleteOutputAction, deleteOutputItemAction, editOutputAction } from '@/actions/outputs'
 import { toast } from 'sonner'
+import { useState } from 'react'
 
 interface OutputCardProps {
-  latestOutput: OutputResponse | null
+  allOutputs: OutputResponse[]
   isLoadingOutput: boolean
+  onOutputsChange?: () => void
 }
 
-export default function OutputCard({ latestOutput, isLoadingOutput }: OutputCardProps) {
+export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange }: OutputCardProps) {
     const { templates } = useTemplates()
+    const [editingItem, setEditingItem] = useState<{ outputId: string; itemId: string; content: string } | null>(null)
+    const [editContent, setEditContent] = useState('')
 
     const handleCopyContent = (content: string) => {
         // Strip HTML tags for plain text copy
         const plainText = content.replace(/<[^>]*>/g, '')
         navigator.clipboard.writeText(plainText)
         toast.success('Content copied to clipboard!')
+    }
+
+    const handleEditItem = (outputId: string, itemId: string, content: string) => {
+        setEditingItem({ outputId, itemId, content })
+        setEditContent(content.replace(/<[^>]*>/g, '')) // Strip HTML for editing
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editingItem) return
+
+        try {
+            await editOutputAction(editingItem.outputId, {
+                [editingItem.itemId]: { content: editContent }
+            })
+            toast.success('Output updated successfully!')
+            setEditingItem(null)
+            setEditContent('')
+            onOutputsChange?.()
+        } catch (error) {
+            console.error('Error updating output:', error)
+            toast.error('Failed to update output')
+        }
+    }
+
+    const handleDeleteItem = async (outputId: string, itemId: string) => {
+        if (!confirm('Are you sure you want to delete this output item?')) return
+
+        try {
+            await deleteOutputItemAction(outputId, itemId)
+            toast.success('Output item deleted successfully!')
+            onOutputsChange?.()
+        } catch (error) {
+            console.error('Error deleting output item:', error)
+            toast.error('Failed to delete output item')
+        }
+    }
+
+    const handleDeleteOutput = async (outputId: string) => {
+        if (!confirm('Are you sure you want to delete this entire output batch?')) return
+
+        try {
+            await deleteOutputAction(outputId)
+            toast.success('Output batch deleted successfully!')
+            onOutputsChange?.()
+        } catch (error) {
+            console.error('Error deleting output:', error)
+            toast.error('Failed to delete output batch')
+        }
     }
 
     return (
@@ -56,13 +109,13 @@ export default function OutputCard({ latestOutput, isLoadingOutput }: OutputCard
 
             <div className="border-t border-gray-100" />
 
-            {/* Latest Generated Output Section */}
+            {/* All Generated Outputs Section */}
             <section className="flex-1 min-h-0 flex flex-col">
                 {isLoadingOutput ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#31499f] border-t-transparent"></div>
                     </div>
-                ) : !latestOutput ? (
+                ) : allOutputs.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="flex flex-col items-center text-center px-4 md:px-6">
                             <div className="w-16 h-16 md:w-20 md:h-20 rounded-md bg-white border border-gray-100 flex items-center justify-center mb-3 md:mb-4">
@@ -73,40 +126,123 @@ export default function OutputCard({ latestOutput, isLoadingOutput }: OutputCard
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-y-auto space-y-3">
+                    <div className="flex-1 overflow-y-auto space-y-4">
                         <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-xs md:text-sm font-medium">Latest Generated Content</h4>
+                            <h4 className="text-xs md:text-sm font-medium">All Generated Content</h4>
                             <span className="text-xs text-gray-500">
-                                {new Date(latestOutput.timestamp).toLocaleDateString()}
+                                {allOutputs.length} batch{allOutputs.length !== 1 ? 'es' : ''}
                             </span>
                         </div>
                         
-                        {/* Latest Output Items */}
-                        <div className="space-y-2">
-                            {latestOutput.items.map((item) => (
-                                <div key={item._id} className="border border-gray-200 rounded-lg p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs text-gray-500 font-medium">
-                                            Generated Content
-                                        </span>
-                                        <button
-                                            onClick={() => handleCopyContent(item.content)}
-                                            className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                            title="Copy content"
-                                        >
-                                            <Copy className="h-3 w-3 text-gray-500" />
-                                        </button>
+                        {/* All Output Batches */}
+                        <div className="space-y-4">
+                            {allOutputs.map((output) => (
+                                <div key={output._id} className="border border-gray-200 rounded-lg p-3">
+                                    {/* Output Batch Header */}
+                                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-gray-400" />
+                                            <span className="text-sm font-medium text-gray-700">
+                                                Batch - {new Date(output.timestamp).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => handleDeleteOutput(output._id)}
+                                                className="p-1 hover:bg-red-100 rounded transition-colors text-red-500"
+                                                title="Delete entire batch"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                     
-                                    <div className="bg-gray-50 rounded p-3">
-                                        <div 
-                                            className="text-xs md:text-sm text-gray-700 leading-relaxed"
-                                            dangerouslySetInnerHTML={{ __html: item.content }}
-                                        />
-                                    </div>
-                                    
-                                    <div className="mt-2 text-xs text-gray-400">
-                                        Generated: {new Date(item.timestamp).toLocaleString()}
+                                    {/* Output Items */}
+                                    <div className="space-y-2">
+                                        {output.items.map((item) => (
+                                            <div key={item._id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                                                {editingItem?.itemId === item._id ? (
+                                                    // Edit Mode
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs text-gray-500 font-medium">
+                                                                Edit Content
+                                                            </span>
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={handleSaveEdit}
+                                                                    className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingItem(null)}
+                                                                    className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <textarea
+                                                            value={editContent}
+                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                                                            rows={4}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    // View Mode
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs text-[#31499f] bg-[#f7f9ff] px-2 py-1 rounded-full">
+                                                                    {item.templateName || 'Manual Content'}
+                                                                </span>
+                                                                {item.edited && (
+                                                                    <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                                                                        Edited
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={() => handleCopyContent(item.content)}
+                                                                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                                                    title="Copy content"
+                                                                >
+                                                                    <Copy className="h-3 w-3 text-gray-500" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleEditItem(output._id, item._id, item.content)}
+                                                                    className="p-1 hover:bg-blue-100 rounded transition-colors text-blue-500"
+                                                                    title="Edit content"
+                                                                >
+                                                                    <Edit className="h-3 w-3" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteItem(output._id, item._id)}
+                                                                    className="p-1 hover:bg-red-100 rounded transition-colors text-red-500"
+                                                                    title="Delete item"
+                                                                >
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-white rounded p-3 mb-2">
+                                                            <div 
+                                                                className="text-xs md:text-sm text-gray-700 leading-relaxed"
+                                                                dangerouslySetInnerHTML={{ __html: item.content }}
+                                                            />
+                                                        </div>
+                                                        
+                                                        <div className="text-xs text-gray-400">
+                                                            Generated: {new Date(item.timestamp).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))}

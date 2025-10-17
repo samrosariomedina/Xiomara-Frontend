@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers"
 import axios from 'axios'
+import { getCurrentUserIdAction } from "./auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -372,7 +373,16 @@ export async function getUserSummariesAction(): Promise<SummaryResponse[]> {
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/summaries`, {}, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/summaries`, {
+      user: userIdResult.userId
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -436,6 +446,55 @@ export async function generateNewSummaryAction(
     console.error('Generate new summary error:', error)
     if (axios.isAxiosError(error)) {
       const errorMessage = error.response?.data?.message || error.response?.data || 'Failed to generate summary'
+      throw new Error(errorMessage)
+    }
+    throw new Error('Network error: Please check your connection and try again')
+  }
+}
+
+// Delete a summary
+export async function deleteSummaryAction(summaryId: string): Promise<void> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    if (!summaryId) {
+      throw new Error('Summary ID is required');
+    }
+
+    const requestBody = {
+      summary: summaryId
+    }
+
+    console.log('Deleting summary:', requestBody)
+
+    await axios.post(`${API_BASE_URL}/summaries/remove`, requestBody, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+  } catch (error) {
+    console.error('Delete summary error:', error)
+    if (axios.isAxiosError(error)) {
+      console.error('Delete summary API error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      if (error.response?.status === 400) {
+        throw new Error('Invalid request: Please check your summary ID')
+      } else if (error.response?.status === 404) {
+        throw new Error('Summary not found: The summary may have been deleted')
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Please try again or contact support if the issue persists')
+      }
+      
+      const errorMessage = error.response?.data?.message || error.response?.data || 'Failed to delete summary'
       throw new Error(errorMessage)
     }
     throw new Error('Network error: Please check your connection and try again')

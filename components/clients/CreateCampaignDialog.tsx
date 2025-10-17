@@ -52,7 +52,7 @@ export function CreateCampaignDialog({
     defaultValues: {
       name: "",
       type: "Comunicado",
-      startDate: "",
+      startDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
       description: "",
     },
   });
@@ -68,8 +68,7 @@ export function CreateCampaignDialog({
         // Close dialog and reset form on success
         onClose();
         reset();
-        // Refresh the page to show the new campaign
-        window.location.reload();
+        // The page will automatically refresh due to revalidatePath in the action
       } else {
         toast.error(result.error || 'Failed to create campaign');
       }

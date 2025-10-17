@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import axios from "axios";
 import FormData from 'form-data';
 import { revalidatePath } from "next/cache";
+import { getCurrentUserIdAction } from "./auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -165,9 +166,16 @@ export async function getClientsAction() {
       throw new Error('Authentication required');
     }
 
-    // Fetch all folders for the user, then filter for clients on the frontend
-    // The backend metadata filter does exact matching, which won't work with additional fields
-    const response = await axios.post(`${BACKEND_URL}/folders`, {}, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
+    // Fetch folders with user filtering
+    const response = await axios.post(`${BACKEND_URL}/folders`, {
+      user: userIdResult.userId
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -207,7 +215,7 @@ export async function getClientsAction() {
         };
       }
     }
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch clients'
@@ -317,6 +325,10 @@ export async function deleteClientAction(clientId: string) {
     });
 
     if (response.status === 200) {
+      // Revalidate the clients page to show the updated list
+      revalidatePath('/clients');
+      revalidatePath('/');
+      
       return {
         success: true
       };
@@ -340,7 +352,7 @@ export async function deleteClientAction(clientId: string) {
         };
       }
     }
-    revalidatePath('/clients');
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete client'

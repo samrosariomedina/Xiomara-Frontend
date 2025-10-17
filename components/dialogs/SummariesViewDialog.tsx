@@ -1,11 +1,12 @@
 "use client"
 
 import React, { useState } from 'react'
-import { X, FileText, Search, Calendar, Eye } from 'lucide-react'
+import { X, FileText, Search, Calendar, Eye, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { deleteSummaryAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
 
 interface SummariesViewDialogProps {
@@ -62,6 +63,21 @@ export default function SummariesViewDialog({ summaries, isLoadingSummaries, onS
   const handleBackToList = () => {
     setViewMode('list')
     setSelectedSummary(null)
+  }
+
+  const handleDeleteSummary = async (summaryId: string) => {
+    if (!confirm('Are you sure you want to delete this summary? This action cannot be undone.')) return
+
+    try {
+      await deleteSummaryAction(summaryId)
+      toast.success('Summary deleted successfully!')
+      onRefreshSummaries() // Refresh the list
+      setSelectedSummary(null)
+      setViewMode('list')
+    } catch (error) {
+      console.error('Error deleting summary:', error)
+      toast.error('Failed to delete summary')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -169,6 +185,17 @@ export default function SummariesViewDialog({ summaries, isLoadingSummaries, onS
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteSummary(summary._id)
+                              }}
+                              className="h-6 w-6 p-0 hover:bg-red-100 text-red-500"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
                         
@@ -222,9 +249,20 @@ export default function SummariesViewDialog({ summaries, isLoadingSummaries, onS
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       {/* Header */}
                       <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                          {selectedSummary.title || 'Untitled Summary'}
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-xl font-semibold text-gray-900">
+                            {selectedSummary.title || 'Untitled Summary'}
+                          </h2>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSummary(selectedSummary._id)}
+                            className="text-red-500 hover:bg-red-100"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />

@@ -59,6 +59,28 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const { createSource, isCreating } = useSourcesMutations()
   const router = useRouter()
 
+  // Utility function to strip HTML and clean text content
+  const stripHtmlAndCleanText = (htmlText: string): string => {
+    if (!htmlText) return '';
+    
+    // First check if it's just empty HTML tags
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlText;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!textContent.trim()) return '';
+    
+    return textContent
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with spaces
+      .replace(/&amp;/g, '&') // Decode &amp;
+      .replace(/&lt;/g, '<') // Decode &lt;
+      .replace(/&gt;/g, '>') // Decode &gt;
+      .replace(/&quot;/g, '"') // Decode &quot;
+      .replace(/&#39;/g, "'") // Decode &#39;
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim(); // Remove leading/trailing whitespace
+  }
+
   // Transform sources to SourceItem format for display
   const sourcesList: Source[] = cachedSources.map((source, index) => ({
     id: index + 1,
@@ -80,13 +102,33 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     setErrors({}) // Clear any previous errors
     
     try {
+      // Process text content to strip HTML tags for backend
+      const processedText = stripHtmlAndCleanText(formData.text);
+      
+      // Validate that we have content after processing
+      if (activeTab === 'text') {
+        if (!processedText) {
+          setErrors({ text: 'Please enter some text content' });
+          return;
+        }
+        
+        // Additional validation for minimum content length
+        if (processedText.length < 3) {
+          setErrors({ text: 'Text content must be at least 3 characters long' });
+          return;
+        }
+      }
+      
       // Create source using the mutation
-      await createSource({
+      const sourceData = {
         name: formData.name,
         file: formData.file || undefined,
         url: formData.url || undefined,
-        text: formData.text || undefined,
-      })
+        text: processedText || undefined,
+      }
+      
+      console.log('Creating source with data:', sourceData)
+      await createSource(sourceData)
       
       // Call the parent onSubmit for any additional handling
       onSubmit(formData)
@@ -135,7 +177,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       <div className="space-y-2 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActions} />
   <div className="flex-1 overflow-hidden">
-    <SourcesList sources={sourcesList} onKebabClick={() => {}} />
+    <SourcesList sources={sourcesList} pageType="fuentes" />
   </div>
       </div>
     )
@@ -255,6 +297,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
               value={formData.text} 
               onChange={(text) => setFormData({ ...formData, text })} 
             />
+            {errors.text && <p className="text-red-500 text-xs mt-1">{errors.text}</p>}
+            
           </div>
         )}
       </div>

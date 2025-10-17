@@ -7,6 +7,7 @@ import { Client, ClientsListProps, MenuOpenData } from "@/utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
 import { useMutation } from "@tanstack/react-query"
 import { deleteClientAction } from "@/actions/clients"
+import { deleteCampaignAction } from "@/actions/campaigns"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -23,12 +24,25 @@ export function ClientsList({ clients = [], campaigns = [] }: Omit<ClientsListPr
     onSuccess: () => {
       toast.success(t('clientDeleted') || 'Client deleted successfully')
       router.refresh();
-
     },
     onError: (error: unknown) => {
       console.error('Error deleting client:', error)
       const errorMessage = error instanceof Error ? error.message : (t('deleteError') || 'Failed to delete client')
       toast.error(errorMessage)
+    }
+  })
+
+  // Delete campaign mutation
+  const deleteCampaignMutation = useMutation({
+    mutationFn: deleteCampaignAction,
+    onSuccess: () => {
+      toast.success('Campaign deleted successfully')
+      setOpenMenuFor(null)
+      router.refresh();
+    },
+    onError: (error: unknown) => {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete campaign')
     }
   })
 
@@ -51,8 +65,13 @@ export function ClientsList({ clients = [], campaigns = [] }: Omit<ClientsListPr
   const handleDeleteClient = useCallback(async (clientId: string | number) => {
     if (typeof clientId === 'string') {
       await deleteClientMutation.mutateAsync(clientId)
+      setOpenMenuFor(null)
     }
-  }, [deleteClientMutation]); 
+  }, [deleteClientMutation]);
+
+  const handleDeleteCampaign = useCallback((campaignId: string) => {
+    return deleteCampaignMutation.mutateAsync(campaignId)
+  }, [deleteCampaignMutation]); 
 
   const handleMenuOpen = (menuData: MenuOpenData) => {
     setOpenMenuFor(menuData)
@@ -98,9 +117,12 @@ export function ClientsList({ clients = [], campaigns = [] }: Omit<ClientsListPr
           top={openMenuFor.top}
           onEdit={() => console.log('edit', openMenuFor.clientId, openMenuFor.campaignId)}
           onAddSource={() => console.log('add source', openMenuFor.clientId, openMenuFor.campaignId)}
-          onDelete={() => console.log('delete campaign', openMenuFor.clientId, openMenuFor.campaignId)}
+          onDelete={async () => {
+            await handleDeleteCampaign(openMenuFor.campaignId as string)
+          }}
           onClose={() => setOpenMenuFor(null)}
-          itemName={`Campaign ${openMenuFor.campaignId}`}
+          itemName={campaigns.find(c => c._id === openMenuFor.campaignId)?.title || `Campaign ${openMenuFor.campaignId}`}
+          context="campaign"
         />
       )}
       
@@ -120,7 +142,9 @@ export function ClientsList({ clients = [], campaigns = [] }: Omit<ClientsListPr
           }}
           onDelete={() => handleDeleteClient(openMenuFor.clientId)}
           onClose={() => setOpenMenuFor(null)}
-          itemName={`Client ${openMenuFor.clientId}`}
+          itemName={clients.find(c => c.id === openMenuFor.clientId)?.name || `Client ${openMenuFor.clientId}`}
+          actions={["edit", "delete"]}
+          context="client"
         />
       )}
     </div>

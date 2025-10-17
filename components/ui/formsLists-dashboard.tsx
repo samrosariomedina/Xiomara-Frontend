@@ -1,7 +1,8 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { MoreVertical } from "lucide-react"
+import DashboardRowActions from "./dashboard-rowActions"
 
 export type SourceItem = {
   id: number
@@ -13,8 +14,8 @@ export type SourceItem = {
 
 interface SourcesListProps {
   sources: SourceItem[]
-  onKebabClick?: (id: number) => void
   className?: string
+  pageType?: "fuentes" | "knowledge" | "corresponsables"
 }
 
 function getInitials(name: string) {
@@ -24,7 +25,31 @@ function getInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
-export default function SourcesList({ sources, onKebabClick, className = "" }: SourcesListProps) {
+export default function SourcesList({ sources, className = "", pageType = "fuentes" }: SourcesListProps) {
+  const [openMenuFor, setOpenMenuFor] = useState<{ id: number; left: number; top: number } | null>(null)
+
+  const handleKebabClick = (source: SourceItem, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const rect = event.currentTarget.getBoundingClientRect()
+    setOpenMenuFor({
+      id: source.id,
+      left: rect.right - 200, // Position menu to the left of the button
+      top: rect.bottom + 4
+    })
+  }
+
+  const handleEdit = (sourceId: number) => {
+    console.log('Edit source:', sourceId)
+    setOpenMenuFor(null)
+  }
+
+  const handleDelete = (sourceId: number) => {
+    console.log('Delete source:', sourceId)
+    setOpenMenuFor(null)
+  }
+
   return (
     <div className={`w-full ${className}`}>
       <div className="-mx-4 max-h-136 overflow-y-auto scrollbar">
@@ -45,7 +70,7 @@ export default function SourcesList({ sources, onKebabClick, className = "" }: S
                 </span>
                 <button
                   className="p-1 hover:bg-gray-100 rounded-full"
-                  onClick={() => onKebabClick?.(source.id)}
+                  onClick={(e) => handleKebabClick(source, e)}
                   aria-label={`Más acciones para ${source.name}`}
                 >
                   <MoreVertical className="h-4 w-4 text-gray-400" />
@@ -90,7 +115,7 @@ export default function SourcesList({ sources, onKebabClick, className = "" }: S
                 </div>
                 <button
                   className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                  onClick={() => onKebabClick?.(source.id)}
+                  onClick={(e) => handleKebabClick(source, e)}
                   aria-label={`Más acciones para ${source.name}`}
                 >
                   <MoreVertical className="h-4 w-4 text-gray-400" />
@@ -100,6 +125,19 @@ export default function SourcesList({ sources, onKebabClick, className = "" }: S
           </div>
         ))}
       </div>
+
+      {/* Row Actions Menu */}
+      {openMenuFor && (
+        <DashboardRowActions
+          left={openMenuFor.left}
+          top={openMenuFor.top}
+          onEdit={() => handleEdit(openMenuFor.id)}
+          onDelete={() => handleDelete(openMenuFor.id)}
+          onClose={() => setOpenMenuFor(null)}
+          itemName={`Item ${openMenuFor.id}`}
+          pageType={pageType}
+        />
+      )}
     </div>
   )
 }

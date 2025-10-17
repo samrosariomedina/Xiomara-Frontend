@@ -128,7 +128,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       <div className="h-full flex flex-col">
         <HeaderControls title={t('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={sources} onKebabClick={() => {}} />
+          <SourcesList sources={sources} pageType="knowledge" />
         </div>
       </div>
     )

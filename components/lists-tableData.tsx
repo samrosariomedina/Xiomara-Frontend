@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, MoreVertical, Plus, Calendar, SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react"
+import { Search, MoreVertical, Plus, SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -77,6 +77,7 @@ export function DataTable({
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
+  const [rowStates, setRowStates] = useState<Record<number, boolean>>({})
   const itemsPerPage = 10
 
   // Row actions menu state (shared between mobile cards and desktop rows)
@@ -86,13 +87,55 @@ export function DataTable({
   const [menuActions, setMenuActions] = useState<Array<"edit" | "addSource" | "delete"> | undefined>(undefined)
   const [menuAlign, setMenuAlign] = useState<"left" | "right" | undefined>(undefined)
   // filter UI state
-  const [dateFilter, setDateFilter] = useState<string>("abril-2025")
   const [stateFilter, setStateFilter] = useState<string>("todos")
   const [sortFilter, setSortFilter] = useState<string>("recientes")
 
-  const filteredData = data.filter((row) =>
+  // Apply search filter
+  const searchFilteredData = data.filter((row) =>
     Object.values(row).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())),
   )
+
+  // Apply additional filters
+  const filteredData = searchFilteredData.filter((row) => {
+    // State filter
+    if (stateFilter !== "todos") {
+      const estado = String(row.estado || "").toLowerCase()
+      switch (stateFilter) {
+        case "activo":
+          return estado === "activo"
+        case "pendiente":
+          return estado === "pendiente"
+        case "en-uso":
+          return estado === "en uso"
+        case "inactivo":
+          return estado === "inactivo"
+        case "archivado":
+          return estado === "archivado"
+        default:
+          return true
+      }
+    }
+
+    return true
+  }).sort((a, b) => {
+    // Sort filter
+    switch (sortFilter) {
+      case "recientes":
+        return new Date(b.ultimaActualizacion || "").getTime() - new Date(a.ultimaActualizacion || "").getTime()
+      case "antiguos":
+        return new Date(a.ultimaActualizacion || "").getTime() - new Date(b.ultimaActualizacion || "").getTime()
+      case "a-z":
+        return String(a.nombre || "").localeCompare(String(b.nombre || ""))
+      case "z-a":
+        return String(b.nombre || "").localeCompare(String(a.nombre || ""))
+      case "tipo":
+        return String(a.tipo || "").localeCompare(String(b.tipo || ""))
+      case "autor":
+        return String(a.creadoPor || "").localeCompare(String(b.creadoPor || ""))
+      default:
+        return 0
+    }
+  })
 
   const { currentItems, currentPage, totalPages } = usePagination(filteredData, itemsPerPage, 1)
 
@@ -154,15 +197,6 @@ export function DataTable({
   const startIndex = (currentPage - 1) * itemsPerPage
 
   // Filter options
-  const dateOptions = [
-    { value: "abril-2025", label: "Abril 2025" },
-    { value: "marzo-2025", label: "Marzo 2025" },
-    { value: "febrero-2025", label: "Febrero 2025" },
-    { value: "enero-2025", label: "Enero 2025" },
-    { value: "diciembre-2024", label: "Diciembre 2024" },
-    { value: "noviembre-2024", label: "Noviembre 2024" }
-  ];
-
   const stateOptions = [
     { value: "todos", label: "Todos" },
     { value: "activo", label: "Activo" },
@@ -182,7 +216,6 @@ export function DataTable({
   ];
 
   // Helper functions to get labels
-  const getDateLabel = () => dateOptions.find(opt => opt.value === dateFilter)?.label || "Abril 2025"
   const getStateLabel = () => stateOptions.find(opt => opt.value === stateFilter)?.label || "Todos"  
   const getSortLabel = () => sortOptions.find(opt => opt.value === sortFilter)?.label || "Más recientes"
 
@@ -205,20 +238,26 @@ export function DataTable({
   }
 
   const toggleRowSelection = (index: number) => {
-    const newSelected = new Set(selectedRows)
-    if (newSelected.has(index)) {
-      newSelected.delete(index)
-    } else {
-      newSelected.add(index)
-    }
-    setSelectedRows(newSelected)
+    setRowStates(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }))
   }
 
   const toggleAllSelection = () => {
-    if (selectedRows.size === currentItems.length) {
+    const allSelected = selectedRows.size === filteredData.length
+    if (allSelected) {
+      // Deselect all
       setSelectedRows(new Set())
+      setRowStates({})
     } else {
-      setSelectedRows(new Set(currentItems.map((_, index) => index)))
+      // Select all
+      setSelectedRows(new Set(filteredData.map((_, index) => index)))
+      const newRowStates: Record<number, boolean> = {}
+      filteredData.forEach((_, index) => {
+        newRowStates[index] = true
+      })
+      setRowStates(newRowStates)
     }
   }
 
@@ -262,7 +301,7 @@ export function DataTable({
     )
   }
 
-  const renderMobileCard = (row: TableRow, index: number) => {
+  const renderMobileCard = (row: TableRow, index: number, filteredIndex: number) => {
     const statusColors: Record<string, string> = {
       Activo: "bg-[#74DEA4] text-[#192038]",
       Pendiente: "bg-[#E9C45E] text-[#192038]",
@@ -276,7 +315,7 @@ export function DataTable({
         <div key={index} className="bg-white rounded-lg p-4 mb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
-              <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} />
+              <Checkbox checked={rowStates[filteredIndex] || false} onCheckedChange={() => toggleRowSelection(filteredIndex)} />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -316,7 +355,7 @@ export function DataTable({
         <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
-              <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} />
+              <Checkbox checked={rowStates[filteredIndex] || false} onCheckedChange={() => toggleRowSelection(filteredIndex)} />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -350,10 +389,10 @@ export function DataTable({
 
     // Default card type for 'fuentes' (Fuentes Generales, Media Listening)
     return (
-      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3 flex-1 min-w-0">
-            <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} className="flex-shrink-0" />
+        <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 mb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1 min-w-0">
+              <Checkbox checked={selectedRows.has(filteredIndex)} onCheckedChange={() => toggleRowSelection(filteredIndex)} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium text-gray-900 truncate" title={row.nombre}>{row.nombre}</h3>
@@ -392,7 +431,7 @@ export function DataTable({
             <div className="flex items-center space-x-4">
             <div className="hidden lg:block">
               <Checkbox
-                checked={selectedRows.size === currentItems.length && currentItems.length > 0}
+                checked={selectedRows.size === filteredData.length && filteredData.length > 0}
                 onCheckedChange={toggleAllSelection}
               />
             </div>
@@ -416,31 +455,6 @@ export function DataTable({
           {showFilters && (
             // large filter controls only on lg+
             <div className="hidden lg:flex items-center space-x-2 overflow-x-auto lg:overflow-visible">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-[150px] justify-between bg-white border-gray-200"
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                      <span>{getDateLabel()}</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[150px]">
-                  {dateOptions.map((option) => (
-                    <DropdownMenuItem 
-                      key={option.value}
-                      onClick={() => setDateFilter(option.value)}
-                      className={dateFilter === option.value ? "bg-blue-50 text-blue-900" : ""}
-                    >
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -488,10 +502,6 @@ export function DataTable({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button variant="outline" size="sm" className=" border-white text-[#31499f] bg-[#f7f8ff] rounded-full flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear Corresponsal
-              </Button>
             </div>
           )}
         </div>
@@ -535,16 +545,20 @@ export function DataTable({
       </div>
 
       {/* Mobile Cards */}
-  <div className="md:hidden p-6 bg-gray-50 overflow-y-auto max-h-96">{currentItems.map((row, index) => renderMobileCard(row, index))}</div>
+  <div className="md:hidden p-6 bg-gray-50">{currentItems.map((row, index) => {
+    // Find the index of this row in the filtered data
+    const filteredIndex = filteredData.findIndex(filteredRow => filteredRow.id === row.id)
+    return renderMobileCard(row, index, filteredIndex)
+  })}</div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block px-6 py-4 overflow-x-auto overflow-y-auto max-h-96">
+      <div className="hidden md:block px-6 py-4 overflow-x-auto">
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-white rounded-lg">
               <TableHead className="w-12 py-3">
                 <Checkbox
-                  checked={selectedRows.size === currentItems.length && currentItems.length > 0}
+                  checked={selectedRows.size === filteredData.length && filteredData.length > 0}
                   onCheckedChange={toggleAllSelection}
                 />
               </TableHead>
@@ -557,11 +571,14 @@ export function DataTable({
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y-0">
-            {currentItems.map((row, index) => (
-              <TableRow key={index} className="hover:bg-[#f7f9ff] border-0">
-                <TableCell className="py-4 border-0">
-                  <Checkbox checked={selectedRows.has(index)} onCheckedChange={() => toggleRowSelection(index)} />
-                </TableCell>
+            {currentItems.map((row, index) => {
+              // Find the index of this row in the filtered data
+              const filteredIndex = filteredData.findIndex(filteredRow => filteredRow.id === row.id)
+              return (
+                <TableRow key={index} className="hover:bg-[#f7f9ff] border-0">
+                  <TableCell className="py-4 border-0">
+                    <Checkbox checked={rowStates[filteredIndex] || false} onCheckedChange={() => toggleRowSelection(filteredIndex)} />
+                  </TableCell>
                   {columns.map((column) => (
                     <TableCell key={column.key} className="py-4 border-0">{renderCellContent(column, row[column.key], row)}</TableCell>
                   ))}
@@ -571,7 +588,8 @@ export function DataTable({
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            })}
           </TableBody>
         </Table>
       </div>

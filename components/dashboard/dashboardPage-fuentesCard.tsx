@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Search, ChevronDown, MoreVertical, Calendar } from "lucide-react"
+import { Search, ChevronDown, MoreVertical } from "lucide-react"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
@@ -43,22 +43,11 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
     ultimaActualizacion: formatDateSafe(source.timestamp),
   }))
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("Abril 2025");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [selectedSort, setSelectedSort] = useState("Recientes");
   const t = useTranslations('FUENTES')
   const router = useRouter()
   const pathname = usePathname()
-
-  // Options for the dropdowns
-  const dateOptions = [
-    "Abril 2025",
-    "Marzo 2025", 
-    "Febrero 2025",
-    "Enero 2025",
-    "Diciembre 2024",
-    "Noviembre 2024"
-  ];
 
   const statusOptions = [
     "Todos",
@@ -112,30 +101,6 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
       </div>
 
       <div className="flex items-center space-x-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1 bg-white border-gray-200"
-            >
-              <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-              <span className="text-sm">{selectedDate}</span>
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            {dateOptions.map((option) => (
-              <DropdownMenuItem 
-                key={option}
-                onClick={() => setSelectedDate(option)}
-                className={selectedDate === option ? "bg-blue-50 text-blue-900" : ""}
-              >
-                {option}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

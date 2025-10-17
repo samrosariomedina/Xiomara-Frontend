@@ -170,14 +170,28 @@ export default function FuentesCard({
             </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-auto space-y-2 md:space-y-3 fuentes-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {filteredSources.map((source, idx) => (
-                <div key={source._id || idx} className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 hover:bg-gray-50 transition-colors">
+              {filteredSources
+                .sort((a, b) => {
+                  // Sort by timestamp in reverse chronological order (newest first)
+                  const dateA = new Date(a.timestamp || 0).getTime()
+                  const dateB = new Date(b.timestamp || 0).getTime()
+                  return dateB - dateA
+                })
+                .map((source, idx) => (
+                <div 
+                  key={source._id || idx} 
+                  className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    const isSelected = selectedSourceIds.includes(source._id || '')
+                    onSourceSelection(source._id || '', !isSelected)
+                  }}
+                >
                   <div className="flex items-start gap-2 md:gap-3">
                     <input 
                       type="checkbox" 
-                      className="h-3 w-3 md:h-4 md:w-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="h-3 w-3 md:h-4 md:w-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 pointer-events-none"
                       checked={selectedSourceIds.includes(source._id || '')}
-                      onChange={(e) => onSourceSelection(source._id || '', e.target.checked)}
+                      readOnly
                     />
 
                     <div className="flex-1 min-w-0">

@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers"
 import axios from 'axios'
+import { getCurrentUserIdAction } from "./auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -38,9 +39,17 @@ export async function getTemplates(userId?: string): Promise<TemplateResponse[]>
       return [];
     }
 
-    // Only send user parameter if specifically requested (for admin filtering)
-    // For regular users, let backend return global + user's own templates automatically
-    const requestBody = userId ? { user: userId } : {};
+    // Get current user ID for filtering if not provided
+    let currentUserId = userId;
+    if (!currentUserId) {
+      const userIdResult = await getCurrentUserIdAction();
+      if (userIdResult.success && userIdResult.userId) {
+        currentUserId = userIdResult.userId;
+      }
+    }
+
+    // Include user parameter for filtering
+    const requestBody = currentUserId ? { user: currentUserId } : {};
     
     const response = await axios.post(`${API_BASE_URL}/templates`, requestBody, {
       headers: {

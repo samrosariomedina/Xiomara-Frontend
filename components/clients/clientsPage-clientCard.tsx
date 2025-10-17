@@ -9,6 +9,7 @@ import {
   Plus,
   TrendingUp,
   TrendingDown,
+  MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -162,7 +163,24 @@ export function ClientCard({
               <Plus className="h-3 w-3 mr-1" />
               {t('createCampaign')}
             </Button>
-            
+
+            {/* Client Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 rounded-full p-0 bg-[#f7f9ff] hover:bg-gray-100"
+              onClick={(e) => {
+                e.stopPropagation()
+                const rect = e.currentTarget.getBoundingClientRect()
+                onMenuOpen({
+                  clientId: client.id,
+                  left: rect.left,
+                  top: rect.bottom + 8
+                })
+              }}
+            >
+              <MoreVertical className="h-4 w-4 text-[#31499F]" />
+            </Button>
             
           </div>
         </div>

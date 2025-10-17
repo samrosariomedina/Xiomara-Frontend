@@ -174,6 +174,32 @@ export async function getUserProfileAction(): Promise<{ success: boolean; user?:
 }
 
 /**
+ * Server action to get the current user ID
+ */
+export async function getCurrentUserIdAction(): Promise<{ success: boolean; userId?: string; error?: string }> {
+  try {
+    const profileResult = await getUserProfileAction();
+    if (profileResult.success && profileResult.user) {
+      return { 
+        success: true, 
+        userId: profileResult.user._id 
+      };
+    } else {
+      return { 
+        success: false, 
+        error: profileResult.error || 'Failed to get user ID' 
+      };
+    }
+  } catch (error: unknown) {
+    console.error('Get current user ID error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get user ID'
+    };
+  }
+}
+
+/**
  * Server action to check if user is authenticated
  */
 export async function checkAuthAction(): Promise<{ success: boolean; authenticated: boolean; error?: string }> {

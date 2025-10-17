@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers"
 import axios from 'axios'
+import { getCurrentUserIdAction } from "./auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -25,6 +26,7 @@ export interface OutputItem {
   template?: string
   timestamp: string
   edited: boolean
+  templateName?: string // Added for display purposes
 }
 
 export interface OutputResponse {
@@ -257,7 +259,16 @@ export async function getOutputsAction(): Promise<OutputResponse[]> {
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/outputs`, {}, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/outputs`, {
+      user: userIdResult.userId
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -278,18 +289,77 @@ export async function getOutputsAction(): Promise<OutputResponse[]> {
   }
 }
 
-// Get latest output for current user
-export async function getLatestOutputAction(): Promise<OutputResponse | null> {
+// Get all outputs for current user (sorted by timestamp, newest first)
+export async function getAllOutputsAction(): Promise<OutputResponse[]> {
   try {
     const outputs = await getOutputsAction()
-    if (outputs.length === 0) return null
     
-    // Sort by timestamp and return the most recent
+    // Sort by timestamp, newest first
     const sortedOutputs = outputs.sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
     
-    return sortedOutputs[0]
+    return sortedOutputs
+  } catch (error) {
+    console.error('Get all outputs error:', error)
+    return []
+  }
+}
+
+// Get outputs with template names
+export async function getOutputsWithTemplateNamesAction(): Promise<OutputResponse[]> {
+  try {
+    const token = await getAuthToken();
+    
+    if (!token) {
+      return [];
+    }
+
+    // First get all outputs
+    const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const outputs = outputsResponse.data || []
+    
+    // Get all templates to map template IDs to names
+    const templatesResponse = await axios.post(`${API_BASE_URL}/templates`, {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const templates = templatesResponse.data || []
+    const templateMap = new Map(templates.map((template: any) => [template._id, template.title]))
+    
+    // Enhance outputs with template names
+    const enhancedOutputs = outputs.map((output: any) => ({
+      ...output,
+      items: output.items.map((item: any) => ({
+        ...item,
+        templateName: item.template ? templateMap.get(item.template) || 'Unknown Template' : 'Manual Content'
+      }))
+    }))
+    
+    // Sort by timestamp, newest first
+    return enhancedOutputs.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+  } catch (error) {
+    console.error('Get outputs with template names error:', error)
+    return []
+  }
+}
+
+// Get latest output for current user (for backward compatibility)
+export async function getLatestOutputAction(): Promise<OutputResponse | null> {
+  try {
+    const outputs = await getAllOutputsAction()
+    return outputs.length > 0 ? outputs[0] : null
   } catch (error) {
     console.error('Get latest output error:', error)
     return null
@@ -409,4 +479,14 @@ export async function removeOutputAction(
     }
     throw new Error('Network error: Please check your connection and try again')
   }
+}
+
+// Delete entire output
+export async function deleteOutputAction(outputId: string): Promise<void> {
+  return removeOutputAction(outputId) // Remove entire output when no itemIds specified
+}
+
+// Delete specific output item
+export async function deleteOutputItemAction(outputId: string, itemId: string): Promise<void> {
+  return removeOutputAction(outputId, [itemId])
 }

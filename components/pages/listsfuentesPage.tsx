@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import { useDataWithCache } from "@/hooks/useDataWithCache"
 import type { SourceResponse } from "@/lib/schemas"
+import SourcesAdministrator from "./dashboardPage-Forms"
 
 interface FuentesGeneralesPageProps {
   sources: SourceResponse[]
@@ -20,6 +22,8 @@ const columns: Column[] = [
 ]
 
 function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
+  const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
+  
   // Use caching for sources
   const {
     data: cachedSources
@@ -35,21 +39,40 @@ function FuentesGeneralesPage({ sources }: FuentesGeneralesPageProps) {
     creadoPor: 'Sistema', // Default since user info is not available in current schema
     ultimaActualizacion: formatDateSafe(source.timestamp),
   }))
+
+  const handleAddClick = () => {
+    setIsSourcesAdminOpen(true)
+  }
+
+  const handleCloseSourcesAdmin = () => {
+    setIsSourcesAdminOpen(false)
+  }
+
   return (
-    <DashboardLayout
-      title="Listado Fuentes Generales"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
-      onAddClick={() => {}}
-    >
-      <DataTable
-        columns={columns}
-        data={data}
-        searchPlaceholder="Buscar Fuentes"
-        cardType="fuentes"
-        showAddButton={true}
+    <>
+      <DashboardLayout
+        title="Listado Fuentes Generales"
+        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
+      >
+        <DataTable
+          columns={columns}
+          data={data}
+          searchPlaceholder="Buscar Fuentes"
+          cardType="fuentes"
+          showAddButton={true}
+          addButtonText="Agregar Fuentes"
+        />
+      </DashboardLayout>
+
+      <SourcesAdministrator
+        isOpen={isSourcesAdminOpen}
+        onClose={handleCloseSourcesAdmin}
+        references={[]}
+        sources={cachedSources}
       />
-    </DashboardLayout>
+    </>
   )
 }
 

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import axios from "axios";
 import FormData from 'form-data';
 import { revalidatePath } from 'next/cache';
+import { getCurrentUserIdAction } from "./auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -379,9 +380,16 @@ export async function getCorresponsablesAction(folderId: string) {
       throw new Error('Authentication required');
     }
 
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
     // First get the folder to get the listener IDs
     const folderResponse = await axios.post(`${BACKEND_URL}/folders`, {
-      folders: [folderId]
+      folders: [folderId],
+      user: userIdResult.userId
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -400,9 +408,10 @@ export async function getCorresponsablesAction(folderId: string) {
         };
       }
 
-      // Fetch the listeners
+      // Fetch the listeners with user filtering
       const listenersResponse = await axios.post(`${BACKEND_URL}/listeners`, {
-        listeners: listenerIds
+        listeners: listenerIds,
+        user: userIdResult.userId
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -419,7 +428,11 @@ export async function getCorresponsablesAction(folderId: string) {
         throw new Error('Failed to fetch listeners');
       }
     } else {
-      throw new Error('Folder not found');
+      // No folder found or empty response - return empty array instead of error
+      return {
+        success: true,
+        data: []
+      };
     }
   } catch (error: unknown) {
     console.error('Get corresponsables error:', error);

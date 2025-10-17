@@ -1,51 +1,68 @@
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState } from "react"
 import { createPortal } from 'react-dom'
-import { Edit, FilePlus, Trash2, X } from "lucide-react"
+import { Edit, Trash2, MoreVertical } from "lucide-react"
 import { type FC } from "react"
+import { useTranslations } from 'next-intl'
 
-interface RowActionsMenuProps {
+interface DashboardRowActionsProps {
   onEdit?: () => void | Promise<void>
-  onAddSource?: () => void | Promise<void>
   onDelete?: () => void | Promise<void>
   onClose: () => void
   left?: number
   top?: number
   itemName?: string
-  actions?: Array<"edit" | "addSource" | "delete"> // controls which actions to render
-  align?: "left" | "right"
-  context?: "client" | "campaign" // determines the context for translations
+  pageType?: "fuentes" | "knowledge" | "corresponsables"
+  actions?: Array<"edit" | "delete">
 }
 
-export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, onDelete, onClose, left = 0, top = 0, itemName = '', actions = ["edit", "addSource", "delete"], context = "campaign" }) => {
+export const DashboardRowActions: FC<DashboardRowActionsProps> = ({ 
+  onEdit, 
+  onDelete, 
+  onClose, 
+  left = 0, 
+  top = 0, 
+  itemName = '', 
+  pageType = "fuentes",
+  actions = ["edit", "delete"] 
+}) => {
   const ref = useRef<HTMLDivElement | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const t = useTranslations('DASHBOARD')
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        onClose()
-      }
+  // Get appropriate text based on page type
+  const getEditText = () => {
+    switch (pageType) {
+      case "fuentes":
+        return t('actions.editSource') || 'Editar Fuente'
+      case "knowledge":
+        return t('actions.editKnowledge') || 'Editar Knowledge Base'
+      case "corresponsables":
+        return t('actions.editCorresponsable') || 'Editar Corresponsable'
+      default:
+        return t('actions.edit') || 'Editar'
     }
+  }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+  const getDeleteText = () => {
+    switch (pageType) {
+      case "fuentes":
+        return t('actions.deleteSource') || 'Eliminar Fuente'
+      case "knowledge":
+        return t('actions.deleteKnowledge') || 'Eliminar Knowledge Base'
+      case "corresponsables":
+        return t('actions.deleteCorresponsable') || 'Eliminar Corresponsable'
+      default:
+        return t('actions.delete') || 'Eliminar'
     }
-  }, [onClose])
+  }
 
   const menu = (
     <div
       ref={ref}
-      style={{ 
-        position: 'fixed', 
-        left: typeof window !== 'undefined' ? Math.min(left, window.innerWidth - 220) : left, // Ensure menu doesn't go off screen
-        top: typeof window !== 'undefined' ? Math.min(top, window.innerHeight - 200) : top, // Ensure menu doesn't go off screen
-        maxWidth: '200px'
-      }}
+      style={{ position: 'fixed', left, top }}
       className="z-50 w-52 rounded-lg bg-white shadow-lg p-3"
     >
       {actions.includes('edit') && (
@@ -64,32 +81,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
           type="button"
         >
           <Edit className="h-5 w-5 text-gray-700" />
-          <span className="whitespace-nowrap">
-            {context === "client" 
-              ? 'Edit client'
-              : 'Edit campaign'
-            }
-          </span>
-        </button>
-      )}
-
-      {actions.includes('addSource') && (
-        <button
-          className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-800"
-          onClick={async () => {
-            if (!onAddSource) return onClose()
-            try {
-              setIsProcessing(true)
-              await Promise.resolve(onAddSource())
-            } finally {
-              setIsProcessing(false)
-              onClose()
-            }
-          }}
-          type="button"
-        >
-          <FilePlus className="h-5 w-5 text-gray-700" />
-          <span className="whitespace-nowrap">Add source</span>
+          <span className="whitespace-nowrap">{getEditText()}</span>
         </button>
       )}
 
@@ -102,7 +94,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
           type="button"
         >
           <Trash2 className="h-5 w-5 text-gray-700" />
-          <span className="whitespace-nowrap">Delete</span>
+          <span className="whitespace-nowrap">{getDeleteText()}</span>
         </button>
       )}
     </div>
@@ -111,32 +103,22 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   if (typeof document === 'undefined') return null
 
   const handleConfirm = async () => {
-    console.log('handleConfirm')
-    console.log('onDelete', onDelete)
-    console.log('itemName', itemName)
     if (!onDelete) return
-    
-    setIsProcessing(true)
     try {
-      console.log('Deleting item:', itemName)
-      onDelete?.()
-      setConfirmOpen(false)
-      onClose()
-    } catch (error: unknown) {
-      console.error('Delete error:', error)
+      setIsProcessing(true)
+      await onDelete()
     } finally {
       setIsProcessing(false)
+      setConfirmOpen(false)
+      onClose()
     }
   }
 
   const overlay = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-      <div 
-        className="relative z-10 max-w-lg w-full max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-6 text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative z-10 max-w-lg w-full mx-4 bg-white rounded-2xl shadow-2xl p-6 text-center">
         <div className="mx-6 my-4 rounded-x p-8">
           <button
             type="button"
@@ -151,12 +133,14 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
 
           <div className="flex justify-center">
             <div className="rounded-full bg-[#f7f9ff] p-5 ">
-              <X className="h-10 w-10 text-gray-500" />
+              <Trash2 className="h-10 w-10 text-gray-500" />
             </div>
           </div>
 
-          <h3 className="mt-6 text-3xl font-bold text-gray-900">Delete</h3>
-          <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-[520px] mx-auto">Are you sure you want to delete {itemName || 'this item'}? This process cannot be undone.</p>
+          <h3 className="mt-6 text-3xl font-bold text-gray-900">{t('confirmDelete.title') || 'Eliminar'}</h3>
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-[520px] mx-auto">
+            {t('confirmDelete.message', { name: itemName || '' }) || `¿Estás seguro de que quieres eliminar ${itemName}?`}
+          </p>
 
           <div className="mt-10 pt-10 flex items-center justify-center gap-6">
             <button
@@ -165,7 +149,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
               onClick={() => setConfirmOpen(false)}
               disabled={isProcessing}
             >
-              Cancel
+              {t('actions.cancel') || 'Cancelar'}
             </button>
 
             <button
@@ -174,7 +158,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
               onClick={handleConfirm}
               disabled={isProcessing}
             >
-              {isProcessing ? 'Deleting...' : 'Delete'}
+              {isProcessing ? (t('actions.deleting') || 'Eliminando...') : (t('actions.delete') || 'Eliminar')}
             </button>
           </div>
         </div>
@@ -191,4 +175,5 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
   )
 }
 
-export default RowActionsMenu
+export default DashboardRowActions
+

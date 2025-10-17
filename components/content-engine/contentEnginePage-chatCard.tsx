@@ -9,10 +9,9 @@ import EditForm from '@/components/content-engine/contentEnginePage-editForm'
 import { useTemplates } from '@/context/TemplatesContext'
 import { useAuth } from '@/context/AuthContext'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { generateSummaryAction, iterateSummaryAction, getUserSummariesAction } from '@/actions/summaries'
+import { generateSummaryAction, iterateSummaryAction, getUserSummariesAction, editSummaryAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
 import { generateOutputAction, getLatestOutputAction } from '@/actions/outputs'
-import { getContentEngineSources } from '@/actions/sources'
 import { toast } from 'sonner'
 import SummariesViewDialog from '../dialogs/SummariesViewDialog'
 import SummarySelectionDialog from '../dialogs/SummarySelectionDialog'
@@ -20,11 +19,13 @@ import SummarySelectionDialog from '../dialogs/SummarySelectionDialog'
 interface ChatCardProps {
   selectedSourceIds: string[]
   onOutputGenerated?: () => void
+  onClearSelectedSources?: () => void
 }
 
 export default function ChatCard({
   selectedSourceIds,
-  onOutputGenerated
+  onOutputGenerated,
+  onClearSelectedSources
 }: ChatCardProps) {
     const { templates } = useTemplates()
     const { user } = useAuth()
@@ -38,12 +39,6 @@ export default function ChatCard({
     const [promptText, setPromptText] = useState('')
     const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
-    // Server-side data fetching for sources (for summary generation dialog)
-    const { data: availableSources = [], isLoading: isLoadingSources } = useQuery({
-        queryKey: ['content-engine-sources-for-dialog'],
-        queryFn: getContentEngineSources,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    })
 
     // Server-side data fetching for user summaries (for summaries view dialog)
     const { data: userSummaries = [], isLoading: isLoadingSummaries, refetch: refetchSummaries } = useQuery({
@@ -95,6 +90,19 @@ export default function ChatCard({
         }
     })
 
+    // React Query mutation for saving current summary before generating new one
+    const saveSummaryMutation = useMutation({
+        mutationFn: (summary: SummaryResponse) => 
+            editSummaryAction(summary._id, summary.title, summary.content),
+        onSuccess: () => {
+            console.log('Current summary saved successfully')
+        },
+        onError: (error: Error) => {
+            console.error('Failed to save current summary:', error)
+            toast.error('Failed to save current summary')
+        }
+    })
+
     // React Query mutation for chat-based summary modification using iterate endpoint
     const chatMutation = useMutation({
         mutationFn: ({ summary, prompt }: { summary: SummaryResponse, prompt: string }) => 
@@ -136,16 +144,36 @@ export default function ChatCard({
     // Check if we have content (either generated summary or selected sources)
     const hasContent = generatedSummary !== null
 
-    const handleAddSources = () => {
+    const handleAddSources = async () => {
         if (selectedSourceIds.length === 0) {
             toast.error('Please select at least one source to generate a summary')
             return
         }
         
-        generateSummaryMutation.mutate({ sourceIds: selectedSourceIds })
+        // If there's a current summary, save it first
+        if (generatedSummary) {
+            try {
+                await saveSummaryMutation.mutateAsync(generatedSummary)
+                toast.success('Previous summary saved')
+            } catch (error) {
+                console.error('Failed to save previous summary:', error)
+                // Continue with generation even if save fails
+            }
+        }
+        
+        // Clear current summary and generate new one
+        setGeneratedSummary(null)
+        
+        // Don't clear selected sources - let user keep their selection
+        // onClearSelectedSources?.() // Removed this line that was causing the issue
+        
+        generateSummaryMutation.mutate({ 
+            sourceIds: selectedSourceIds,
+            prompts: promptText.trim() ? [promptText.trim()] : undefined
+        })
     }
 
-    const handleSendPrompt = () => {
+    const handleSendPrompt = async () => {
         if (!promptText.trim()) {
             toast.error('Please enter a prompt')
             return
@@ -160,6 +188,17 @@ export default function ChatCard({
                 toast.error('Please select at least one source to generate a summary')
                 return
             }
+            
+            // Save current summary if it exists before generating new one
+            if (generatedSummary) {
+                try {
+                    await saveSummaryMutation.mutateAsync(generatedSummary)
+                    toast.success('Previous summary saved')
+                } catch (error) {
+                    console.error('Failed to save previous summary:', error)
+                }
+            }
+            
             const prompts = [promptText.trim()]
             generateSummaryMutation.mutate({ sourceIds: selectedSourceIds, prompts })
         }
@@ -241,18 +280,6 @@ export default function ChatCard({
         }
     }
 
-    // Handler for when a new summary is generated from the dialog
-    const handleNewSummaryGenerated = (newSummary: SummaryResponse) => {
-        // Save current summary to localStorage as backup if it exists
-        if (generatedSummary) {
-            const backupKey = `contentEngine_summary_backup_${Date.now()}`
-            localStorage.setItem(backupKey, JSON.stringify(generatedSummary))
-        }
-        
-        // Load the new summary
-        setGeneratedSummary(newSummary)
-        toast.success('New summary loaded! Previous summary saved.')
-    }
 
     // Handler for when a summary is selected from the view dialog
     const handleSummarySelected = (selectedSummary: SummaryResponse) => {
@@ -308,9 +335,12 @@ export default function ChatCard({
                             onRefreshSummaries={refetchSummaries}
                         />
                         <SummarySelectionDialog 
-                            sources={availableSources}
-                            isLoadingSources={isLoadingSources}
-                            onSummaryGenerated={handleNewSummaryGenerated}
+                            onGenerateNewSummary={() => {
+                                // Clear current summary to show empty state
+                                setGeneratedSummary(null)
+                                // Clear selected sources to allow user to select new ones
+                                onClearSelectedSources?.()
+                            }}
                         />
                     </div>
                 </div>
@@ -447,22 +477,6 @@ export default function ChatCard({
                             </div>
                         )}
 
-                        {/* Generate Output Button */}
-                        <div className="pt-3 md:pt-4">
-                            <Button 
-                                onClick={handleGenerateOutput}
-                                disabled={!generatedSummary || selectedTemplateIds.length === 0 || generateOutputMutation.isPending}
-                                className="w-full bg-[#31499f] hover:bg-[#2a3d85] text-white rounded-full disabled:opacity-50"
-                            >
-                                {generateOutputMutation.isPending 
-                                    ? 'Generating Output...' 
-                                    : selectedTemplateIds.length > 0 
-                                        ? `Generate Output (${selectedTemplateIds.length} template${selectedTemplateIds.length !== 1 ? 's' : ''})`
-                                        : 'Select templates to generate output'
-                                }
-                            </Button>
-                        </div>
-                        
                         {/* Content Generators */}
                         <div className="pt-3 md:pt-4">
                             <h5 className="text-xs md:text-sm font-medium text-gray-700 mb-2 md:mb-3">Generadores de contenido</h5>
@@ -544,6 +558,22 @@ export default function ChatCard({
                                 </button>
                             </div>
                             
+                        </div>
+
+                        {/* Generate Output Button */}
+                        <div className="pt-3 md:pt-4">
+                            <Button 
+                                onClick={handleGenerateOutput}
+                                disabled={!generatedSummary || selectedTemplateIds.length === 0 || generateOutputMutation.isPending}
+                                className="w-full bg-[#31499f] hover:bg-[#2a3d85] text-white rounded-full disabled:opacity-50"
+                            >
+                                {generateOutputMutation.isPending 
+                                    ? 'Generating Output...' 
+                                    : selectedTemplateIds.length > 0 
+                                        ? `Generate Output (${selectedTemplateIds.length} template${selectedTemplateIds.length !== 1 ? 's' : ''})`
+                                        : 'Select templates to generate output'
+                                }
+                            </Button>
                         </div>
                     </div>
                 )}

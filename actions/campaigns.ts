@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import axios from "axios";
+import { getCurrentUserIdAction } from "./auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -83,7 +84,7 @@ export async function createCampaignAction(clientId: string, data: {
     console.error('Create campaign error:', error);
 
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { status?: number; data?: any } };
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
       if (axiosError.response?.status === 401) {
         return {
           success: false,
@@ -180,8 +181,16 @@ export async function getAllCampaignsAction() {
       throw new Error('Authentication required');
     }
 
-    // Fetch all folders, then filter for campaigns on the frontend
-    const response = await axios.post(`${BACKEND_URL}/folders`, {}, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
+    // Fetch folders with user filtering
+    const response = await axios.post(`${BACKEND_URL}/folders`, {
+      user: userIdResult.userId
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -226,5 +235,32 @@ export async function getAllCampaignsAction() {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch campaigns'
     };
+  }
+}
+
+/**
+ * Server action to delete a campaign (folder with type "campaign")
+ */
+export async function deleteCampaignAction(campaignId: string) {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  const response = await axios.post(`${BACKEND_URL}/folders/remove`, {
+    folder: campaignId
+  }, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (response.status === 200) {
+    revalidatePath('/clients');
+    revalidatePath('/[locale]/clients', 'page');
+    return { success: true };
+  } else {
+    throw new Error('Failed to delete campaign');
   }
 }

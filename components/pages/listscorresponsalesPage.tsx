@@ -6,6 +6,7 @@ import { DataTable, type Column } from "../lists-tableData"
 import { useClient } from "@/context/ClientContext"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
+import SourcesAdministrator from "./dashboardPage-Forms"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -63,6 +64,7 @@ const fuentesData = Array.from({ length: 25 }, () => ({
 
  function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")
+  const [isCorresponsablesAdminOpen, setIsCorresponsablesAdminOpen] = useState(false)
   const { selectedClient, isClientSelected } = useClient()
   
   // Fetch corresponsables data using React Query
@@ -78,16 +80,26 @@ const fuentesData = Array.from({ length: 25 }, () => ({
     ? transformCorresponsablesData(corresponsables) 
     : fuentesData
 
+  const handleAddClick = () => {
+    setIsCorresponsablesAdminOpen(true)
+  }
+
+  const handleCloseCorresponsablesAdmin = () => {
+    setIsCorresponsablesAdminOpen(false)
+  }
+
   return (
-    <DashboardLayout
-      title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
-      breadcrumbs={[
-        { label: "Dashboard" }, 
-        { label: "Clientes" , href: "/clients/channels" }, 
-        { label: "Listado Corresponsales" }
-      ]}
-      onAddClick={() => console.log("Add clicked")}
-    >
+    <>
+      <DashboardLayout
+        title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
+        breadcrumbs={[
+          { label: "Dashboard" }, 
+          { label: "Clientes" , href: "/clients/channels" }, 
+          { label: "Listado Corresponsales" }
+        ]}
+        onAddClick={handleAddClick}
+        addButtonText="Agregar Corresponsable"
+      >
       <DataTable
         columns={currentColumns}
         data={currentData}
@@ -105,7 +117,16 @@ const fuentesData = Array.from({ length: 25 }, () => ({
         isLoading={isLoading}
         error={error}
       />
-    </DashboardLayout>
+      </DashboardLayout>
+
+      <SourcesAdministrator
+        isOpen={isCorresponsablesAdminOpen}
+        onClose={handleCloseCorresponsablesAdmin}
+        references={[]}
+        sources={[]}
+        defaultTab="corresponsales"
+      />
+    </>
   )
 }
 

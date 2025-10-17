@@ -7,7 +7,7 @@ import OutputCard from "@/components/content-engine/contentEnginePage-outputCard
 import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'
-import { getLatestOutputAction } from '@/actions/outputs'
+import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
@@ -25,10 +25,10 @@ export default function ContentEnginePage(){
     const [isLoadingSources, setIsLoadingSources] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
-    // Server-side data fetching for latest output
-    const { data: latestOutput, isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
-        queryKey: ['latest-output-content-engine'],
-        queryFn: getLatestOutputAction,
+    // Server-side data fetching for all outputs with template names
+    const { data: allOutputs = [], isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
+        queryKey: ['all-outputs-with-templates'],
+        queryFn: getOutputsWithTemplateNamesAction,
         staleTime: 30 * 1000, // 30 seconds
     })
 
@@ -76,6 +76,10 @@ export default function ContentEnginePage(){
     const handleSourceAdded = async () => {
         await refreshSources()
         console.log('Source added successfully - sources refreshed')
+    }
+
+    const handleClearSelectedSources = () => {
+        setSelectedSourceIds([])
     } 
 
     return (
@@ -178,6 +182,7 @@ export default function ContentEnginePage(){
                                     <ChatCard 
                                         selectedSourceIds={selectedSourceIds}
                                         onOutputGenerated={refetchOutput}
+                                        onClearSelectedSources={handleClearSelectedSources}
                                     />
                                 </div>
                             </section>
@@ -186,8 +191,9 @@ export default function ContentEnginePage(){
                             <aside className="w-80 h-full">
                                 <div className="h-full">
                                     <OutputCard 
-                                        latestOutput={latestOutput || null}
+                                        allOutputs={allOutputs}
                                         isLoadingOutput={isLoadingOutput}
+                                        onOutputsChange={refetchOutput}
                                     />
                                 </div>
                             </aside>
@@ -217,14 +223,16 @@ export default function ContentEnginePage(){
                                 <ChatCard 
                                     selectedSourceIds={selectedSourceIds}
                                     onOutputGenerated={refetchOutput}
+                                    onClearSelectedSources={handleClearSelectedSources}
                                 />
                             </div>
                         )}
                         {activeTab === 'output' && (
                             <div className="h-full">
                                 <OutputCard 
-                                    latestOutput={latestOutput || null}
+                                    allOutputs={allOutputs}
                                     isLoadingOutput={isLoadingOutput}
+                                    onOutputsChange={refetchOutput}
                                 />
                             </div>
                         )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, Search, Calendar, Filter, Clock, ChevronDown } from "lucide-react"
+import { Plus, Search, Filter, Clock, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,6 @@ interface ClientsHeaderProps {
 export function ClientsHeader({ onCreateClient }: ClientsHeaderProps) {
   const t = useTranslations('CLIENTS')
   const tFilters = useTranslations('FILTERS')
-  const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined)
 
   return (
     <div className="mb-8">
@@ -51,27 +50,10 @@ export function ClientsHeader({ onCreateClient }: ClientsHeaderProps) {
         <div className="flex items-center gap-3">
           {/* Desktop filters: hidden on small screens */}
           <div className="hidden sm:flex items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {selectedMonth ? tFilters(`months.${selectedMonth}`) : tFilters('date')}
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuRadioGroup value={selectedMonth} onValueChange={(v) => setSelectedMonth(v)}>
-                  <DropdownMenuRadioItem value="january">{tFilters('months.january')}</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="february">{tFilters('months.february')}</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="march">{tFilters('months.march')}</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="april">{tFilters('months.april')}</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50">
+                <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50" suppressHydrationWarning>
                   <Filter className="h-4 w-4 mr-2" />
                   {tFilters('status')}
                   <ChevronDown className="h-4 w-4 ml-2" />
@@ -86,7 +68,7 @@ export function ClientsHeader({ onCreateClient }: ClientsHeaderProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50">
+                <Button variant="outline" className="bg-white border-gray-200 text-gray-600 hover:bg-gray-50" suppressHydrationWarning>
                   <Clock className="h-4 w-4 mr-2" />
                   {tFilters('recent')}
                   <ChevronDown className="h-4 w-4 ml-2" />

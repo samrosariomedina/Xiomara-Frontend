@@ -12,11 +12,42 @@ const protectedRoutes = [
   // '/dashboard',
 ];
 
+// Define auth routes that should redirect authenticated users
+const authRoutes = [
+  '/auth/login',
+  '/auth/signup',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/pending',
+];
+
 // Create authentication middleware
 export default function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
   const pathname = request.nextUrl.pathname;
   
+  // Check for the authentication token in cookies
+  const token = request.cookies.get('authToken')?.value;
+  
+  // Determine the locale from the URL
+  let locale = 'en'; // default locale
+  if (pathname.startsWith('/es/')) {
+    locale = 'es';
+  } else if (pathname.startsWith('/en/')) {
+    locale = 'en';
+  }
+
+  // Check if the route is a root route (just / or /en or /es)
+  const isRootRoute = pathname === '/' || pathname === '/en' || pathname === '/es' || 
+                     pathname === `/${locale}` || pathname === `/${locale}/`;
+
+  // Check if the route is an auth route
+  const isAuthRoute = authRoutes.some(route => 
+    pathname.startsWith(route) || 
+    pathname.startsWith(`/en${route}`) || 
+    pathname.startsWith(`/es${route}`)
+  );
+
   // Check if the route is protected
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname.startsWith(route) || 
@@ -24,25 +55,14 @@ export default function middleware(request: NextRequest) {
     pathname.startsWith(`/es${route}`)
   );
 
-  // If it's not a protected route, return the response as is
-  if (!isProtectedRoute) {
-    return response;
+  // If user is authenticated and trying to access root or auth routes, redirect to clients
+  if (token && (isRootRoute || isAuthRoute)) {
+    const clientsUrl = new URL(`/${locale}/clients`, request.url);
+    return NextResponse.redirect(clientsUrl);
   }
-
-  // Check for the authentication token in cookies
-  const token = request.cookies.get('authToken')?.value;
 
   // If there's no token and the route is protected, redirect to login
   if (!token && isProtectedRoute) {
-    // Determine the locale from the URL
-    let locale = 'en'; // default locale
-    if (pathname.startsWith('/es/')) {
-      locale = 'es';
-    } else if (pathname.startsWith('/en/')) {
-      locale = 'en';
-    }
-    
-    // Redirect to the login page with the appropriate locale
     const loginUrl = new URL(`/${locale}/auth/login`, request.url);
     return NextResponse.redirect(loginUrl);
   }

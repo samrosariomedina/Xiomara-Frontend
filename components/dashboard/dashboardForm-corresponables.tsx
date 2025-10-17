@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Download, Eye, Users, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -13,11 +13,16 @@ import { Checkbox } from "@/components/ui/checkbox"
 import HeaderControls from "../ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
-import { corresponsablesSchema, validateForm } from '@/lib/schemas'
+import { corresponsablesSchema, type CorresponsablesInput } from '@/lib/schemas'
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useClient } from "@/context/ClientContext"
 import { formatDateSafe } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
+import { useSharing } from "@/hooks/useSharing"
+import { createCorresponsableWithSharingAction } from "@/actions/corresponsables"
+import { toast } from "sonner"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 interface CorresponsableData {
   _id: string;
@@ -30,40 +35,48 @@ interface CorresponsableData {
   };
 }
 
-interface FormData {
-  name: string
-  whatsapp: string
-  other: string
-  accountType: string
-  invitationMethods: {
-    whatsapp: boolean
-    email: boolean
-    copyLink: boolean
-  }
-}
+// Use the schema type directly
+type CorresponsableFormData = CorresponsablesInput
 
 interface CorresponsalesFormProps {
-  onSubmit?: (data: FormData) => void
+  onSubmit?: (data: CorresponsableFormData) => void
 }
 
 export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   const [showForm, setShowForm] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [form, setForm] = useState<FormData>({
-    name: "",
-    whatsapp: "",
-    other: "",
-    accountType: "",
-    invitationMethods: {
-      whatsapp: false,
-      email: false,
-      copyLink: false,
+  
+  // Use react-hook-form like the client form
+  const form = useForm<CorresponsableFormData>({
+    resolver: zodResolver(corresponsablesSchema),
+    defaultValues: {
+      clientName: "",
+      email: "",
+      whatsapp: "",
+      accountType: "basic",
+      telegramToken: "",
+      invitationMethods: {
+        whatsapp: false,
+        telegram: false,
+        email: false,
+        copyLink: false,
+      },
     },
+    mode: "onSubmit"
   })
+  
+  const { register, setValue, formState: { errors }, watch, handleSubmit, clearErrors } = form
 
   const tForm = useTranslations('CORRESPONSABLES_FORM')
   const tMain = useTranslations('CORRESPONSABLES')
   const router = useRouter()
+  const { executeSharing } = useSharing()
+
+  // Clear errors when form is shown
+  useEffect(() => {
+    if (showForm) {
+      clearErrors()
+    }
+  }, [showForm, clearErrors])
   
   // Get selected client from context
   const { selectedClient } = useClient()
@@ -89,14 +102,15 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
 
   // Account type options
   const accountTypeOptions = [
-    { value: "admin", label: tForm('form.accountTypes.admin') },
-    { value: "user", label: tForm('form.accountTypes.user') },
-    { value: "guest", label: tForm('form.accountTypes.guest') }
+    { value: "premium", label: "Premium" },
+    { value: "standard", label: "Standard" },
+    { value: "basic", label: "Basic" }
   ]
 
   const getAccountTypeLabel = () => {
-    const found = accountTypeOptions.find(opt => opt.value === form.accountType)
-    return found ? found.label : tForm('form.selectPlaceholder')
+    const currentValue = watch('accountType')
+    const found = accountTypeOptions.find(opt => opt.value === currentValue)
+    return found ? found.label : "Select account type"
   }
 
   const headerActions = [
@@ -108,34 +122,124 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
 
   const handleCancel = () => {
-    setErrors({}) // Clear validation errors
-    setForm({ name: "", whatsapp: "", other: "", accountType: "", invitationMethods: { whatsapp: false, email: false, copyLink: false } })
+    form.reset({
+      clientName: "",
+      email: "",
+      whatsapp: "",
+      accountType: "basic",
+      telegramToken: "",
+      invitationMethods: {
+        whatsapp: false,
+        telegram: false,
+        email: false,
+        copyLink: false,
+      },
+    })
     setShowForm(false)
   }
 
-  const handleAdd = () => {
-    // Validate form data
-    const validation = validateForm(corresponsablesSchema, form)
-    
-    if (!validation.success) {
-      setErrors(validation.errors || {})
+  // Form submission handler that matches the client form
+  const handleCorrespondentSubmission = async (data: CorresponsableFormData) => {
+    if (!selectedClient?._id) {
+      toast.error('No client selected')
       return
     }
 
-    setErrors({}) // Clear any previous errors
-    const id = localSources.length + 1
-    const newItem: SourceItem = {
-      id,
-      name: form.name || "Nombre",
-      type: "image",
-      category: "Marketing",
-      timestamp: "20min",
+    try {
+      console.log('Creating corresponsable with data:', {
+        clientName: data.clientName,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        accountType: data.accountType,
+        telegramToken: data.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
+        invitationMethods: data.invitationMethods
+      });
+      
+      const result = await createCorresponsableWithSharingAction(selectedClient._id, {
+        clientName: data.clientName,
+        email: data.email || "",
+        whatsapp: data.whatsapp,
+        accountType: data.accountType,
+        telegramToken: data.telegramToken,
+        invitationMethods: data.invitationMethods
+      });
+
+      if (result.success && result.data) {
+        const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
+        
+        if (sharingError) {
+          toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
+        }
+
+        // Execute sharing if methods are selected and we have the data
+        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
+          if (shareUrl && message) {
+            await executeSharing(
+              {
+                shareUrl,
+                message,
+                email: data.email,
+                clientName: data.clientName
+              },
+              invitationMethods
+            );
+          } else {
+            toast.warning('Corresponsable created but sharing data unavailable');
+          }
+        }
+
+        const listenerCount = listeners ? listeners.length : 1;
+        const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
+        toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
+        
+        // Add to local sources for immediate UI update
+        const newItem: SourceItem = {
+          id: Date.now(), // Temporary ID for UI
+          name: data.clientName,
+          type: "text",
+          category: "Corresponsable",
+          timestamp: "Just now",
+        }
+        setLocalSources([...localSources, newItem])
+        onSubmit?.(data)
+        // Clear form and errors
+        form.reset({
+          clientName: "",
+          email: "",
+          whatsapp: "",
+          accountType: "basic",
+          telegramToken: "",
+          invitationMethods: {
+            whatsapp: false,
+            telegram: false,
+            email: false,
+            copyLink: false,
+          },
+        })
+        setShowForm(false)
+      } else {
+        toast.error(result.error || 'Failed to create corresponsable');
+      }
+    } catch (error) {
+      console.error('Error creating corresponsable:', error);
+      toast.error('Failed to create corresponsable');
     }
-    setLocalSources([...localSources, newItem])
-    onSubmit?.(form)
-    setForm({ name: "", whatsapp: "", other: "", accountType: "", invitationMethods: { whatsapp: false, email: false, copyLink: false } })
-    setShowForm(false)
   }
+
+  const handleAdd = handleSubmit(
+    (data) => {
+      console.log('Form validation passed, data:', data)
+      console.log('Current form values:', form.getValues())
+      console.log('Current form errors:', form.formState.errors)
+      handleCorrespondentSubmission(data)
+    },
+    (errors) => {
+      console.log('Form validation failed, errors:', errors)
+      console.log('Current form values:', form.getValues())
+      // Clear any stale errors
+      form.clearErrors()
+    }
+  )
 
   // loading state
   if (isLoading) {
@@ -176,7 +280,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
       <div className="h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={localSources} onKebabClick={(id) => console.log("kebab", id)} />
+          <SourcesList sources={localSources} pageType="corresponsables" />
         </div>
       </div>
     )
@@ -215,37 +319,35 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
         {/* Mobile & medium simplified layout */}
         <div className="lg:hidden space-y-4">
           <div>
-            <label className="text-sm text-gray-700 mb-1 block">{tForm('form.clientName')}</label>
+            <label className="text-sm text-gray-700 mb-1 block">Client Name</label>
             <input 
-              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.name ? 'border-red-500' : 'border-gray-200'}`} 
-              value={form.name} 
-              onChange={(e) => setForm({ ...form, name: e.target.value })} 
+              {...register('clientName')}
+              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.clientName ? 'border-red-500' : 'border-gray-200'}`} 
             />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.clientName && <p className="text-red-500 text-xs mt-1">{errors.clientName.message}</p>}
           </div>
 
           <div>
-            <label className="text-sm text-gray-700 mb-1 block">{tForm('form.whatsapp')}</label>
+            <label className="text-sm text-gray-700 mb-1 block">Email</label>
             <input 
+              type="email"
+              {...register('email')}
+              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.email ? 'border-red-500' : 'border-gray-200'}`} 
+            />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
+            <input 
+              {...register('whatsapp')}
               className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
-              value={form.whatsapp} 
-              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} 
             />
-            {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
+            {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
           </div>
 
           <div>
-            <label className="text-sm text-gray-700 mb-1 block">{tForm('form.other')}</label>
-            <input 
-              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.other ? 'border-red-500' : 'border-gray-200'}`} 
-              value={form.other} 
-              onChange={(e) => setForm({ ...form, other: e.target.value })} 
-            />
-            {errors.other && <p className="text-red-500 text-xs mt-1">{errors.other}</p>}
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">{tForm('form.accountType')}</label>
+            <label className="text-sm text-gray-700 mb-1 block">Account Type</label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -262,7 +364,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
                 {accountTypeOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.value}
-                    onClick={() => setForm({ ...form, accountType: option.value })}
+                    onClick={() => setValue('accountType', option.value as "premium" | "standard" | "basic")}
                     className="cursor-pointer"
                   >
                     {option.label}
@@ -270,43 +372,53 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType}</p>}
+            {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
           </div>
 
           <div>
-            <div className="text-sm text-gray-600 mb-2">{tForm('form.invitationMethodsTitle')}</div>
-            <div className="flex flex-wrap gap-3">
+            <div className="text-sm text-gray-600 mb-2">How do you want to send the invitation?</div>
+            <div className="flex flex-wrap gap-4">
               <label className="inline-flex items-center space-x-2">
                 <Checkbox
                   id="whatsapp"
-                  checked={form.invitationMethods.whatsapp}
-                  onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, whatsapp: !!checked } })}
+                  checked={watch('invitationMethods.whatsapp')}
+                  onCheckedChange={(checked) => setValue('invitationMethods.whatsapp', !!checked)}
                   className="border-gray-300 h-4 w-4"
                 />
-                <span className="text-sm">{tForm('form.sendWhatsapp')}</span>
+                <span className="text-sm">Send via WhatsApp</span>
+              </label>
+
+              <label className="inline-flex items-center space-x-2">
+                <Checkbox
+                  id="telegram"
+                  checked={watch('invitationMethods.telegram')}
+                  onCheckedChange={(checked) => setValue('invitationMethods.telegram', !!checked)}
+                  className="border-gray-300 h-4 w-4"
+                />
+                <span className="text-sm">Send via Telegram</span>
               </label>
 
               <label className="inline-flex items-center space-x-2">
                 <Checkbox
                   id="email"
-                  checked={form.invitationMethods.email}
-                  onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, email: !!checked } })}
+                  checked={watch('invitationMethods.email')}
+                  onCheckedChange={(checked) => setValue('invitationMethods.email', !!checked)}
                   className="border-gray-300 h-4 w-4"
                 />
-                <span className="text-sm">{tForm('form.sendEmail')}</span>
+                <span className="text-sm">Send via email</span>
               </label>
 
               <label className="inline-flex items-center space-x-2">
                 <Checkbox
                   id="copyLink"
-                  checked={form.invitationMethods.copyLink}
-                  onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, copyLink: !!checked } })}
+                  checked={watch('invitationMethods.copyLink')}
+                  onCheckedChange={(checked) => setValue('invitationMethods.copyLink', !!checked)}
                   className="border-gray-300 h-4 w-4"
                 />
-                <span className="text-sm">{tForm('form.copyLink')}</span>
+                <span className="text-sm">Copy the link and share</span>
               </label>
             </div>
-            {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods}</p>}
+            {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods.message}</p>}
           </div>
         </div>
 
@@ -314,35 +426,33 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
         <div className="hidden lg:block">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-700 mb-1 block">{tForm('form.clientName')}</label>
+              <label className="text-sm text-gray-700 mb-1 block">Client Name</label>
               <input 
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.name ? 'border-red-500' : 'border-gray-200'}`} 
-                value={form.name} 
-                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                {...register('clientName')}
+                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.clientName ? 'border-red-500' : 'border-gray-200'}`} 
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              {errors.clientName && <p className="text-red-500 text-xs mt-1">{errors.clientName.message}</p>}
             </div>
             <div>
-              <label className="text-sm text-gray-700 mb-1 block">{tForm('form.whatsapp')}</label>
+              <label className="text-sm text-gray-700 mb-1 block">Email</label>
               <input 
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
-                value={form.whatsapp} 
-                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} 
+                type="email"
+                {...register('email')}
+                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.email ? 'border-red-500' : 'border-gray-200'}`} 
               />
-              {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
             <div>
-              <label className="text-sm text-gray-700 mb-1 block">{tForm('form.other')}</label>
+              <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
               <input 
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.other ? 'border-red-500' : 'border-gray-200'}`} 
-                value={form.other} 
-                onChange={(e) => setForm({ ...form, other: e.target.value })} 
+                {...register('whatsapp')}
+                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
               />
-              {errors.other && <p className="text-red-500 text-xs mt-1">{errors.other}</p>}
+              {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
             </div>
             <div>
-              <label className="text-sm text-gray-700 mb-1 block">{tForm('form.accountType')}</label>
+              <label className="text-sm text-gray-700 mb-1 block">Account Type</label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -359,7 +469,7 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
                   {accountTypeOptions.map((option) => (
                     <DropdownMenuItem
                       key={option.value}
-                      onClick={() => setForm({ ...form, accountType: option.value })}
+                      onClick={() => setValue('accountType', option.value as "premium" | "standard" | "basic")}
                       className="cursor-pointer"
                     >
                       {option.label}
@@ -367,43 +477,53 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType}</p>}
+              {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
             </div>
 
             <div className="col-span-2 mt-2">
-              <div className="text-sm text-gray-600 mb-2">{tForm('form.invitationMethodsTitle')}</div>
-              <div className="flex items-center space-x-4">
-                <label className="inline-flex items-center  space-x-2">
+              <div className="text-sm text-gray-600 mb-2">How do you want to send the invitation?</div>
+              <div className="flex items-center space-x-6">
+                <label className="inline-flex items-center space-x-2">
                   <Checkbox
                     id="whatsapp-d"
-                    checked={form.invitationMethods.whatsapp}
-                    onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, whatsapp: !!checked } })}
+                    checked={watch('invitationMethods.whatsapp')}
+                    onCheckedChange={(checked) => setValue('invitationMethods.whatsapp', !!checked)}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm">{tForm('form.sendWhatsapp')}</span>
+                  <span className="text-sm">Send via WhatsApp</span>
+                </label>
+
+                <label className="inline-flex items-center space-x-2">
+                  <Checkbox
+                    id="telegram-d"
+                    checked={watch('invitationMethods.telegram')}
+                    onCheckedChange={(checked) => setValue('invitationMethods.telegram', !!checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm">Send via Telegram</span>
                 </label>
 
                 <label className="inline-flex items-center space-x-2">
                   <Checkbox
                     id="email-d"
-                    checked={form.invitationMethods.email}
-                    onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, email: !!checked } })}
+                    checked={watch('invitationMethods.email')}
+                    onCheckedChange={(checked) => setValue('invitationMethods.email', !!checked)}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm">{tForm('form.sendEmail')}</span>
+                  <span className="text-sm">Send via email</span>
                 </label>
 
                 <label className="inline-flex items-center space-x-2">
                   <Checkbox
                     id="copyLink-d"
-                    checked={form.invitationMethods.copyLink}
-                    onCheckedChange={(checked) => setForm({ ...form, invitationMethods: { ...form.invitationMethods, copyLink: !!checked } })}
+                    checked={watch('invitationMethods.copyLink')}
+                    onCheckedChange={(checked) => setValue('invitationMethods.copyLink', !!checked)}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm">{tForm('form.copyLink')}</span>
+                  <span className="text-sm">Copy the link and share</span>
                 </label>
               </div>
-              {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods}</p>}
+              {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods.message}</p>}
             </div>
           </div>
         </div>

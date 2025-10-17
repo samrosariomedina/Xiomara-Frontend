@@ -14,6 +14,7 @@ interface SourcesAdministratorProps {
   onClose: () => void
   references: ReferenceResponse[]
   sources: SourceResponse[]
+  defaultTab?: string
 }
 
 interface SourceData {
@@ -21,7 +22,7 @@ interface SourceData {
   [key: string]: unknown
 }
 
-export function SourcesAdministrator({ isOpen, onClose, references, sources }: SourcesAdministratorProps) {
+export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales" }: SourcesAdministratorProps) {
   // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
   const [visible, setVisible] = useState(isOpen)
   const [active, setActive] = useState(isOpen)
@@ -40,7 +41,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources }: S
     }
   }, [isOpen])
   // Local state management
-  const [activeTab, setActiveTab] = useState("fuentes-generales")
+  const [activeTab, setActiveTab] = useState(defaultTab)
   const [localSources, setLocalSources] = useState<
     Array<{
       id: number

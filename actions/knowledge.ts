@@ -5,6 +5,7 @@ import { cookies } from "next/headers"
 import axios from 'axios'
 import FormData from 'form-data'
 import type { KnowledgeBaseInput, ReferenceResponse } from '@/lib/schemas'
+import { getCurrentUserIdAction } from "./auth"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -30,9 +31,19 @@ export async function getReferencesAction(): Promise<ReferenceResponse[]> {
       throw new Error('Authentication required');
     }
 
-    const response = await axios.post(`${API_BASE_URL}/references`, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
+    // For non-admin users, let the backend handle user filtering automatically
+    // Only send user parameter for admin users who need to query other users' data
+    const requestBody: { types: string[] } = {
       types: ['text', 'webpage', 'file'] // Filter for knowledge base types
-    }, {
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -59,9 +70,19 @@ export async function getReferences(): Promise<ReferenceResponse[]> {
       return [];
     }
 
-    const response = await axios.post(`${API_BASE_URL}/references`, {
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+
+    // For non-admin users, let the backend handle user filtering automatically
+    const requestBody: { types: string[] } = {
       types: ['text', 'webpage', 'file']
-    }, {
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
