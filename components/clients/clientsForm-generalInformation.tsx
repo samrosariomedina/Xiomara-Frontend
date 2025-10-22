@@ -119,6 +119,23 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
   // Form validity is managed internally - no need to notify parent
 
   // Watch form values to sync with local state
+  // Reset form when initialValues change (for edit mode)
+  useEffect(() => {
+    if (initialValues) {
+      form.reset({
+        clientName: initialValues.clientName || "",
+        industry: initialValues.industry || "tecnologia",
+        description: initialValues.description || "",
+        contactName: initialValues.contactName || "",
+        whatsapp: initialValues.whatsapp || undefined,
+        position: initialValues.position || "ceo",
+        email: initialValues.email || undefined,
+      });
+      setSelectedIndustry(initialValues.industry || "tecnologia");
+      setSelectedPosition(initialValues.position || "ceo");
+    }
+  }, [initialValues, form]);
+
   useEffect(() => {
     const subscription = watch((value) => {
       // Sync dropdown states with form values

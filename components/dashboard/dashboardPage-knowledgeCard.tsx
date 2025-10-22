@@ -10,9 +10,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
 import { formatDateSafe } from '@/lib/utils'
-import { useDataWithCache } from '@/hooks/useDataWithCache'
-import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
+import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
 
 // Define types for knowledge base data
 interface KnowledgeItem {
@@ -25,22 +24,19 @@ interface KnowledgeItem {
 
 interface KnowledgeBaseSectionProps {
   references: ReferenceResponse[]
+  onEdit: (reference: ReferenceResponse) => void
+  onDelete: (referenceId: string) => Promise<void>
 }
 
-export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) {
-  const { selectedClient } = useClient()
-  
-  // Use caching for references
-  const {
-    data: cachedReferences
-  } = useDataWithCache(references, { cacheKey: 'references' })
+export function KnowledgeBaseSection({ references, onEdit, onDelete }: KnowledgeBaseSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [menuOpen, setMenuOpen] = useState<{referenceId: string, left: number, top: number} | null>(null)
   const t = useTranslations('KNOWLEDGE')
   const router = useRouter()
   const pathname = usePathname()
 
-  // Transform references to KnowledgeItem format
-  const knowledgeItems: KnowledgeItem[] = cachedReferences.map((ref) => {
+  // Transform references to KnowledgeItem format - no caching
+  const knowledgeItems: KnowledgeItem[] = references.map((ref) => {
     // Handle both old string content and new object content
     // const content = typeof ref.content === 'string' ? ref.content : ref.content;
     const displayName = ref.title || 'Untitled';
@@ -130,7 +126,19 @@ export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) 
                     <p className="text-sm font-medium text-start text-gray-900">{item.time}</p>
                   </div>
 
-                  <MoreVertical className="h-4 w-4" />
+                  <button
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setMenuOpen({
+                        referenceId: item.id,
+                        left: rect.left,
+                        top: rect.bottom + 8
+                      })
+                    }}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -146,6 +154,27 @@ export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) 
           </Button>
         </div>
       </div>
+
+      {/* Three-dot menu */}
+      {menuOpen && (
+        <DashboardRowActions
+          onEdit={() => {
+            const reference = references.find(r => r._id === menuOpen.referenceId)
+            if (reference) {
+              onEdit(reference)
+            }
+          }}
+          onDelete={async () => {
+            await onDelete(menuOpen.referenceId)
+            setMenuOpen(null)
+          }}
+          onClose={() => setMenuOpen(null)}
+          left={menuOpen.left}
+          top={menuOpen.top}
+          itemName={references.find(r => r._id === menuOpen.referenceId)?.title || 'Knowledge Base'}
+          pageType="knowledge"
+        />
+      )}
     </Card>
   )
 }

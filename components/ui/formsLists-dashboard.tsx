@@ -5,9 +5,9 @@ import { MoreVertical } from "lucide-react"
 import DashboardRowActions from "./dashboard-rowActions"
 
 export type SourceItem = {
-  id: number
+  id: number | string
   name: string
-  type: "image" | "text" | "url"
+  type: "image" | "text" | "url" | "corresponsable"
   category: string
   timestamp: string
 }
@@ -16,6 +16,8 @@ interface SourcesListProps {
   sources: SourceItem[]
   className?: string
   pageType?: "fuentes" | "knowledge" | "corresponsables"
+  onEdit?: (id: number | string) => void
+  onDelete?: (id: number | string) => void
 }
 
 function getInitials(name: string) {
@@ -25,8 +27,8 @@ function getInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
-export default function SourcesList({ sources, className = "", pageType = "fuentes" }: SourcesListProps) {
-  const [openMenuFor, setOpenMenuFor] = useState<{ id: number; left: number; top: number } | null>(null)
+export default function SourcesList({ sources, className = "", pageType = "fuentes", onEdit, onDelete }: SourcesListProps) {
+  const [openMenuFor, setOpenMenuFor] = useState<{ id: number | string; left: number; top: number } | null>(null)
 
   const handleKebabClick = (source: SourceItem, event: React.MouseEvent) => {
     event.preventDefault()
@@ -40,13 +42,15 @@ export default function SourcesList({ sources, className = "", pageType = "fuent
     })
   }
 
-  const handleEdit = (sourceId: number) => {
-    console.log('Edit source:', sourceId)
+  const handleEdit = (sourceId: number | string) => {
+    console.log('📝 SourcesList handleEdit called with sourceId:', sourceId)
+    onEdit?.(sourceId)
     setOpenMenuFor(null)
   }
 
-  const handleDelete = (sourceId: number) => {
-    console.log('Delete source:', sourceId)
+  const handleDelete = (sourceId: number | string) => {
+    console.log('🗑️ SourcesList handleDelete called with sourceId:', sourceId)
+    onDelete?.(sourceId)
     setOpenMenuFor(null)
   }
 

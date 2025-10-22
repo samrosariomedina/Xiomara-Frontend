@@ -556,19 +556,10 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
       throw new Error('Authentication required');
     }
 
-    // Remove listener from folder first
-    await axios.post(`${BACKEND_URL}/folders/pull`, {
-      folder: folderId,
-      listeners: [listenerId]
-    }, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    console.log('🗑️ Attempting to delete corresponsable:', { listenerId, folderId });
 
-    // Then delete the listener
-    const response = await axios.post(`${BACKEND_URL}/listeners/remove`, {
+    // Try to delete the listener directly first
+    const deleteResponse = await axios.post(`${BACKEND_URL}/listeners/remove`, {
       listener: listenerId
     }, {
       headers: {
@@ -577,9 +568,30 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
       }
     });
 
-    if (response.status === 200) {
+    console.log('🗑️ Delete listener response:', deleteResponse.status);
+
+    // If successful, try to remove from folder (this might fail if already removed, that's ok)
+    try {
+      await axios.post(`${BACKEND_URL}/folders/pull`, {
+        folder: folderId,
+        listeners: [listenerId]
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('🗑️ Removed listener from folder');
+    } catch (pullError) {
+      // Ignore folder pull errors as the listener is already deleted
+      console.log('🗑️ Folder pull warning (listener may already be removed):', pullError);
+    }
+
+    if (deleteResponse.status === 200) {
       // Revalidate the clients page to show fresh data
       revalidatePath('/clients');
+      revalidatePath('/[locale]/clients', 'page');
+      console.log('🗑️ Corresponsable deleted successfully');
       return {
         success: true
       };
@@ -587,7 +599,12 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
       throw new Error('Failed to remove corresponsable');
     }
   } catch (error: unknown) {
-    console.error('Remove corresponsable error:', error);
+    console.error('❌ Remove corresponsable error:', error);
+    
+    if (axios.isAxiosError(error)) {
+      console.error('❌ Response data:', error.response?.data);
+      console.error('❌ Response status:', error.response?.status);
+    }
 
     if (error && typeof error === 'object' && 'response' in error) {
       const axiosError = error as { response?: { status?: number } };

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination } from "@/components/ui/pagination"
 import { usePagination } from "@/hooks/usePagination"
 import RowActionsMenu from "@/components/clients/cards-rowActions"
+import { ListRowActions } from "@/components/ui/list-rowActions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,22 @@ export interface DataTableProps {
   showUpdateButton?: boolean
   isLoading?: boolean
   error?: Error | null
+  onEditRow?: (rowId: string) => void
+  onDeleteRow?: (rowId: string) => Promise<void>
+}
+
+// Helper function to get item type label based on card type
+function getItemTypeLabel(cardType?: string): "Source" | "Knowledge" | "Corresponsable" | "Media" {
+  switch (cardType) {
+    case "fuentes":
+      return "Source"
+    case "knowledge-base":
+      return "Knowledge"
+    case "corresponsales":
+      return "Corresponsable"
+    default:
+      return "Media"
+  }
 }
 
 export function DataTable({
@@ -74,6 +91,8 @@ export function DataTable({
   showUpdateButton = false,
   isLoading = false,
   error = null,
+  onEditRow,
+  onDeleteRow,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -606,19 +625,28 @@ export function DataTable({
 
     {/* Row actions menu portal */}
     {menuAnchor && menuFor !== null && (
-      <RowActionsMenu
+      <ListRowActions
         left={Math.round(menuAnchor!.left)}
         top={Math.round(menuAnchor!.top)}
         itemName={menuItemName}
-        actions={menuActions}
-        align={menuAlign}
+        itemType={getItemTypeLabel(cardType)}
         onClose={closeRowMenu}
-        onEdit={() => Promise.resolve()} // implement actual edit handler; don't close menu here
-        onAddSource={() => Promise.resolve()} // implement add source; don't close menu here
-        onDelete={async () => {
-          // perform deletion work here (API call etc.). Return a promise.
-          // RowActionsMenu will call onClose() after the promise resolves.
+        onEdit={() => {
+          if (onEditRow && menuFor !== null) {
+            const row = filteredData[menuFor]
+            if (row?.id) {
+              onEditRow(String(row.id))
+            }
+          }
           return Promise.resolve()
+        }}
+        onDelete={async () => {
+          if (onDeleteRow && menuFor !== null) {
+            const row = filteredData[menuFor]
+            if (row?.id) {
+              await onDeleteRow(String(row.id))
+            }
+          }
         }}
       />
     )}

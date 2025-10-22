@@ -17,10 +17,10 @@ const knowledgeKeys = {
 }
 
 // Get all references/knowledge base items (deprecated - use server-side getReferences instead)
-export function useReferences() {
+export function useReferences(folderId?: string) {
   return useQuery({
     queryKey: knowledgeKeys.lists(),
-    queryFn: getReferencesAction,
+    queryFn: () => getReferencesAction(folderId ? { folderId } : { folderId: '' }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
@@ -90,9 +90,9 @@ export function useKnowledge() {
 
   return {
     // Mutations with backward compatibility
-    createReference: (data: KnowledgeBaseInput, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
+    createReference: (data: KnowledgeBaseInput, folderId?: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
       createReference.mutate(
-        { data, folderId: undefined }, // Will be set by the form component
+        { data, folderId: folderId || '' }, // Will be set by the form component
         {
           onSuccess: options?.onSuccess,
           onError: options?.onError,
@@ -100,9 +100,9 @@ export function useKnowledge() {
       )
     },
     editReference: editReference.mutate,
-    removeReference: (referenceId: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
+    removeReference: (referenceId: string, folderId?: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
       removeReference.mutate(
-        { referenceId, folderId: undefined }, // Will be set by the form component
+        { referenceId, folderId: folderId || '' }, // Will be set by the form component
         {
           onSuccess: options?.onSuccess,
           onError: options?.onError,

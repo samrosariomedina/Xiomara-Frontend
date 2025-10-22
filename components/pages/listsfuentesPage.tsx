@@ -6,9 +6,11 @@ import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
 import { useClient } from "@/context/ClientContext"
-import { useQuery } from '@tanstack/react-query'
-import { getSources } from "@/actions/sources"
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getSources, removeSourceAction } from "@/actions/sources"
 import { ClientOnly } from "@/components/providers/ClientOnly"
+import { toast } from "sonner"
+import type { SourceResponse } from "@/lib/schemas"
 
 const columns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -21,7 +23,9 @@ const columns: Column[] = [
 
 function FuentesGeneralesPage() {
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
+  const [editingSource, setEditingSource] = useState<SourceResponse | null>(null)
   const { selectedClient, isCampaignType, parentClient } = useClient()
+  const queryClient = useQueryClient()
 
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
@@ -57,6 +61,19 @@ function FuentesGeneralesPage() {
     retry: 2,
   })
 
+  // Delete mutation
+  const deleteSourceMutation = useMutation({
+    mutationFn: removeSourceAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sources'] })
+      toast.success('Source deleted successfully')
+    },
+    onError: (error: unknown) => {
+      console.error('Delete source error:', error)
+      toast.error('Failed to delete source')
+    }
+  })
+
   // Transform sources to table data format
   const data = sources.map((source) => ({
     id: source._id,
@@ -69,11 +86,25 @@ function FuentesGeneralesPage() {
   }))
 
   const handleAddClick = () => {
+    setEditingSource(null)
     setIsSourcesAdminOpen(true)
+  }
+
+  const handleEditRow = (rowId: string) => {
+    const source = sources.find(s => s._id === rowId)
+    if (source) {
+      setEditingSource(source)
+      setIsSourcesAdminOpen(true)
+    }
+  }
+
+  const handleDeleteRow = async (rowId: string) => {
+    await deleteSourceMutation.mutateAsync(rowId)
   }
 
   const handleCloseSourcesAdmin = () => {
     setIsSourcesAdminOpen(false)
+    setEditingSource(null)
   }
 
   // Show loading state if no client selected or data is loading
@@ -150,6 +181,8 @@ function FuentesGeneralesPage() {
           cardType="fuentes"
           showAddButton={true}
           addButtonText="Agregar Fuentes"
+          onEditRow={handleEditRow}
+          onDeleteRow={handleDeleteRow}
         />
       </DashboardLayout>
 
@@ -158,6 +191,8 @@ function FuentesGeneralesPage() {
         onClose={handleCloseSourcesAdmin}
         references={[]}
         sources={sources}
+        defaultTab="fuentes-generales"
+        editSource={editingSource}
       />
     </ClientOnly>
   )

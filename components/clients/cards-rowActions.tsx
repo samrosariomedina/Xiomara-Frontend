@@ -2,8 +2,9 @@
 
 import { useRef, useState, useEffect } from "react"
 import { createPortal } from 'react-dom'
-import { Edit, FilePlus, Trash2, X } from "lucide-react"
+import { Edit, FilePlus, Trash2 } from "lucide-react"
 import { type FC } from "react"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 
 interface RowActionsMenuProps {
   onEdit?: () => void | Promise<void>
@@ -19,14 +20,27 @@ interface RowActionsMenuProps {
 }
 
 export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, onDelete, onClose, left = 0, top = 0, itemName = '', actions = ["edit", "addSource", "delete"], context = "campaign" }) => {
+  console.log('[RowActionsMenu] Component rendered with:', { itemName, context, actions, hasOnDelete: !!onDelete })
+  
   const ref = useRef<HTMLDivElement | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  
+  useEffect(() => {
+    console.log('[RowActionsMenu] confirmOpen changed to:', confirmOpen)
+  }, [confirmOpen])
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside (but not when dialog is open)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close if confirm dialog is open
+      if (confirmOpen) {
+        console.log('[RowActionsMenu] Click outside ignored - dialog is open')
+        return
+      }
+      
       if (ref.current && !ref.current.contains(event.target as Node)) {
+        console.log('[RowActionsMenu] Click outside detected - closing menu')
         onClose()
       }
     }
@@ -35,7 +49,7 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [onClose])
+  }, [onClose, confirmOpen])
 
   const menu = (
     <div
@@ -44,7 +58,8 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
         position: 'fixed', 
         left: typeof window !== 'undefined' ? Math.min(left, window.innerWidth - 220) : left, // Ensure menu doesn't go off screen
         top: typeof window !== 'undefined' ? Math.min(top, window.innerHeight - 200) : top, // Ensure menu doesn't go off screen
-        maxWidth: '200px'
+        maxWidth: '200px',
+        display: confirmOpen ? 'none' : 'block' // Hide menu when dialog is open
       }}
       className="z-50 w-52 rounded-lg bg-white shadow-lg p-3"
     >
@@ -98,7 +113,10 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
       {actions.includes('delete') && (
         <button
           className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-700"
-          onClick={() => setConfirmOpen(true)}
+          onClick={() => {
+            console.log('[RowActionsMenu] Delete button clicked in menu')
+            setConfirmOpen(true)
+          }}
           type="button"
         >
           <Trash2 className="h-5 w-5 text-gray-700" />
@@ -110,84 +128,47 @@ export const RowActionsMenu: FC<RowActionsMenuProps> = ({ onEdit, onAddSource, o
 
   if (typeof document === 'undefined') return null
 
-  const handleConfirm = async () => {
-    console.log('handleConfirm')
-    console.log('onDelete', onDelete)
-    console.log('itemName', itemName)
-    if (!onDelete) return
+  const handleDeleteConfirm = async () => {
+    console.log('[RowActionsMenu] handleDeleteConfirm called')
+    console.log('[RowActionsMenu] onDelete exists:', !!onDelete)
+    console.log('[RowActionsMenu] itemName:', itemName)
+    console.log('[RowActionsMenu] context:', context)
+    
+    if (!onDelete) {
+      console.error('[RowActionsMenu] No onDelete handler provided!')
+      return
+    }
     
     setIsProcessing(true)
     try {
-      console.log('Deleting item:', itemName)
-      onDelete?.()
+      console.log('[RowActionsMenu] Calling onDelete()...')
+      await Promise.resolve(onDelete())
+      console.log('[RowActionsMenu] onDelete completed successfully')
       setConfirmOpen(false)
       onClose()
     } catch (error: unknown) {
-      console.error('Delete error:', error)
+      console.error('[RowActionsMenu] Delete error:', error)
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const overlay = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      <div 
-        className="relative z-10 max-w-lg w-full max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-6 text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-6 my-4 rounded-x p-8">
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => { setConfirmOpen(false); onClose() }}
-            className="absolute top-8 right-8 rounded"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 hover:text-[#ff0000]" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 8.586L15.95 2.636a1 1 0 011.414 1.414L11.414 10l5.95 5.95a1 1 0 01-1.414 1.414L10 11.414l-5.95 5.95A1 1 0 012.636 15.95L8.586 10 2.636 4.05A1 1 0 014.05 2.636L10 8.586z" clipRule="evenodd" />
-            </svg>
-          </button>
-
-          <div className="flex justify-center">
-            <div className="rounded-full bg-[#f7f9ff] p-5 ">
-              <X className="h-10 w-10 text-gray-500" />
-            </div>
-          </div>
-
-          <h3 className="mt-6 text-3xl font-bold text-gray-900">Delete</h3>
-          <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-[520px] mx-auto">Are you sure you want to delete {itemName || 'this item'}? This process cannot be undone.</p>
-
-          <div className="mt-10 pt-10 flex items-center justify-center gap-6">
-            <button
-              type="button"
-              className="min-w-[170px] px-6 py-3 rounded-full bg-[#F7F9FF] hover:bg-[#fff9ff] text-sm text-[#31499F] "
-              onClick={() => setConfirmOpen(false)}
-              disabled={isProcessing}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              className="min-w-[170px] px-6 py-3 rounded-full bg-[#31499F] hover:bg-[#253a7a] text-[#F7F9FF] text-sm "
-              onClick={handleConfirm}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  return createPortal(
+  return (
     <>
-      {menu}
-      {confirmOpen && overlay}
-    </>,
-    document.body,
+      {createPortal(menu, document.body)}
+      
+      <DeleteConfirmationDialog
+        isOpen={confirmOpen}
+        onClose={() => {
+          console.log('[RowActionsMenu] Dialog onClose called')
+          setConfirmOpen(false)
+          // Don't call onClose here - let handleDeleteConfirm do it after success
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={itemName || 'this item'}
+        itemType={context === "client" ? "client" : "campaign"}
+      />
+    </>
   )
 }
 

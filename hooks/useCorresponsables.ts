@@ -138,7 +138,9 @@ export function useCorresponsables(folderId?: string) {
       listenerId: string
       folderId: string
     }) => {
+      console.log('🗑️ Mutation: Attempting to remove corresponsable:', { listenerId, folderId })
       const result = await removeCorresponsableAction(listenerId, folderId)
+      console.log('🗑️ Mutation: Result from action:', result)
       if (result.success) {
         return result
       } else {
@@ -146,12 +148,15 @@ export function useCorresponsables(folderId?: string) {
       }
     },
     onSuccess: () => {
+      console.log('✅ Mutation: Corresponsable removed successfully, invalidating queries')
       toast.success('Corresponsable removed successfully')
-      // Invalidate and refetch corresponsables
+      // Invalidate and refetch all corresponsables queries
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
+      // Force an immediate refetch
+      queryClient.refetchQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
-      console.error('Remove corresponsable error:', error)
+      console.error('❌ Mutation: Remove corresponsable error:', error)
       toast.error(error.message || 'Failed to remove corresponsable')
     }
   })

@@ -16,6 +16,18 @@ interface SourcesAdministratorProps {
   sources: SourceResponse[]
   defaultTab?: string
   clientId?: string
+  editSource?: SourceResponse | null
+  editReference?: ReferenceResponse | null
+  editCorresponsable?: {
+    _id: string;
+    title?: string;
+    origin?: string;
+    approved: boolean;
+    timestamp: string;
+    metadata?: {
+      email?: string;
+    };
+  } | null
 }
 
 interface SourceData {
@@ -23,7 +35,16 @@ interface SourceData {
   [key: string]: unknown
 }
 
-export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales", clientId }: SourcesAdministratorProps) {
+export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales", clientId, editSource = null, editReference = null, editCorresponsable = null }: SourcesAdministratorProps) {
+  // Debug logging
+  console.log('🟢 SourcesAdministrator rendered with:', {
+    isOpen,
+    defaultTab,
+    editSource: editSource?._id,
+    editReference: editReference?._id,
+    editCorresponsable: editCorresponsable?._id
+  });
+  
   // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
   const [visible, setVisible] = useState(isOpen)
   const [active, setActive] = useState(isOpen)
@@ -41,8 +62,22 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
       return () => clearTimeout(leave)
     }
   }, [isOpen])
+  
   // Local state management
   const [activeTab, setActiveTab] = useState(defaultTab)
+  
+  // Update activeTab when defaultTab changes (when switching between edit modes)
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🟢 Setting activeTab to:', defaultTab);
+      setActiveTab(defaultTab)
+    }
+  }, [defaultTab, isOpen])
+  
+  // Log when activeTab changes
+  useEffect(() => {
+    console.log('🟢 activeTab changed to:', activeTab);
+  }, [activeTab])
   const [localSources, setLocalSources] = useState<
     Array<{
       id: number
@@ -93,7 +128,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} sources={sources} />
+              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} sources={sources} editSource={editSource} />
             </div>
           </div>
         )
@@ -102,7 +137,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <CorresponsalesForm onSubmit={handleSubmit} />
+              <CorresponsalesForm onSubmit={handleSubmit} editCorresponsable={editCorresponsable} />
             </div>
           </div>
         )
@@ -111,7 +146,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <KnowledgeBaseForm onSubmit={handleSubmit} references={references} />
+              <KnowledgeBaseForm onSubmit={handleSubmit} references={references} editReference={editReference} />
             </div>
           </div>
         )

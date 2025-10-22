@@ -12,8 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
 import { knowledgeBaseSchema, type KnowledgeBaseInput } from '@/lib/schemas'
-import { useKnowledge, useCreateReference } from '@/hooks/useKnowledge'
-import { useDataWithCache } from '@/hooks/useDataWithCache'
+import { useKnowledge, useCreateReference, useEditReference, useRemoveReference } from '@/hooks/useKnowledge'
 import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
@@ -29,34 +28,77 @@ import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
   references: ReferenceResponse[]
+  editReference?: ReferenceResponse | null
 }
 
-export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormProps) {
-  // Use caching for references
-  const {
-    data: cachedReferences
-  } = useDataWithCache(references, { cacheKey: 'references' })
-  const [showForm, setShowForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("text")
+export function KnowledgeBaseForm({ onSubmit, references, editReference = null }: KnowledgeBaseFormProps) {
+  // Debug logging
+  console.log('🔵 KnowledgeBaseForm rendered with editReference:', editReference);
+  
+  // Local edit state for list-based editing
+  const [localEditReference, setLocalEditReference] = useState<ReferenceResponse | null>(null);
+  
+  // Determine if we're in edit mode (either from prop or local state)
+  const currentEditReference = editReference || localEditReference;
+  const isEditMode = !!currentEditReference
+  
+  const [showForm, setShowForm] = useState(isEditMode) // Auto-show form in edit mode
+  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">(
+    isEditMode && currentEditReference?.type === 'text' ? 'text' : 
+    isEditMode && currentEditReference?.type === 'webpage' ? 'url' : 
+    isEditMode && currentEditReference?.type === 'file' ? 'file' : 'text'
+  )
   
   const { selectedClient } = useClient()
   const { createReference, isCreating } = useKnowledge()
   const router = useRouter()
   
-  // Get the mutation directly to pass clientId
+  // Get the mutations directly to have full control
   const createReferenceMutation = useCreateReference()
+  const editReferenceMutation = useEditReference()
+  const removeReferenceMutation = useRemoveReference()
+  const isEditing = editReferenceMutation.isPending
   
   const form = useForm<KnowledgeBaseInput>({
     resolver: zodResolver(knowledgeBaseSchema),
     defaultValues: {
-      name: "",
+      name: isEditMode ? (currentEditReference?.title || "") : "",
       accountType: "kb",
-      description: "",
+      description: isEditMode && typeof currentEditReference?.content === 'object' && 'description' in currentEditReference.content 
+        ? (currentEditReference.content as {description?: string}).description || ""
+        : "",
       file: null,
-      url: "",
-      text: "",
+      url: isEditMode && currentEditReference?.type === 'webpage' ? (currentEditReference?.content as string || "") : "",
+      text: isEditMode && currentEditReference?.type === 'text' ? (currentEditReference?.content as string || "") : "",
     }
   })
+  
+  // Reset form when editReference or localEditReference changes
+  React.useEffect(() => {
+    console.log('🔵 currentEditReference changed:', currentEditReference);
+    if (currentEditReference) {
+      console.log('🔵 Setting form to edit mode with data:', {
+        name: currentEditReference.title,
+        type: currentEditReference.type,
+        content: typeof currentEditReference.content
+      });
+      setShowForm(true)
+      form.reset({
+        name: currentEditReference.title || "",
+        accountType: "kb",
+        description: typeof currentEditReference.content === 'object' && 'description' in currentEditReference.content 
+          ? (currentEditReference.content as {description?: string}).description || ""
+          : "",
+        file: null,
+        url: currentEditReference.type === 'webpage' ? (currentEditReference.content as string || "") : "",
+        text: currentEditReference.type === 'text' ? (currentEditReference.content as string || "") : "",
+      })
+      setActiveTab(
+        currentEditReference.type === 'text' ? 'text' : 
+        currentEditReference.type === 'webpage' ? 'url' : 'file'
+      )
+    }
+  }, [currentEditReference, form])
 
   const t = useTranslations('KNOWLEDGE')
 
@@ -74,8 +116,8 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
     return found ? found.label : t('form.selectPlaceholder')
   }
 
-  // Transform references to SourceItem format for display
-  const sources: SourceItem[] = cachedReferences.map((ref, index) => {
+  // Transform references to SourceItem format for display - no caching
+  const sources: SourceItem[] = references.map((ref, index) => {
     // Handle both old string content and new object content
     const displayName = ref.title || `Knowledge Item ${index + 1}`;
     
@@ -115,18 +157,77 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       return
     }
 
-    createReferenceMutation.mutate(
-      { data, folderId: selectedClient._id },
-      {
-        onSuccess: () => {
-          form.reset()
-          setShowForm(false)
-          onSubmit?.(data)
+    if (isEditMode && currentEditReference) {
+      // Edit existing reference
+      editReferenceMutation.mutate(
+        { referenceId: currentEditReference._id, data },
+        {
+          onSuccess: () => {
+            form.reset()
+            setLocalEditReference(null) // Clear local edit state
+            setShowForm(false)
+            onSubmit?.(data)
+          },
+          onError: (error) => {
+            console.error('Error updating knowledge base:', error)
+          }
         }
-      }
-    )
+      )
+    } else {
+      // Create new reference
+      createReferenceMutation.mutate(
+        { data, folderId: selectedClient._id },
+        {
+          onSuccess: () => {
+            form.reset()
+            setShowForm(false)
+            onSubmit?.(data)
+          }
+        }
+      )
+    }
   })
 
+
+  const handleEditFromList = (id: number | string) => {
+    console.log('🔵 handleEditFromList called with id:', id);
+    // sources uses index + 1 as id, so we need to find by index
+    const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
+    const reference = references[index];
+    console.log('🔵 Found reference:', reference);
+    if (reference) {
+      // Set local edit state to trigger edit mode
+      setLocalEditReference(reference);
+    }
+  };
+
+  const handleDeleteFromList = async (id: number | string) => {
+    console.log('🔵 handleDeleteFromList called with id:', id);
+    
+    if (!selectedClient?._id) {
+      console.error('🔵 No client selected');
+      return;
+    }
+    
+    try {
+      // sources uses index + 1 as id, so we need to find the actual reference
+      const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
+      const reference = references[index];
+      
+      if (reference) {
+        console.log('🔵 Deleting reference:', reference._id);
+        await removeReferenceMutation.mutateAsync({
+          referenceId: reference._id,
+          folderId: selectedClient._id
+        });
+        console.log('🔵 Reference deleted successfully');
+        // React Query will automatically refetch and update the list
+      }
+    } catch (error) {
+      console.error('🔵 Error deleting reference:', error);
+      // Error toast is already shown by the mutation
+    }
+  };
 
   // list view
   if (sources.length > 0 && !showForm) {
@@ -134,7 +235,7 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       <div className="h-full flex flex-col">
         <HeaderControls title={t('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={sources} pageType="knowledge" />
+          <SourcesList sources={sources} pageType="knowledge" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
         </div>
       </div>
     )
@@ -293,17 +394,17 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
         <div className="max-w-[520px] mx-auto pt-2 flex justify-end gap-3 mb-2 mr-2 px-4 lg:px-0">
           <Button 
             onClick={handleCancel} 
-            disabled={isCreating}
+            disabled={isCreating || isEditing}
             className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]"
           >
             {t('form.cancel')}
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isCreating}
+            disabled={isCreating || isEditing}
             className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
           >
-            {isCreating ? 'Creating...' : t('form.submit')}
+            {isCreating || isEditing ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Knowledge' : t('form.submit'))}
           </Button>
         </div>
       </div>

@@ -6,26 +6,24 @@ import { createPortal } from 'react-dom'
 import { Edit, Trash2 } from "lucide-react"
 import { type FC } from "react"
 
-interface DashboardRowActionsProps {
+interface ListRowActionsProps {
   onEdit?: () => void | Promise<void>
   onDelete?: () => void | Promise<void>
   onClose: () => void
   left?: number
   top?: number
   itemName?: string
-  pageType?: "fuentes" | "knowledge" | "corresponsables"
-  actions?: Array<"edit" | "delete">
+  itemType: "Source" | "Knowledge" | "Corresponsable" | "Media"
 }
 
-export const DashboardRowActions: FC<DashboardRowActionsProps> = ({ 
+export const ListRowActions: FC<ListRowActionsProps> = ({ 
   onEdit, 
   onDelete, 
   onClose, 
   left = 0, 
   top = 0, 
   itemName = '', 
-  pageType = "fuentes",
-  actions = ["edit", "delete"] 
+  itemType
 }) => {
   const ref = useRef<HTMLDivElement | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -62,62 +60,40 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
     }
   }, [left, top])
 
-  // Get appropriate text based on page type - simplified labels
-  const getEditText = () => {
-    switch (pageType) {
-      case "fuentes":
-        return 'Edit Source'
-      case "knowledge":
-        return 'Edit Knowledge'
-      case "corresponsables":
-        return 'Edit Corresponsable'
-      default:
-        return 'Edit'
-    }
-  }
-
-  const getDeleteText = () => {
-    return 'Delete'
-  }
-
   const menu = (
     <div
       ref={ref}
       style={{ position: 'fixed', left: adjustedPosition.left, top: adjustedPosition.top }}
       className="z-50 w-52 rounded-lg bg-white shadow-lg p-3 border border-gray-200"
     >
-      {actions.includes('edit') && (
-        <button
-          className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-800"
-          onClick={async () => {
-            if (!onEdit) return onClose()
-            try {
-              setIsProcessing(true)
-              await Promise.resolve(onEdit())
-            } finally {
-              setIsProcessing(false)
-              onClose()
-            }
-          }}
-          type="button"
-        >
-          <Edit className="h-5 w-5 text-gray-700" />
-          <span className="whitespace-nowrap">{getEditText()}</span>
-        </button>
-      )}
+      <button
+        className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-800"
+        onClick={async () => {
+          if (!onEdit) return onClose()
+          try {
+            setIsProcessing(true)
+            await Promise.resolve(onEdit())
+          } finally {
+            setIsProcessing(false)
+            onClose()
+          }
+        }}
+        type="button"
+      >
+        <Edit className="h-5 w-5 text-gray-700" />
+        <span className="whitespace-nowrap">Edit {itemType}</span>
+      </button>
 
-      <div className="my-2 border-t text-gray-300" />
+      <div className="my-2 border-t border-gray-200" />
 
-      {actions.includes('delete') && (
-        <button
-          className="flex items-center gap-3 w-full py-2 px-2 hover:bg-gray-50 rounded-md text-sm text-gray-700"
-          onClick={() => setConfirmOpen(true)}
-          type="button"
-        >
-          <Trash2 className="h-5 w-5 text-gray-700" />
-          <span className="whitespace-nowrap">{getDeleteText()}</span>
-        </button>
-      )}
+      <button
+        className="flex items-center gap-3 w-full py-2 px-2 hover:bg-red-50 rounded-md text-sm text-red-600"
+        onClick={() => setConfirmOpen(true)}
+        type="button"
+      >
+        <Trash2 className="h-5 w-5 text-red-600" />
+        <span className="whitespace-nowrap">Delete</span>
+      </button>
     </div>
   )
 
@@ -137,39 +113,38 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
 
   const overlay = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isProcessing && setConfirmOpen(false)} />
 
       <div className="relative z-10 max-w-lg w-full mx-4 bg-white rounded-2xl shadow-2xl p-6 text-center">
         <div className="mx-6 my-4 rounded-x p-8">
           <button
             type="button"
             aria-label="Close"
-            onClick={() => { setConfirmOpen(false); onClose() }}
-            className="absolute top-8 right-8 rounded"
+            onClick={() => !isProcessing && setConfirmOpen(false)}
+            className="absolute top-8 right-8 rounded hover:bg-gray-100 p-1"
+            disabled={isProcessing}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 hover:text-[#ff0000]" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 hover:text-red-600" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 8.586L15.95 2.636a1 1 0 011.414 1.414L11.414 10l5.95 5.95a1 1 0 01-1.414 1.414L10 11.414l-5.95 5.95A1 1 0 012.636 15.95L8.586 10 2.636 4.05A1 1 0 014.05 2.636L10 8.586z" clipRule="evenodd" />
             </svg>
           </button>
 
           <div className="flex justify-center">
-            <div className="rounded-full bg-[#f7f9ff] p-5 ">
-              <Trash2 className="h-10 w-10 text-gray-500" />
+            <div className="rounded-full bg-red-50 p-5 ">
+              <Trash2 className="h-10 w-10 text-red-600" />
             </div>
           </div>
 
-          <h3 className="mt-6 text-3xl font-bold text-gray-900">Delete</h3>
+          <h3 className="mt-6 text-3xl font-bold text-gray-900">Delete {itemType}</h3>
           <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-[520px] mx-auto">
-            Are you sure you want to delete &quot;{itemName}&quot;? This action cannot be undone.
+            Are you sure you want to delete <strong>&quot;{itemName}&quot;</strong>? This action cannot be undone.
           </p>
 
           <div className="mt-10 pt-10 flex items-center justify-center gap-6">
             <button
               type="button"
-              className="min-w-[170px] px-6 py-3 rounded-full bg-[#F7F9FF] hover:bg-[#e8ebf7] text-sm text-[#31499F] "
-              onClick={() => {
-                setConfirmOpen(false)
-              }}
+              className="min-w-[170px] px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-sm text-gray-700 font-medium"
+              onClick={() => setConfirmOpen(false)}
               disabled={isProcessing}
             >
               Cancel
@@ -177,7 +152,7 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
 
             <button
               type="button"
-              className="min-w-[170px] px-6 py-3 rounded-full bg-[#dc2626] hover:bg-[#b91c1c] text-white text-sm "
+              className="min-w-[170px] px-6 py-3 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
               onClick={handleConfirm}
               disabled={isProcessing}
             >
@@ -198,5 +173,5 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
   )
 }
 
-export default DashboardRowActions
+export default ListRowActions
 

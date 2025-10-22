@@ -246,6 +246,104 @@ export async function getAllCampaignsAction() {
 }
 
 /**
+ * Server action to edit a campaign (folder with type "campaign")
+ */
+export async function editCampaignAction(campaignId: string, data: {
+  name?: string;
+  type?: string;
+  startDate?: string;
+  description?: string;
+}) {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    // Prepare update data
+    const updateData: {
+      folder: string;
+      title?: string;
+      metadata?: {
+        type: string;
+        campaignType?: string;
+        startDate?: string;
+        description?: string | null;
+      };
+    } = {
+      folder: campaignId,
+    };
+
+    // Add title if provided
+    if (data.name) {
+      updateData.title = data.name;
+    }
+
+    // Build metadata object with only provided fields
+    if (data.type || data.startDate || data.description !== undefined) {
+      updateData.metadata = {
+        type: "campaign",
+        ...(data.type && { campaignType: data.type }),
+        ...(data.startDate && { startDate: data.startDate }),
+        ...(data.description !== undefined && { description: data.description || null }),
+      };
+    }
+
+    console.log('Editing campaign with data:', updateData);
+
+    const response = await axios.post(`${BACKEND_URL}/folders/edit`, updateData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      const campaignData = response.data;
+      console.log('Campaign updated successfully:', campaignData);
+
+      // Revalidate the clients page to show the updated campaign
+      revalidatePath('/clients');
+      revalidatePath('/[locale]/clients', 'page');
+
+      return {
+        success: true,
+        data: campaignData
+      };
+    } else {
+      throw new Error('Failed to edit campaign');
+    }
+  } catch (error: unknown) {
+    console.error('Edit campaign error:', error);
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
+      if (axiosError.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Authentication required'
+        };
+      } else if (axiosError.response?.status === 400) {
+        return {
+          success: false,
+          error: 'Invalid data provided'
+        };
+      } else if (axiosError.response?.status === 404) {
+        return {
+          success: false,
+          error: 'Campaign not found'
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to edit campaign'
+    };
+  }
+}
+
+/**
  * Server action to delete a campaign (folder with type "campaign")
  */
 export async function deleteCampaignAction(campaignId: string) {

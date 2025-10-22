@@ -40,17 +40,37 @@ type CorresponsableFormData = CorresponsablesInput
 
 interface CorresponsalesFormProps {
   onSubmit?: (data: CorresponsableFormData) => void
+  editCorresponsable?: {
+    _id: string;
+    title?: string;
+    origin?: string;
+    approved: boolean;
+    timestamp: string;
+    metadata?: {
+      email?: string;
+    };
+  } | null
 }
 
-export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
-  const [showForm, setShowForm] = useState(false)
+export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: CorresponsalesFormProps) {
+  // Debug logging
+  console.log('🟣 CorresponsalesForm rendered with editCorresponsable:', editCorresponsable);
+  
+  // Local edit state for list-based editing
+  const [localEditCorresponsable, setLocalEditCorresponsable] = useState<typeof editCorresponsable>(null);
+  
+  // Determine if we're in edit mode (either from prop or local state)
+  const currentEditCorresponsable = editCorresponsable || localEditCorresponsable;
+  const isEditMode = !!currentEditCorresponsable
+  
+  const [showForm, setShowForm] = useState(isEditMode) // Auto-show form in edit mode
   
   // Use react-hook-form like the client form
   const form = useForm<CorresponsableFormData>({
     resolver: zodResolver(corresponsablesSchema),
     defaultValues: {
-      clientName: "",
-      email: "",
+      clientName: isEditMode ? (currentEditCorresponsable?.title || "") : "",
+      email: isEditMode ? (currentEditCorresponsable?.metadata?.email || "") : "",
       whatsapp: "",
       accountType: "basic",
       telegramToken: "",
@@ -85,8 +105,37 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
   const { 
     corresponsables = [], 
     isLoading, 
-    error 
+    error,
+    updateCorresponsable,
+    isUpdating,
+    removeCorresponsable
   } = useCorresponsables(selectedClient?._id)
+  
+  // Reset form when editCorresponsable or localEditCorresponsable changes
+  useEffect(() => {
+    console.log('🟣 currentEditCorresponsable changed:', currentEditCorresponsable);
+    if (currentEditCorresponsable) {
+      console.log('🟣 Setting form to edit mode with data:', {
+        clientName: currentEditCorresponsable.title,
+        email: currentEditCorresponsable.metadata?.email,
+        whatsapp: currentEditCorresponsable.origin
+      });
+      setShowForm(true)
+      form.reset({
+        clientName: currentEditCorresponsable.title || "",
+        email: currentEditCorresponsable.metadata?.email || "",
+        whatsapp: currentEditCorresponsable.origin || "",
+        accountType: "basic",
+        telegramToken: "",
+        invitationMethods: {
+          whatsapp: false,
+          telegram: false,
+          email: false,
+          copyLink: false,
+        },
+      })
+    }
+  }, [currentEditCorresponsable, form])
 
   // Convert corresponsables to SourceItem format for display
   const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, ) => ({
@@ -99,6 +148,18 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
 
   // Local state for managing sources list
   const [localSources, setLocalSources] = useState<SourceItem[]>(sources)
+  
+  // Sync localSources with fetched corresponsables data
+  useEffect(() => {
+    const updatedSources = corresponsables.map((corresponsable: CorresponsableData) => ({
+      id: corresponsable._id,
+      name: corresponsable.title || 'Unnamed',
+      type: "corresponsable" as const,
+      category: "Corresponsable",
+      timestamp: formatDateSafe(corresponsable.timestamp),
+    }));
+    setLocalSources(updatedSources);
+  }, [corresponsables]);
 
   // Account type options
   const accountTypeOptions = [
@@ -146,63 +207,29 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
     }
 
     try {
-      console.log('Creating corresponsable with data:', {
-        clientName: data.clientName,
-        email: data.email,
-        whatsapp: data.whatsapp,
-        accountType: data.accountType,
-        telegramToken: data.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
-        invitationMethods: data.invitationMethods
-      });
-      
-      const result = await createCorresponsableWithSharingAction(selectedClient._id, {
-        clientName: data.clientName,
-        email: data.email || "",
-        whatsapp: data.whatsapp,
-        accountType: data.accountType,
-        telegramToken: data.telegramToken,
-        invitationMethods: data.invitationMethods
-      });
+      if (isEditMode && currentEditCorresponsable) {
+        // Edit mode - update existing corresponsable
+        console.log('Updating corresponsable with data:', {
+          listenerId: currentEditCorresponsable._id,
+          title: data.clientName,
+          email: data.email,
+          origin: data.whatsapp
+        });
 
-      if (result.success && result.data) {
-        const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
-        
-        if (sharingError) {
-          toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
-        }
-
-        // Execute sharing if methods are selected and we have the data
-        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
-          if (shareUrl && message) {
-            await executeSharing(
-              {
-                shareUrl,
-                message,
-                email: data.email,
-                clientName: data.clientName
-              },
-              invitationMethods
-            );
-          } else {
-            toast.warning('Corresponsable created but sharing data unavailable');
+        await updateCorresponsable({
+          listenerId: currentEditCorresponsable._id,
+          data: {
+            title: data.clientName,
+            email: data.email || "",
+            origin: data.whatsapp,
+            enabled: true
           }
-        }
+        });
 
-        const listenerCount = listeners ? listeners.length : 1;
-        const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
-        toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
+        // Success toast is handled by the mutation
+        onSubmit?.(data);
         
-        // Add to local sources for immediate UI update
-        const newItem: SourceItem = {
-          id: Date.now(), // Temporary ID for UI
-          name: data.clientName,
-          type: "text",
-          category: "Corresponsable",
-          timestamp: "Just now",
-        }
-        setLocalSources([...localSources, newItem])
-        onSubmit?.(data)
-        // Clear form and errors
+        // Clear form and close
         form.reset({
           clientName: "",
           email: "",
@@ -215,29 +242,105 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
             email: false,
             copyLink: false,
           },
-        })
-        setShowForm(false)
+        });
+        setLocalEditCorresponsable(null); // Clear local edit state
+        setShowForm(false);
       } else {
-        toast.error(result.error || 'Failed to create corresponsable');
+        // Create mode
+        console.log('Creating corresponsable with data:', {
+          clientName: data.clientName,
+          email: data.email,
+          whatsapp: data.whatsapp,
+          accountType: data.accountType,
+          telegramToken: data.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
+          invitationMethods: data.invitationMethods
+        });
+        
+        const result = await createCorresponsableWithSharingAction(selectedClient._id, {
+          clientName: data.clientName,
+          email: data.email || "",
+          whatsapp: data.whatsapp,
+          accountType: data.accountType,
+          telegramToken: data.telegramToken,
+          invitationMethods: data.invitationMethods
+        });
+
+        if (result.success && result.data) {
+          const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
+          
+          if (sharingError) {
+            toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
+          }
+
+          // Execute sharing if methods are selected and we have the data
+          if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
+            if (shareUrl && message) {
+              await executeSharing(
+                {
+                  shareUrl,
+                  message,
+                  email: data.email,
+                  clientName: data.clientName
+                },
+                invitationMethods
+              );
+            } else {
+              toast.warning('Corresponsable created but sharing data unavailable');
+            }
+          }
+
+          const listenerCount = listeners ? listeners.length : 1;
+          const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
+          toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
+          
+          // Add to local sources for immediate UI update
+          const newItem: SourceItem = {
+            id: Date.now(), // Temporary ID for UI
+            name: data.clientName,
+            type: "text",
+            category: "Corresponsable",
+            timestamp: "Just now",
+          }
+          setLocalSources([...localSources, newItem])
+          onSubmit?.(data)
+          // Clear form and errors
+          form.reset({
+            clientName: "",
+            email: "",
+            whatsapp: "",
+            accountType: "basic",
+            telegramToken: "",
+            invitationMethods: {
+              whatsapp: false,
+              telegram: false,
+              email: false,
+              copyLink: false,
+            },
+          })
+          setShowForm(false)
+        } else {
+          toast.error(result.error || 'Failed to create corresponsable');
+        }
       }
     } catch (error) {
-      console.error('Error creating corresponsable:', error);
-      toast.error('Failed to create corresponsable');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} corresponsable:`, error);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} corresponsable`);
     }
   }
 
   const handleAdd = handleSubmit(
-    (data) => {
+    async (data) => {
       console.log('Form validation passed, data:', data)
       console.log('Current form values:', form.getValues())
       console.log('Current form errors:', form.formState.errors)
-      handleCorrespondentSubmission(data)
+      console.log('Is Edit Mode:', isEditMode)
+      console.log('Edit Corresponsable:', editCorresponsable)
+      await handleCorrespondentSubmission(data)
     },
     (errors) => {
       console.log('Form validation failed, errors:', errors)
       console.log('Current form values:', form.getValues())
-      // Clear any stale errors
-      form.clearErrors()
+      toast.error('Please fill in all required fields')
     }
   )
 
@@ -274,13 +377,48 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
     )
   }
 
+  const handleEditFromList = (id: number | string) => {
+    console.log('🟣 handleEditFromList called with id:', id);
+    // Find the corresponsable by id
+    const corresponsable = corresponsables.find((c: CorresponsableData) => c._id === String(id));
+    console.log('🟣 Found corresponsable:', corresponsable);
+    if (corresponsable) {
+      // Set local edit state to trigger edit mode
+      setLocalEditCorresponsable(corresponsable);
+    }
+  };
+
+  const handleDeleteFromList = async (id: number | string) => {
+    console.log('🟣 handleDeleteFromList called with id:', id);
+    
+    if (!selectedClient?._id) {
+      toast.error('No client selected');
+      return;
+    }
+    
+    try {
+      // The id is the listener _id
+      await removeCorresponsable({
+        listenerId: String(id),
+        folderId: selectedClient._id
+      });
+      
+      console.log('🟣 Corresponsable deleted successfully');
+      // Update local sources to reflect the deletion immediately
+      setLocalSources(prevSources => prevSources.filter(source => source.id !== id));
+    } catch (error) {
+      console.error('🟣 Error deleting corresponsable:', error);
+      // Error toast is already shown by the mutation
+    }
+  };
+
   // list view
   if (localSources.length > 0 && !showForm) {
     return (
       <div className="h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={localSources} pageType="corresponsables" />
+          <SourcesList sources={localSources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
         </div>
       </div>
     )
@@ -530,8 +668,10 @@ export function CorresponsalesForm({ onSubmit }: CorresponsalesFormProps) {
       </div>
       <div className="fixed bottom-0 left-0 right-0 m-1 lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                            <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                             <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{tForm('form.cancel')}</Button>
-                             <Button onClick={handleAdd} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">{tForm('form.addButton')}</Button>
+                             <Button onClick={handleCancel} disabled={isUpdating} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{tForm('form.cancel')}</Button>
+                             <Button onClick={handleAdd} disabled={isUpdating} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
+                               {isUpdating ? 'Updating...' : (isEditMode ? 'Update Corresponsable' : tForm('form.addButton'))}
+                             </Button>
                            </div>
                          </div>
   </div>

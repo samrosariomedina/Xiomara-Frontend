@@ -18,7 +18,7 @@ export default async function KnowledgeListPage(){
     <>
     <ClientAutoSelector />
     <Navbar />
-    <KnowledgeBasePage references={[]} />
+    <KnowledgeBasePage />
     </>
   )
 }

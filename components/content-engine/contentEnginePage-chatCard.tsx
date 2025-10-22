@@ -43,14 +43,14 @@ export default function ChatCard({
     // Server-side data fetching for user summaries (for summaries view dialog)
     const { data: userSummaries = [], isLoading: isLoadingSummaries, refetch: refetchSummaries } = useQuery({
         queryKey: ['user-summaries-for-dialog'],
-        queryFn: getUserSummariesAction,
+        queryFn: () => getUserSummariesAction(),
         staleTime: 2 * 60 * 1000, // 2 minutes
     })
 
     // Server-side data fetching for latest output (for output card)
     const { refetch: refetchOutput } = useQuery({
         queryKey: ['latest-output'],
-        queryFn: getLatestOutputAction,
+        queryFn: () => getLatestOutputAction(),
         enabled: !!generatedSummary, // Only fetch when we have a summary
         staleTime: 30 * 1000, // 30 seconds
     })
@@ -329,7 +329,7 @@ export default function ChatCard({
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
                         <SummariesViewDialog 
-                            summaries={userSummaries}
+                            summaries={userSummaries as SummaryResponse[]}
                             isLoadingSummaries={isLoadingSummaries}
                             onSummarySelected={handleSummarySelected}
                             onRefreshSummaries={refetchSummaries}

@@ -37,6 +37,11 @@ export function ClientFormModal({ isOpen, onClose, editClient: initialEditClient
   const [isAnimating, setIsAnimating] = useState(false)
   const [mobileExpanded, setMobileExpanded] = useState({ general: true, connect: false, brand: false })
 
+  // Update editClient when initialEditClient changes
+  useEffect(() => {
+    setEditClient(initialEditClient)
+  }, [initialEditClient])
+
   // Direct TanStack Query mutations
   const queryClient = useQueryClient()
   const router = useRouter()

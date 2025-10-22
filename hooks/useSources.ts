@@ -9,17 +9,27 @@ import {
   removeSourceAction 
 } from '@/actions/sources'
 
+// Type for source input
+type SourceInputData = {
+  name: string;
+  description?: string;
+  file?: File;
+  url?: string;
+  text?: string;
+  type?: string;
+}
+
 // Query key factory
 const sourcesKeys = {
   all: ['sources'] as const,
   lists: () => [...sourcesKeys.all, 'list'] as const,
 }
 
-// Get all sources
+// Get all sources (deprecated - use server-side getSources instead)
 export function useSources() {
   return useQuery({
     queryKey: sourcesKeys.lists(),
-    queryFn: getSourcesAction,
+    queryFn: () => getSourcesAction(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
@@ -29,7 +39,7 @@ export function useCreateSource() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ data, folderId }: { data: any; folderId?: string }) =>
+    mutationFn: ({ data, folderId }: { data: SourceInputData; folderId?: string }) =>
       createSourceAction(data, folderId ? { folderId } : undefined),
     onSuccess: () => {
       // Invalidate ALL sources queries (including folder-specific ones)
@@ -48,7 +58,7 @@ export function useEditSource() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ sourceId, data }: { sourceId: string; data: any }) =>
+    mutationFn: ({ sourceId, data }: { sourceId: string; data: Partial<SourceInputData> }) =>
       editSourceAction(sourceId, data),
     onSuccess: () => {
       // Invalidate ALL sources queries (including folder-specific ones)
@@ -88,7 +98,7 @@ export function useSourcesMutations(folderId?: string) {
 
   return {
     // Mutations
-    createSource: (data: any) => createSource.mutate({ data, folderId }),
+    createSource: (data: SourceInputData) => createSource.mutate({ data, folderId }),
     editSource: editSource.mutate,
     removeSource: removeSource.mutate,
     

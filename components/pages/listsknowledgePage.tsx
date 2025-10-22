@@ -1,23 +1,21 @@
 "use client"
 
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useState, useMemo } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
-import { useDataWithCache } from "@/hooks/useDataWithCache"
-import { getReferencesAction } from "@/actions/knowledge"
+import { getReferencesAction, removeReferenceAction } from "@/actions/knowledge"
 import type { ReferenceResponse } from "@/lib/schemas"
 import SourcesAdministrator from "./dashboardPage-Forms"
 import { useClient } from "@/context/ClientContext"
+import { toast } from "sonner"
 
-interface KnowledgeBasePageProps {
-  references: ReferenceResponse[]
-}
-
-function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
+function KnowledgeBasePage() {
   const [isKnowledgeAdminOpen, setIsKnowledgeAdminOpen] = useState(false)
+  const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null)
   const { selectedClient, isInitialized, isCampaignType, parentClient } = useClient()
+  const queryClient = useQueryClient()
   
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
@@ -39,7 +37,7 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
   
   // Fetch client-specific knowledge base data
   const {
-    data: clientReferences = [],
+    data: cachedReferences = [],
     isLoading: isLoadingReferences,
     error: referencesError
   } = useQuery({
@@ -52,18 +50,28 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
     staleTime: 30 * 1000,
     retry: 2,
   });
-  
-  // Use caching for references
-  const {
-    data: cachedReferences
-  } = useDataWithCache(clientReferences, { cacheKey: 'references' })
 
+  // Delete mutation
+  const deleteReferenceMutation = useMutation({
+    mutationFn: (referenceId: string) => removeReferenceAction(referenceId, { folderId: selectedClient?._id || '' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['references'] })
+      toast.success('Knowledge base deleted successfully')
+    },
+    onError: (error: unknown) => {
+      console.error('Delete reference error:', error)
+      toast.error('Failed to delete knowledge base')
+    }
+  })
 
-  // Create a map to access content by id for the render functions
-  const contentMap = new Map(cachedReferences.map(ref => [ref._id, ref.content]))
+  // Memoize contentMap to prevent recreation on every render
+  const contentMap = useMemo(() => 
+    new Map(cachedReferences.map(ref => [ref._id, ref.content])),
+    [cachedReferences]
+  )
 
-  // Create columns function that takes contentMap as parameter
-  const columns: Column[] = [
+  // Memoize columns to prevent recreation on every render
+  const columns: Column[] = useMemo(() => [
     {
       key: "nombre",
       label: "Nombre",
@@ -115,10 +123,10 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
       width: "150px",
       render: (value: unknown) => formatDateSafe(String(value))
     },
-  ]
+  ], [contentMap])
 
-  // Transform references to table data format
-  const data = cachedReferences.map((ref) => ({
+  // Memoize transformed data to prevent recreation on every render
+  const data = useMemo(() => cachedReferences.map((ref) => ({
     id: ref._id,
     nombre: ref.title || 'Sin título',
     tipo: ref.type,
@@ -126,15 +134,28 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
     estado: !ref.edited ? 'Activo' : 'Inactivo', // Convert boolean to string
     creadoPor: 'Sistema', // Default since user info is not available in current schema
     ultimaActualizacion: ref.timestamp,
-  }))
-
+  })), [cachedReferences])
 
   const handleAddClick = () => {
+    setEditingReference(null)
     setIsKnowledgeAdminOpen(true)
+  }
+
+  const handleEditRow = (rowId: string) => {
+    const reference = cachedReferences.find(r => r._id === rowId)
+    if (reference) {
+      setEditingReference(reference)
+      setIsKnowledgeAdminOpen(true)
+    }
+  }
+
+  const handleDeleteRow = async (rowId: string) => {
+    await deleteReferenceMutation.mutateAsync(rowId)
   }
 
   const handleCloseKnowledgeAdmin = () => {
     setIsKnowledgeAdminOpen(false)
+    setEditingReference(null)
   }
 
   // Show loading state while client context is initializing
@@ -194,7 +215,7 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading knowledge base for {selectedClient.name}...</p>
+            <p className="text-gray-500">Loading knowledge base...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -236,6 +257,8 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
           showAddButton={true}
           addButtonText="Agregar Knowledge Base"
           showUpdateButton={true}
+          onEditRow={handleEditRow}
+          onDeleteRow={handleDeleteRow}
         />
       </DashboardLayout>
 
@@ -246,6 +269,7 @@ function KnowledgeBasePage({ references }: KnowledgeBasePageProps) {
         sources={[]}
         defaultTab="knowledge-base"
         clientId={selectedClient?._id}
+        editReference={editingReference}
       />
     </>
   )

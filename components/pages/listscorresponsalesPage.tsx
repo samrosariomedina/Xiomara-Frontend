@@ -7,6 +7,7 @@ import { useClient } from "@/context/ClientContext"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
+import { toast } from "sonner"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -65,6 +66,16 @@ const fuentesData = Array.from({ length: 25 }, () => ({
  function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isCorresponsablesAdminOpen, setIsCorresponsablesAdminOpen] = useState(false)
+  const [editingCorresponsable, setEditingCorresponsable] = useState<{
+    _id: string;
+    title?: string;
+    origin?: string;
+    approved: boolean;
+    timestamp: string;
+    metadata?: {
+      email?: string;
+    };
+  } | null>(null)
   const { selectedClient, isClientSelected, isCampaignType, parentClient } = useClient()
   
   // Dynamic breadcrumbs based on folder type
@@ -89,7 +100,8 @@ const fuentesData = Array.from({ length: 25 }, () => ({
   const { 
     corresponsables = [], 
     isLoading, 
-    error 
+    error,
+    removeCorresponsable
   } = useCorresponsables(selectedClient?._id)
 
   // Transform data based on active tab
@@ -99,11 +111,39 @@ const fuentesData = Array.from({ length: 25 }, () => ({
     : fuentesData
 
   const handleAddClick = () => {
+    setEditingCorresponsable(null)
     setIsCorresponsablesAdminOpen(true)
+  }
+
+  const handleEditRow = (rowId: string) => {
+    const corresponsable = corresponsables.find((c: CorresponsableData) => c._id === rowId)
+    if (corresponsable) {
+      setEditingCorresponsable(corresponsable)
+      setIsCorresponsablesAdminOpen(true)
+    }
+  }
+
+  const handleDeleteRow = async (rowId: string) => {
+    if (!selectedClient?._id) {
+      toast.error('No client selected')
+      return
+    }
+    
+    try {
+      await removeCorresponsable({
+        listenerId: rowId,
+        folderId: selectedClient._id
+      })
+      // Success toast is handled by the mutation
+    } catch (error) {
+      console.error('Error deleting corresponsable:', error)
+      // Error toast is handled by the mutation
+    }
   }
 
   const handleCloseCorresponsablesAdmin = () => {
     setIsCorresponsablesAdminOpen(false)
+    setEditingCorresponsable(null)
   }
 
   return (
@@ -130,6 +170,8 @@ const fuentesData = Array.from({ length: 25 }, () => ({
         addButtonText="Crear Corresponsal"
         isLoading={isLoading}
         error={error}
+        onEditRow={handleEditRow}
+        onDeleteRow={handleDeleteRow}
       />
       </DashboardLayout>
 
@@ -139,6 +181,7 @@ const fuentesData = Array.from({ length: 25 }, () => ({
         references={[]}
         sources={[]}
         defaultTab="corresponsales"
+        editCorresponsable={editingCorresponsable}
       />
     </>
   )

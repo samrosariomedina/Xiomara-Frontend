@@ -171,7 +171,9 @@ export function ClientCard({
               className="h-9 w-9 rounded-full p-0 bg-[#f7f9ff] hover:bg-gray-100"
               onClick={(e) => {
                 e.stopPropagation()
+                console.log('[ClientCard] Three-dot menu clicked for client:', client.id, client.name)
                 const rect = e.currentTarget.getBoundingClientRect()
+                console.log('[ClientCard] Menu position:', { left: rect.left, top: rect.bottom + 8 })
                 onMenuOpen({
                   clientId: client.id,
                   left: rect.left,

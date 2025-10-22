@@ -14,8 +14,9 @@ import { EmptyCorresponsable } from "@/components/icons/icons"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useClient } from "@/context/ClientContext"
 import { formatDateSafe } from "@/lib/utils"
+import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
 
-interface CorresponsableData {
+export interface CorresponsableData {
   _id: string;
   title?: string;
   origin?: string;
@@ -25,9 +26,16 @@ interface CorresponsableData {
     email?: string;
   };
 }
-export function CorresponsablesSection() {
+
+interface CorresponsablesSectionProps {
+  onEdit: (corresponsable: CorresponsableData) => void
+  onDelete: (corresponsableId: string) => Promise<void>
+}
+
+export function CorresponsablesSection({ onEdit, onDelete }: CorresponsablesSectionProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
+  const [menuOpen, setMenuOpen] = useState<{corresponsableId: string, left: number, top: number} | null>(null)
   // translations scoped to messages/CORRESPONSABLES
   const t = useTranslations('CORRESPONSABLES')
   const router = useRouter()
@@ -204,7 +212,17 @@ export function CorresponsablesSection() {
                     </div>
 
                     {/* Actions menu button */}
-                    <button className="text-gray-500">
+                    <button 
+                      className="text-gray-500"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        setMenuOpen({
+                          corresponsableId: corresponsable._id,
+                          left: rect.left,
+                          top: rect.bottom + 8
+                        })
+                      }}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </div>
@@ -290,6 +308,27 @@ export function CorresponsablesSection() {
         {t('viewAll')}
       </Button>
     </div>
+  )}
+
+  {/* Three-dot menu */}
+  {menuOpen && (
+    <DashboardRowActions
+      onEdit={() => {
+        const corresponsable = corresponsables.find((c: CorresponsableData) => c._id === menuOpen.corresponsableId)
+        if (corresponsable) {
+          onEdit(corresponsable)
+        }
+      }}
+      onDelete={async () => {
+        await onDelete(menuOpen.corresponsableId)
+        setMenuOpen(null)
+      }}
+      onClose={() => setMenuOpen(null)}
+      left={menuOpen.left}
+      top={menuOpen.top}
+      itemName={corresponsables.find((c: CorresponsableData) => c._id === menuOpen.corresponsableId)?.title || 'Corresponsable'}
+      pageType="corresponsables"
+    />
   )}
     </Card>
   )

@@ -13,7 +13,6 @@ import { useTranslations } from 'next-intl'
 import SourcesList from "../ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
 import { useSourcesMutations } from '@/hooks/useSources'
-import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { useClient } from '@/context/ClientContext'
 import { formatDateSafe } from '@/lib/utils'
 import type { SourceResponse } from '@/lib/schemas'
@@ -29,6 +28,7 @@ interface FormData {
 interface FuentesGeneralesFormProps {
   onSubmit: (data: FormData) => void
   sources: SourceResponse[]
+  editSource?: SourceResponse | null
 }
 
 interface Source {
@@ -40,26 +40,60 @@ interface Source {
 }
 
 export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
-  { onSubmit, sources }: FuentesGeneralesFormProps,
+  { onSubmit, sources, editSource = null }: FuentesGeneralesFormProps,
   ref
 ) {
-  // Use caching for sources
-  const {
-    data: cachedSources
-  } = useDataWithCache(sources, { cacheKey: 'sources' })
-  const [showForm, setShowForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
+  // Debug logging
+  console.log('🟠 FuentesGeneralesForm rendered with editSource:', editSource);
+  
+  // Local edit state for list-based editing
+  const [localEditSource, setLocalEditSource] = useState<SourceResponse | null>(null);
+  
+  // Determine if we're in edit mode (either from prop or local state)
+  const currentEditSource = editSource || localEditSource;
+  const isEditMode = !!currentEditSource
+  
+  // Initialize form state based on edit mode
+  const [showForm, setShowForm] = useState(isEditMode) // Auto-show form in edit mode
+  const [activeTab, setActiveTab] = useState<"file" | "url" | "text">(
+    isEditMode && currentEditSource?.type === 'text' ? 'text' : 
+    isEditMode && currentEditSource?.type === 'url' ? 'url' : 'file'
+  )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
-    name: "",
+    name: isEditMode ? (currentEditSource?.title || "") : "",
     file: null as File | null,
-    url: "",
-    text: "",
+    url: isEditMode && currentEditSource?.type === 'url' ? (currentEditSource?.content || "") : "",
+    text: isEditMode && currentEditSource?.type === 'text' ? (currentEditSource?.content || "") : "",
   })
 
   const { selectedClient } = useClient()
-  const { createSource, isCreating } = useSourcesMutations(selectedClient?._id)
+  const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(selectedClient?._id)
   const router = useRouter()
+  
+  // Reset form when editSource or localEditSource changes
+  React.useEffect(() => {
+    console.log('🟠 currentEditSource changed:', currentEditSource);
+    if (currentEditSource) {
+      console.log('🟠 Setting form to edit mode with data:', {
+        name: currentEditSource.title,
+        type: currentEditSource.type,
+        content: currentEditSource.content
+      });
+      setShowForm(true)
+      setFormData({
+        name: currentEditSource.title || "",
+        file: null,
+        url: currentEditSource.type === 'url' ? (currentEditSource.content || "") : "",
+        text: currentEditSource.type === 'text' ? (currentEditSource.content || "") : "",
+      })
+      setActiveTab(
+        currentEditSource.type === 'text' ? 'text' : 
+        currentEditSource.type === 'url' ? 'url' : 'file'
+      )
+      setErrors({})
+    }
+  }, [currentEditSource])
 
   // Debug logging for selected client
   console.log('=== FUENTES FORM DEBUG ===')
@@ -90,8 +124,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       .trim(); // Remove leading/trailing whitespace
   }
 
-  // Transform sources to SourceItem format for display
-  const sourcesList: Source[] = cachedSources.map((source, index) => ({
+  // Transform sources to SourceItem format for display - no caching
+  const sourcesList: Source[] = sources.map((source, index) => ({
     id: index + 1,
     name: source.title || 'Sin título',
     type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
@@ -128,7 +162,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         }
       }
       
-      // Create source using the mutation
+      // Prepare source data
       const sourceData = {
         name: formData.name,
         file: formData.file || undefined,
@@ -136,18 +170,26 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         text: processedText || undefined,
       }
       
-      console.log('Creating source with data:', sourceData)
-      await createSource(sourceData)
+      if (isEditMode && currentEditSource) {
+        // Edit existing source
+        console.log('Editing source with data:', sourceData)
+        await editSourceMutation({ sourceId: currentEditSource._id, data: sourceData })
+      } else {
+        // Create new source
+        console.log('Creating source with data:', sourceData)
+        await createSource(sourceData)
+      }
       
       // Call the parent onSubmit for any additional handling
       onSubmit(formData)
       
       // Reset form
       setFormData({ name: "", file: null, url: "", text: "" })
+      setLocalEditSource(null) // Clear local edit state
       setShowForm(false) // Close form and show sources list
     } catch (error) {
-      console.error('Error creating source:', error)
-      setErrors({ general: 'Failed to create source' })
+      console.error(`Error ${isEditMode ? 'editing' : 'creating'} source:`, error)
+      setErrors({ general: `Failed to ${isEditMode ? 'edit' : 'create'} source` })
     }
   }
 
@@ -180,13 +222,45 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   // header controls are now a reusable component
 
+  const handleEditFromList = (id: number | string) => {
+    console.log('🟠 handleEditFromList called with id:', id);
+    // sourcesList uses index + 1 as id, so we need to find by index
+    const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
+    const source = sources[index];
+    console.log('🟠 Found source:', source);
+    if (source) {
+      // Set local edit state to trigger edit mode
+      setLocalEditSource(source);
+    }
+  };
+
+  const handleDeleteFromList = async (id: number | string) => {
+    console.log('🟠 handleDeleteFromList called with id:', id);
+    
+    try {
+      // sourcesList uses index + 1 as id, so we need to find the actual source
+      const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
+      const source = sources[index];
+      
+      if (source) {
+        console.log('🟠 Deleting source:', source._id);
+        await removeSource(source._id);
+        console.log('🟠 Source deleted successfully');
+        // React Query will automatically refetch and update the list
+      }
+    } catch (error) {
+      console.error('🟠 Error deleting source:', error);
+      // Error toast is already shown by the mutation
+    }
+  };
+
   // Image 5: Sources list view
   if (sourcesList.length > 0 && !showForm) {
     return (
       <div className="space-y-2 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActions} />
   <div className="flex-1 overflow-hidden">
-    <SourcesList sources={sourcesList} pageType="fuentes" />
+    <SourcesList sources={sourcesList} pageType="fuentes" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
   </div>
       </div>
     )
@@ -323,8 +397,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
             <div className="fixed bottom-0 left-0 right-0 m-1  lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                      <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
                        <Button onClick={handleCancel} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{t('form.cancel')}</Button>
-                       <Button onClick={handleSubmit} disabled={isCreating} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
-                         {isCreating ? 'Creating...' : t('form.submit')}
+                       <Button onClick={handleSubmit} disabled={isCreating || isEditing} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
+                         {isCreating || isEditing ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Source' : t('form.submit'))}
                        </Button>
                      </div>
                    </div>

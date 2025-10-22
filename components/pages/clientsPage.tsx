@@ -29,13 +29,45 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
 
   // Modal state - only for opening the modal
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState<{
+    id: string;
+    name: string;
+    industry: string;
+    description?: string;
+    contactName: string;
+    whatsapp: string;
+    position: string;
+    email: string;
+  } | null>(null)
 
   const openModal = () => {
+    setEditingClient(null)
     setIsModalOpen(true)
+  }
+
+  const openEditModal = (client: Client) => {
+    // Find the full client data - client.id is already the _id string
+    const fullClientData = initialClients.find(c => c._id === String(client.id))
+    if (fullClientData) {
+      setEditingClient({
+        id: fullClientData._id,
+        name: fullClientData.title || '',
+        industry: fullClientData.metadata?.industry || '',
+        description: fullClientData.metadata?.description || '',
+        contactName: fullClientData.metadata?.contactName || '',
+        whatsapp: fullClientData.metadata?.whatsapp || '',
+        position: fullClientData.metadata?.position || '',
+        email: fullClientData.metadata?.email || '',
+      })
+      setIsModalOpen(true)
+    } else {
+      console.error('Client not found:', client.id, 'Available:', initialClients.map(c => c._id))
+    }
   }
 
   const closeModal = () => {
     setIsModalOpen(false)
+    setEditingClient(null)
   }
 
   // Use ref to store latest clientsData to avoid dependency issues
@@ -112,6 +144,7 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
               <ClientsList
                 clients={paginatedClients}
                 campaigns={initialCampaigns}
+                onEditClient={openEditModal}
               />
               {pagination.totalPages > 1 && (
                 <Pagination 
@@ -130,7 +163,7 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
       <ClientFormModal 
         isOpen={isModalOpen} 
         onClose={closeModal}
-        editClient={null}
+        editClient={editingClient}
       />
     </div>
   )

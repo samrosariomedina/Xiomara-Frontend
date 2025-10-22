@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Search, ChevronDown, MoreVertical } from "lucide-react"
+import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
@@ -19,21 +20,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { EmptyFuentesGenerales } from "../icons/icons"
 import { formatDateSafe } from '@/lib/utils'
-import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { SourceResponse } from '@/lib/schemas'
 
 interface FuentesGeneralesSectionProps {
   sources: SourceResponse[]
+  onEdit: (source: SourceResponse) => void
+  onDelete: (sourceId: string) => Promise<void>
 }
 
-export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProps) {
-  // Use caching for sources
-  const {
-    data: cachedSources
-  } = useDataWithCache(sources, { cacheKey: 'sources' })
-
-  // Transform sources to fuentesData format
-  const fuentesData = cachedSources.map((source, index) => ({
+export function FuentesGeneralesSection({ sources, onEdit, onDelete }: FuentesGeneralesSectionProps) {
+  // Transform sources to fuentesData format - no caching
+  const fuentesData = sources.map((source, index) => ({
     id: index + 1,
     nombre: source.title || 'Sin título',
     tipo: source.type === 'generales' ? 'General' : source.type,
@@ -48,6 +45,7 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [menuOpen, setMenuOpen] = useState<{sourceId: string, left: number, top: number} | null>(null)
   const t = useTranslations('FUENTES')
   const router = useRouter()
   const pathname = usePathname()
@@ -287,7 +285,20 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
                     {fuente.ultimaActualizacion}
                   </td>
                   <td className="px-6 py-3">
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button 
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        const source = sources[fuente.id - 1]
+                        if (source) {
+                          setMenuOpen({
+                            sourceId: source._id,
+                            left: rect.left,
+                            top: rect.bottom + 8
+                          })
+                        }
+                      }}
+                    >
                       <MoreVertical className="h-4 w-4 text-black" />
                     </button>
                   </td>
@@ -326,7 +337,20 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
                     <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF] text-xs">
                       {fuente.estado}
                     </Badge>
-                    <button className="text-gray-400">
+                    <button 
+                      className="text-gray-400"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        const source = sources[fuente.id - 1]
+                        if (source) {
+                          setMenuOpen({
+                            sourceId: source._id,
+                            left: rect.left,
+                            top: rect.bottom + 8
+                          })
+                        }
+                      }}
+                    >
                       <MoreVertical className="h-4 w-4 text-black" />
                     </button>
                   </div>
@@ -348,6 +372,27 @@ export function FuentesGeneralesSection({ sources }: FuentesGeneralesSectionProp
       </Button>
     </div>
   </div>
+
+  {/* Three-dot menu */}
+  {menuOpen && (
+    <DashboardRowActions
+      onEdit={() => {
+        const source = sources.find(s => s._id === menuOpen.sourceId)
+        if (source) {
+          onEdit(source)
+        }
+      }}
+      onDelete={async () => {
+        await onDelete(menuOpen.sourceId)
+        setMenuOpen(null)
+      }}
+      onClose={() => setMenuOpen(null)}
+      left={menuOpen.left}
+      top={menuOpen.top}
+      itemName={sources.find(s => s._id === menuOpen.sourceId)?.title || 'Source'}
+      pageType="fuentes"
+    />
+  )}
 </Card>
   )
 }

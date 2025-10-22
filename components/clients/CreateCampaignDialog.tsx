@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -24,13 +25,20 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { createCampaignSchema, CreateCampaignInput } from "@/lib/schemas";
-import { createCampaignAction } from "@/actions/campaigns";
+import { createCampaignAction, editCampaignAction } from "@/actions/campaigns";
 
 interface CreateCampaignDialogProps {
   isOpen: boolean;
   onClose: () => void;
   clientId: string;
   clientName: string;
+  editCampaign?: {
+    id: string;
+    name: string;
+    type: string;
+    startDate: string;
+    description?: string;
+  } | null;
 }
 
 export function CreateCampaignDialog({
@@ -38,7 +46,9 @@ export function CreateCampaignDialog({
   onClose,
   clientId,
   clientName,
+  editCampaign = null,
 }: CreateCampaignDialogProps) {
+  const isEditMode = !!editCampaign;
 
   const {
     register,
@@ -50,31 +60,52 @@ export function CreateCampaignDialog({
   } = useForm<CreateCampaignInput>({
     resolver: zodResolver(createCampaignSchema),
     defaultValues: {
-      name: "",
-      type: "Comunicado",
-      startDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
-      description: "",
+      name: editCampaign?.name || "",
+      type: (editCampaign?.type || "Comunicado") as CreateCampaignInput["type"],
+      startDate: editCampaign?.startDate || new Date().toISOString().split('T')[0],
+      description: editCampaign?.description || "",
     },
   });
 
   const campaignType = watch("type");
 
+  // Update form when editCampaign changes
+  React.useEffect(() => {
+    if (editCampaign) {
+      reset({
+        name: editCampaign.name,
+        type: editCampaign.type as CreateCampaignInput["type"],
+        startDate: editCampaign.startDate,
+        description: editCampaign.description || "",
+      });
+    } else {
+      reset({
+        name: "",
+        type: "Comunicado",
+        startDate: new Date().toISOString().split('T')[0],
+        description: "",
+      });
+    }
+  }, [editCampaign, reset]);
+
   const onSubmit = async (data: CreateCampaignInput) => {
     try {
-      const result = await createCampaignAction(clientId, data);
+      const result = isEditMode
+        ? await editCampaignAction(editCampaign!.id, data)
+        : await createCampaignAction(clientId, data);
 
       if (result.success) {
-        toast.success('Campaign created successfully!');
+        toast.success(isEditMode ? 'Campaign updated successfully!' : 'Campaign created successfully!');
         // Close dialog and reset form on success
         onClose();
         reset();
         // The page will automatically refresh due to revalidatePath in the action
       } else {
-        toast.error(result.error || 'Failed to create campaign');
+        toast.error(result.error || (isEditMode ? 'Failed to update campaign' : 'Failed to create campaign'));
       }
     } catch (error) {
-      console.error("Failed to create campaign:", error);
-      toast.error('Failed to create campaign');
+      console.error(isEditMode ? "Failed to update campaign:" : "Failed to create campaign:", error);
+      toast.error(isEditMode ? 'Failed to update campaign' : 'Failed to create campaign');
     }
   };
 
@@ -97,9 +128,14 @@ export function CreateCampaignDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px] bg-white border border-gray-200 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-gray-900 font-semibold">Create New Campaign</DialogTitle>
+          <DialogTitle className="text-gray-900 font-semibold">
+            {isEditMode ? 'Edit Campaign' : 'Create New Campaign'}
+          </DialogTitle>
           <DialogDescription className="text-gray-600">
-            Create a new campaign for client: <strong className="text-gray-900">{clientName}</strong>
+            {isEditMode 
+              ? `Edit campaign details for: ${clientName}` 
+              : <>Create a new campaign for client: <strong className="text-gray-900">{clientName}</strong></>
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -190,7 +226,10 @@ export function CreateCampaignDialog({
               disabled={isSubmitting}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {isSubmitting ? "Creating..." : "Create Campaign"}
+              {isSubmitting 
+                ? (isEditMode ? "Updating..." : "Creating...") 
+                : (isEditMode ? "Update Campaign" : "Create Campaign")
+              }
             </Button>
           </div>
         </form>

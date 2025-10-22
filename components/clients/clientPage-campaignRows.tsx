@@ -138,58 +138,52 @@ export function CampaignRow({
       onClick={handleCampaignClick}
     >
   {/* Desktop Campaign Layout */}
-  <div className="hidden lg:flex items-center w-full">
-        {/* Campaign Number and Name (30% width) */}
-        <div className="flex items-start space-x-4 w-[30%]">
+  <div className="hidden lg:flex items-center w-full gap-4">
+        {/* Campaign Number and Name (flex-1) */}
+        <div className="flex items-start space-x-4 flex-1 min-w-0">
           <div className="w-6 flex justify-center pt-1">
             <span className="text-sm font-medium text-gray-900">{campaignIndex + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs text-gray-400 mb-1">Campaña</div>
-            <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
+            <div className="text-sm font-medium text-gray-900 truncate">{campaign.name}</div>
           </div>
         </div>
 
-        {/* Campaign Creation Date (20% width) */}
-        <div className="w-[20%] text-center">
+        {/* Campaign Creation Date (flex-1) */}
+        <div className="flex-1 text-center">
           <div className="text-xs text-gray-400 mb-1">{t('creationDate')}</div>
           <div className="text-sm text-gray-900">{campaign.createdDate}</div>
         </div>
 
-        {/* Connected Sources (30% width) */}
-        <div className="w-[30%] text-center">
+        {/* Connected Sources (flex-1) */}
+        <div className="flex-1 text-center">
           <div className="text-xs text-gray-400 mb-1">Fuentes conectadas</div>
-          <div className="flex items-center justify-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-                <Ear className="h-3 w-3 text-[#31499F]" />
-                <span className="text-xs text-gray-900">{campaign.connectedSources.whatsapp}</span>
-              </div>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
+              <Ear className="h-3 w-3 text-[#31499F]" />
+              <span className="text-xs text-gray-900">{campaign.connectedSources.whatsapp}</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-                <Users className="h-3 w-3 text-[#31499F]" />
-                <span className="text-xs text-gray-900">{campaign.connectedSources.email}</span>
-              </div>
+            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
+              <Users className="h-3 w-3 text-[#31499F]" />
+              <span className="text-xs text-gray-900">{campaign.connectedSources.email}</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-                <Globe className="h-3 w-3 text-[#31499F]" />
-                <span className="text-xs text-gray-900">{campaign.connectedSources.other}</span>
-              </div>
+            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
+              <Globe className="h-3 w-3 text-[#31499F]" />
+              <span className="text-xs text-gray-900">{campaign.connectedSources.other}</span>
             </div>
           </div>
         </div>
 
-        {/* Status and Actions (20% width) */}
-        <div className="w-[20%] flex items-center justify-between px-4">
+        {/* Status and Actions (flex-1) */}
+        <div className="flex-1 flex items-center justify-end gap-2">
           <div className="text-center">
             <div className="text-xs text-gray-400 mb-1">Status</div>
             <Badge
               variant={campaign.status === "Activa" ? "default" : "secondary"}
               className={
                 campaign.status === "Activa"
-                  ? "bg-[#74DEA4]  rounded-full text-green-800 hover:bg-green-100 text-xs px-2 py-1"
+                  ? "bg-[#74DEA4] rounded-full text-green-800 hover:bg-green-100 text-xs px-2 py-1"
                   : "bg-[#F7F9FF] rounded-full text-gray-600 hover:bg-gray-100 text-xs px-2 py-1"
               }
             >
@@ -222,8 +216,8 @@ export function CampaignRow({
               size="sm"
               className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
               onClick={(e) => {
-                e.stopPropagation() // Prevent row click
-                if (typeof window === 'undefined') return; // Skip on server-side
+                e.stopPropagation()
+                if (typeof window === 'undefined') return;
                 
                 const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
                 const left = rect ? rect.right - 208 : window.innerWidth - 208
