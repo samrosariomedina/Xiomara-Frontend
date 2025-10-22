@@ -16,9 +16,10 @@ import { createSourceAction } from '@/actions/sources'
 interface SourcesDrawerFormProps {
   onClose: () => void
   onSuccess?: () => void
+  clientId?: string
 }
 
-export function SourcesDrawerForm({ onClose, onSuccess }: SourcesDrawerFormProps) {
+export function SourcesDrawerForm({ onClose, onSuccess, clientId }: SourcesDrawerFormProps) {
   const t = useTranslations('FUENTES')
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -53,6 +54,8 @@ export function SourcesDrawerForm({ onClose, onSuccess }: SourcesDrawerFormProps
         file: data.file || undefined,
         url: data.url || undefined,
         text: data.text || undefined,
+      }, {
+        folderId: clientId
       })
       
       // Reset form

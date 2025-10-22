@@ -6,11 +6,18 @@ import {
   Users,
   MoreVertical,
   Settings,
+  Brain,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { CampaignRowProps } from "@/utils/types"
+import { useClient } from "@/context/ClientContext"
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
+import { useQuery } from "@tanstack/react-query"
+import { getClientsAction } from "@/actions/clients"
+import { getAllCampaignsAction } from "@/actions/campaigns"
+import type { ClientResponse, CampaignResponse } from "@/lib/schemas"
 
 export function CampaignRow({ 
   campaign, 
@@ -20,12 +27,116 @@ export function CampaignRow({
   t 
 }: CampaignRowProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const { setSelectedClient, setParentClient } = useClient()
 
-  const handleManageCampaign = () => {
+  // Fetch client data to get full client object
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const result = await getClientsAction()
+      return result.success ? result.data : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Fetch campaigns data to get full campaign object
+  const { data: campaignsData } = useQuery({
+    queryKey: ['all-campaigns'],
+    queryFn: async () => {
+      const result = await getAllCampaignsAction()
+      return result.success ? result.data : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const handleCampaignClick = () => {
+    // Find the parent client
+    const parentClientData = clientsData?.find((c: ClientResponse) => c._id === clientId.toString())
+    
+    // Find the full campaign data
+    const fullCampaignData = campaignsData?.find((c: CampaignResponse) => c._id === campaign.id.toString())
+    
+    if (!fullCampaignData) {
+      console.warn('Campaign data not found, using basic data')
+    }
+    
+    // Use full campaign data if available, otherwise construct basic response
+    const campaignResponse = fullCampaignData || {
+      _id: campaign.id.toString(),
+      title: campaign.name,
+      parent: clientId.toString(),
+      items: {},
+      metadata: {
+        type: 'campaign',
+        campaignType: 'default',
+        startDate: campaign.createdDate,
+      },
+      timestamp: new Date().toISOString()
+    }
+    
+    // Set parent client if found
+    if (parentClientData) {
+      setParentClient(parentClientData)
+    }
+    
+    // Set campaign as selected client
+    setSelectedClient(campaignResponse)
+    
+    // Navigate to channels dashboard
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname)
+    router.push(localizedRoute)
+  }
+
+  const handleManageCampaign = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+    
+    // Find the parent client
+    const parentClientData = clientsData?.find((c: ClientResponse) => c._id === clientId.toString())
+    
+    // Find the full campaign data
+    const fullCampaignData = campaignsData?.find((c: CampaignResponse) => c._id === campaign.id.toString())
+    
+    if (!fullCampaignData) {
+      console.warn('Campaign data not found, using basic data')
+    }
+    
+    // Use full campaign data if available, otherwise construct basic response
+    const campaignResponse = fullCampaignData || {
+      _id: campaign.id.toString(),
+      title: campaign.name,
+      parent: clientId.toString(),
+      items: {},
+      metadata: {
+        type: 'campaign',
+        campaignType: 'default',
+        startDate: campaign.createdDate,
+      },
+      timestamp: new Date().toISOString()
+    }
+    
+    // Set parent client if found
+    if (parentClientData) {
+      setParentClient(parentClientData)
+    }
+    
+    // Set campaign as selected client
+    setSelectedClient(campaignResponse)
+    
+    // Navigate to channels dashboard for campaign management
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.channels, pathname)
+    router.push(localizedRoute)
+  }
+
+  const handleContentEngine = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
     router.push(`/clients/content-engine?clientId=${clientId}&campaignId=${campaign.id}`)
   }
   return (
-    <div className="px-4 py-4 hover:bg-[#f7f9ff] transition-colors">
+    <div 
+      className="px-4 py-4 hover:bg-[#f7f9ff] transition-colors cursor-pointer" 
+      onClick={handleCampaignClick}
+    >
   {/* Desktop Campaign Layout */}
   <div className="hidden lg:flex items-center w-full">
         {/* Campaign Number and Name (30% width) */}
@@ -85,21 +196,33 @@ export function CampaignRow({
               {campaign.status}
             </Badge>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 text-xs bg-white hover:bg-gray-50 border-gray-300"
-              onClick={handleManageCampaign}
+              className="h-8 px-2.5 text-xs bg-white hover:bg-gray-50 border-gray-300"
+              onClick={handleContentEngine}
+              title="Content Engine"
             >
-              <Settings className="h-3 w-3 mr-1" />
-              Gestionar
+              <Brain className="h-3.5 w-3.5" />
+              <span className="ml-1.5 hidden xl:inline">Content</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs bg-white hover:bg-gray-50 border-gray-300"
+              onClick={handleManageCampaign}
+              title="Gestionar Campaña"
+            >
+              <Settings className="h-3.5 w-3.5" />
+              <span className="ml-1.5 hidden xl:inline">Gestionar</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 rounded-full"
+              className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
               onClick={(e) => {
+                e.stopPropagation() // Prevent row click
                 if (typeof window === 'undefined') return; // Skip on server-side
                 
                 const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
@@ -107,8 +230,9 @@ export function CampaignRow({
                 const top = rect ? rect.bottom + 8 : 100
                 onMenuOpen({ clientId, campaignId: campaign.id, left, top })
               }}
+              title="Más opciones"
             >
-              <MoreVertical className="h-4 w-4 text-[#000000] " />
+              <MoreVertical className="h-4 w-4 text-gray-600" />
             </Button>
           </div>
         </div>
@@ -133,6 +257,7 @@ export function CampaignRow({
                 size="sm"
                 className="h-8 w-8 p-0 rounded-full"
                 onClick={(e) => {
+                  e.stopPropagation() // Prevent row click
                   if (typeof window === 'undefined') return; // Skip on server-side
                   
                   const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
@@ -180,16 +305,25 @@ export function CampaignRow({
             </div>
           </div>
 
-          {/* Manage Campaign Button for Mobile */}
-          <div className="mt-4 flex justify-center">
+          {/* Campaign Action Buttons for Mobile */}
+          <div className="mt-4 flex justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-4 text-xs bg-white hover:bg-gray-50 border-gray-300"
+              className="flex-1 h-9 px-3 text-xs bg-white hover:bg-gray-50 border-gray-300 font-medium"
+              onClick={handleContentEngine}
+            >
+              <Brain className="h-4 w-4 mr-1.5" />
+              Content Engine
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-9 px-3 text-xs bg-white hover:bg-gray-50 border-gray-300 font-medium"
               onClick={handleManageCampaign}
             >
-              <Settings className="h-3 w-3 mr-1" />
-              Gestionar Campaña
+              <Settings className="h-4 w-4 mr-1.5" />
+              Gestionar
             </Button>
           </div>
         </div>

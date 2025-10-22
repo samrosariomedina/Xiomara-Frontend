@@ -60,7 +60,7 @@ export function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               {/* User menu trigger */}
-              <Button aria-label={user?.name || t('user')} variant="ghost" className="flex items-center gap-2 text-gray-700 ">
+              <Button aria-label="User" variant="ghost" className="flex items-center gap-2 text-gray-700 ">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/avatar.svg" alt={`${user?.name || 'user'} avatar`} />
                   <AvatarFallback>

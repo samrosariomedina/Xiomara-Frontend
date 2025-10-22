@@ -65,7 +65,25 @@ const fuentesData = Array.from({ length: 25 }, () => ({
  function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isCorresponsablesAdminOpen, setIsCorresponsablesAdminOpen] = useState(false)
-  const { selectedClient, isClientSelected } = useClient()
+  const { selectedClient, isClientSelected, isCampaignType, parentClient } = useClient()
+  
+  // Dynamic breadcrumbs based on folder type
+  const getBreadcrumbs = () => {
+    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
+    
+    if (isCampaignType && parentClient) {
+      return [
+        ...baseCrumbs,
+        { label: parentClient.title || "Client", href: "/clients/channels" },
+        { label: selectedClient?.title || "Campaign" },
+        { label: "Listado Corresponsables" }
+      ]
+    }
+    
+    return [...baseCrumbs, { label: "Listado Corresponsables" }]
+  }
+  
+  const breadcrumbs = getBreadcrumbs()
   
   // Fetch corresponsables data using React Query
   const { 
@@ -92,11 +110,7 @@ const fuentesData = Array.from({ length: 25 }, () => ({
     <>
       <DashboardLayout
         title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
-        breadcrumbs={[
-          { label: "Dashboard" }, 
-          { label: "Clientes" , href: "/clients/channels" }, 
-          { label: "Listado Corresponsales" }
-        ]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Corresponsable"
       >

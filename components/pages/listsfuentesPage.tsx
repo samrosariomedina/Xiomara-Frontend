@@ -21,7 +21,25 @@ const columns: Column[] = [
 
 function FuentesGeneralesPage() {
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
-  const { selectedClient } = useClient()
+  const { selectedClient, isCampaignType, parentClient } = useClient()
+
+  // Dynamic breadcrumbs based on folder type
+  const getBreadcrumbs = () => {
+    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
+    
+    if (isCampaignType && parentClient) {
+      return [
+        ...baseCrumbs,
+        { label: parentClient.title || "Client", href: "/clients/channels" },
+        { label: selectedClient?.title || "Campaign" },
+        { label: "Listado Fuentes" }
+      ]
+    }
+    
+    return [...baseCrumbs, { label: "Listado Fuentes" }]
+  }
+  
+  const breadcrumbs = getBreadcrumbs()
 
   // Fetch sources for selected client with folder filtering
   const {
@@ -63,7 +81,7 @@ function FuentesGeneralesPage() {
     return (
       <DashboardLayout
         title="Listado Fuentes Generales"
-        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
       >
@@ -79,7 +97,7 @@ function FuentesGeneralesPage() {
     return (
       <DashboardLayout
         title="Listado Fuentes Generales"
-        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
       >
@@ -95,7 +113,7 @@ function FuentesGeneralesPage() {
     return (
       <DashboardLayout
         title="Listado Fuentes Generales"
-        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
       >
@@ -110,7 +128,7 @@ function FuentesGeneralesPage() {
     <ClientOnly fallback={
       <DashboardLayout
         title="Listado Fuentes Generales"
-        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
       >
@@ -121,7 +139,7 @@ function FuentesGeneralesPage() {
     }>
       <DashboardLayout
         title="Listado Fuentes Generales"
-        breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }, { label: "Listado Fuentes Generales" }]}
+        breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
       >

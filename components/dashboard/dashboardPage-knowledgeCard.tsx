@@ -11,6 +11,7 @@ import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
 import { formatDateSafe } from '@/lib/utils'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
+import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
 
 // Define types for knowledge base data
@@ -27,6 +28,8 @@ interface KnowledgeBaseSectionProps {
 }
 
 export function KnowledgeBaseSection({ references }: KnowledgeBaseSectionProps) {
+  const { selectedClient } = useClient()
+  
   // Use caching for references
   const {
     data: cachedReferences

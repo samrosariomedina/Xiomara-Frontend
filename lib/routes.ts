@@ -24,7 +24,7 @@ export const routes = {
     
     // Client dashboards (moved from lists)
     dashboards: {
-      corresponsales: '/clients/corresponsales',
+      corresponsales: '/clients/corresponsables',
       fuentes: '/clients/fuentes', 
       knowledge: '/clients/knowledge',
       media: '/clients/media',

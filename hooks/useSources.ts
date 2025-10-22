@@ -32,7 +32,8 @@ export function useCreateSource() {
     mutationFn: ({ data, folderId }: { data: any; folderId?: string }) =>
       createSourceAction(data, folderId ? { folderId } : undefined),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: sourcesKeys.lists() })
+      // Invalidate ALL sources queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['sources'] })
       toast.success('Source created successfully')
     },
     onError: (error: Error) => {
@@ -50,7 +51,8 @@ export function useEditSource() {
     mutationFn: ({ sourceId, data }: { sourceId: string; data: any }) =>
       editSourceAction(sourceId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: sourcesKeys.lists() })
+      // Invalidate ALL sources queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['sources'] })
       toast.success('Source updated successfully')
     },
     onError: (error: Error) => {
@@ -67,7 +69,8 @@ export function useRemoveSource() {
   return useMutation({
     mutationFn: removeSourceAction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: sourcesKeys.lists() })
+      // Invalidate ALL sources queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['sources'] })
       toast.success('Source removed successfully')
     },
     onError: (error: Error) => {

@@ -15,6 +15,7 @@ interface SourcesAdministratorProps {
   references: ReferenceResponse[]
   sources: SourceResponse[]
   defaultTab?: string
+  clientId?: string
 }
 
 interface SourceData {
@@ -22,7 +23,7 @@ interface SourceData {
   [key: string]: unknown
 }
 
-export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales" }: SourcesAdministratorProps) {
+export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales", clientId }: SourcesAdministratorProps) {
   // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
   const [visible, setVisible] = useState(isOpen)
   const [active, setActive] = useState(isOpen)

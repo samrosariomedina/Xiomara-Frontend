@@ -37,6 +37,13 @@ export function useClients() {
     }
   }, [clients, selectedClient])
 
+  // Set cookie when client is selected
+  useEffect(() => {
+    if (selectedClient && typeof window !== 'undefined') {
+      document.cookie = `selectedClientId=${selectedClient._id}; path=/; max-age=${60 * 60 * 24 * 7}` // 7 days
+    }
+  }, [selectedClient])
+
   // Mutation for creating a client
   const createClientMutation = useMutation({
     mutationFn: async (clientData: ClientInput) => {

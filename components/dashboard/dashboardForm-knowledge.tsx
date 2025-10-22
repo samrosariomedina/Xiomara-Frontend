@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
 import { knowledgeBaseSchema, type KnowledgeBaseInput } from '@/lib/schemas'
-import { useKnowledge } from '@/hooks/useKnowledge'
+import { useKnowledge, useCreateReference } from '@/hooks/useKnowledge'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
 import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
@@ -42,6 +42,9 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
   const { selectedClient } = useClient()
   const { createReference, isCreating } = useKnowledge()
   const router = useRouter()
+  
+  // Get the mutation directly to pass clientId
+  const createReferenceMutation = useCreateReference()
   
   const form = useForm<KnowledgeBaseInput>({
     resolver: zodResolver(knowledgeBaseSchema),
@@ -112,13 +115,16 @@ export function KnowledgeBaseForm({ onSubmit, references }: KnowledgeBaseFormPro
       return
     }
 
-    createReference(data, {
-      onSuccess: () => {
-        form.reset()
-        setShowForm(false)
-        onSubmit?.(data)
+    createReferenceMutation.mutate(
+      { data, folderId: selectedClient._id },
+      {
+        onSuccess: () => {
+          form.reset()
+          setShowForm(false)
+          onSubmit?.(data)
+        }
       }
-    })
+    )
   })
 
 

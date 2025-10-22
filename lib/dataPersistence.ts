@@ -26,6 +26,7 @@ const CACHE_KEYS = {
   REFERENCES: 'xiomara_references_cache',
   SOURCES: 'xiomara_sources_cache',
   SELECTED_CLIENT: 'xiomara_selected_client',
+  PARENT_CLIENT: 'xiomara_parent_client',
   CACHE_TIMESTAMP: 'xiomara_cache_timestamp'
 } as const
 
@@ -183,6 +184,49 @@ export function clearSelectedClientFromCache(): void {
   
   try {
     localStorage.removeItem(CACHE_KEYS.SELECTED_CLIENT)
+  } catch {
+    // Silently fail for localStorage errors
+  }
+}
+
+/**
+ * Save parent client to cache (when campaign is selected)
+ */
+export function saveParentClientToCache(client: ClientData): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
+  try {
+    localStorage.setItem(CACHE_KEYS.PARENT_CLIENT, JSON.stringify(client))
+  } catch {
+    // Silently fail for localStorage errors
+  }
+}
+
+/**
+ * Get parent client from cache
+ */
+export function getParentClientFromCache(): ClientData | null {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const cached = localStorage.getItem(CACHE_KEYS.PARENT_CLIENT)
+    return cached ? JSON.parse(cached) as ClientData : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Clear parent client from cache
+ */
+export function clearParentClientFromCache(): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
+  try {
+    localStorage.removeItem(CACHE_KEYS.PARENT_CLIENT)
   } catch {
     // Silently fail for localStorage errors
   }

@@ -1,20 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import ChatCard from "@/components/content-engine/contentEnginePage-chatCard"
 import FuentesCard from "@/components/content-engine/contentEnginePage-fuentesCard"
 import OutputCard from "@/components/content-engine/contentEnginePage-outputCard"
 import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
+import { useClient } from "@/context/ClientContext"
 import { getContentEngineSources } from '@/actions/sources'
 import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
+import type { OutputResponse } from '@/actions/outputs'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
 
 export default function ContentEnginePage(){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
     const { templates } = useTemplates()
+    const { selectedClient, isInitialized } = useClient()
     const router = useRouter()
     console.log('Templates available:', templates.length)
     
@@ -28,15 +31,20 @@ export default function ContentEnginePage(){
     // Server-side data fetching for all outputs with template names
     const { data: allOutputs = [], isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
         queryKey: ['all-outputs-with-templates'],
-        queryFn: getOutputsWithTemplateNamesAction,
+        queryFn: async () => {
+            return await getOutputsWithTemplateNamesAction()
+        },
         staleTime: 30 * 1000, // 30 seconds
     })
 
     // Function to refresh sources
-    const refreshSources = async () => {
+    const refreshSources = useCallback(async () => {
         try {
             setIsLoadingSources(true)
-            const fetchedSources = await getContentEngineSources()
+            // Use selected client ID for filtering sources
+            const fetchedSources = await getContentEngineSources({ 
+                folderId: selectedClient?._id 
+            })
             setSources(fetchedSources)
             setFilteredSources(fetchedSources)
         } catch (error) {
@@ -44,13 +52,15 @@ export default function ContentEnginePage(){
         } finally {
             setIsLoadingSources(false)
         }
-    }
+    }, [selectedClient?._id])
 
 
-    // Fetch sources on component mount
+    // Fetch sources when client is selected and initialized
     useEffect(() => {
-        refreshSources()
-    }, [])
+        if (selectedClient && isInitialized) {
+            refreshSources()
+        }
+    }, [selectedClient, isInitialized, refreshSources])
 
     // Handle search
     useEffect(() => {
@@ -74,13 +84,64 @@ export default function ContentEnginePage(){
     }
 
     const handleSourceAdded = async () => {
-        await refreshSources()
-        console.log('Source added successfully - sources refreshed')
+        if (selectedClient) {
+            await refreshSources()
+            console.log('Source added successfully - sources refreshed for client:', selectedClient._id)
+        }
     }
 
     const handleClearSelectedSources = () => {
         setSelectedSourceIds([])
     } 
+
+    // Show loading state while client context is initializing
+    if (!isInitialized) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <Navbar/>
+                <main className="flex-1 bg-gray-50">
+                    <div className="flex items-center justify-center h-64">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-500">Loading content engine...</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        )
+    }
+
+    // Show alert dialog if no client is selected after initialization
+    if (!selectedClient) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <Navbar/>
+                <main className="flex-1 bg-gray-50">
+                    <div className="flex items-center justify-center h-64">
+                        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4">
+                            <div className="text-center">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">No Client Selected</h3>
+                                <p className="text-gray-600 mb-6">
+                                    Please select a client from the clients page to access the content engine.
+                                </p>
+                                <button
+                                    onClick={() => router.push('/clients')}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Go to Clients
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -172,6 +233,7 @@ export default function ContentEnginePage(){
                                         onSearchChange={setSearchQuery}
                                         onSourceSelection={handleSourceSelection}
                                         onSourceAdded={handleSourceAdded}
+                                        clientId={selectedClient?._id}
                                     />
                                 </div>
                             </aside>
@@ -191,7 +253,7 @@ export default function ContentEnginePage(){
                             <aside className="w-80 h-full">
                                 <div className="h-full">
                                     <OutputCard 
-                                        allOutputs={allOutputs}
+                                        allOutputs={allOutputs as OutputResponse[]}
                                         isLoadingOutput={isLoadingOutput}
                                         onOutputsChange={refetchOutput}
                                     />
@@ -215,6 +277,7 @@ export default function ContentEnginePage(){
                                     onSearchChange={setSearchQuery}
                                     onSourceSelection={handleSourceSelection}
                                     onSourceAdded={handleSourceAdded}
+                                    clientId={selectedClient?._id}
                                 />
                             </div>
                         )}
@@ -230,7 +293,7 @@ export default function ContentEnginePage(){
                         {activeTab === 'output' && (
                             <div className="h-full">
                                 <OutputCard 
-                                    allOutputs={allOutputs}
+                                    allOutputs={allOutputs as OutputResponse[]}
                                     isLoadingOutput={isLoadingOutput}
                                     onOutputsChange={refetchOutput}
                                 />

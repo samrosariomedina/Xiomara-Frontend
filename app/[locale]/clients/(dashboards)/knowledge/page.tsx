@@ -3,7 +3,6 @@ import { Navbar } from "@/components/Navbar";
 import { ClientAutoSelector } from "@/components/clients/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getReferences } from "@/actions/knowledge";
 
 export default async function KnowledgeListPage(){
   // Check authentication on server side
@@ -14,14 +13,12 @@ export default async function KnowledgeListPage(){
     redirect('/auth/login');
   }
 
-  // Fetch references data server-side
-  const references = await getReferences();
-
-   return ( 
+  // Let client handle data fetching with proper client selection
+  return ( 
     <>
     <ClientAutoSelector />
     <Navbar />
-    <KnowledgeBasePage references={references} />
+    <KnowledgeBasePage references={[]} />
     </>
-   )
+  )
 }

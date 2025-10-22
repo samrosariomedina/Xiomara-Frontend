@@ -9,6 +9,7 @@ const intlMiddleware = createMiddleware(routing);
 // Define protected routes that require authentication
 const protectedRoutes = [
   '/clients',
+  '/clients/content-engine',
   // '/dashboard',
 ];
 
@@ -55,6 +56,11 @@ export default function middleware(request: NextRequest) {
     pathname.startsWith(`/es${route}`)
   );
 
+  // Check if the route is content-engine
+  const isContentEngineRoute = pathname.includes('/content-engine') || 
+                              pathname.includes(`/${locale}/clients/content-engine`) ||
+                              pathname.endsWith('/content-engine');
+
   // If user is authenticated and trying to access root or auth routes, redirect to clients
   if (token && (isRootRoute || isAuthRoute)) {
     const clientsUrl = new URL(`/${locale}/clients`, request.url);
@@ -65,6 +71,16 @@ export default function middleware(request: NextRequest) {
   if (!token && isProtectedRoute) {
     const loginUrl = new URL(`/${locale}/auth/login`, request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // If accessing content-engine route, check if client is selected
+  if (token && isContentEngineRoute) {
+    const selectedClientId = request.cookies.get('selectedClientId')?.value;
+    if (!selectedClientId) {
+      // Redirect to clients page if no client is selected
+      const clientsUrl = new URL(`/${locale}/clients`, request.url);
+      return NextResponse.redirect(clientsUrl);
+    }
   }
 
   return response;

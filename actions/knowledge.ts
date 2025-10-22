@@ -6,7 +6,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import type { KnowledgeBaseInput, ReferenceResponse } from '@/lib/schemas'
 import { getCurrentUserIdAction } from "./auth"
-import { getFolderFileIds, pushToFolder, pullFromFolder } from './_folders'
+import { getFolderFileIds } from './_folders'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -25,54 +25,64 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 // Get all references/knowledge base items (server-side)
-export async function getReferencesAction(options?: { folderId?: string }): Promise<ReferenceResponse[]> {
+export async function getReferencesAction(options: { folderId: string }): Promise<ReferenceResponse[]> {
   try {
     const token = await getAuthToken();
     if (!token) {
       throw new Error('Authentication required');
     }
 
-    if (options?.folderId) {
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.references || []
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        throw new Error('Failed to get user ID for filtering');
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/references`, {
-        references: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.data || []
+    // Always require folderId for knowledge base
+    if (!options.folderId) {
+      console.error('Knowledge base requires a folderId (client ID)');
+      return [];
     }
 
+    console.log('=== FOLDER-SCOPED KNOWLEDGE READ DEBUG ===')
+    console.log('Folder ID:', options.folderId)
+    console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+    
+    const files = await getFolderFileIds(options.folderId)
+    console.log('Folder files retrieved:', files)
+    console.log('Folder files is null?', files === null || files === undefined)
+    
+    const ids = files?.references || []
+    console.log('Reference IDs from folder:', ids)
+    console.log('Reference IDs array length:', ids.length)
+    console.log('Reference IDs is empty?', ids.length === 0)
+    
+    if (ids.length === 0) {
+      console.log('No references found in folder, returning empty array')
+      return []
+    }
+    
+    // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
+    console.log('User ID result:', userIdResult)
+    console.log('User ID success?', userIdResult.success)
+    console.log('User ID:', userIdResult.userId)
+    
     if (!userIdResult.success || !userIdResult.userId) {
       throw new Error('Failed to get user ID for filtering');
     }
-    const requestBody: { types: string[]; user: string } = {
-      types: ['text', 'webpage', 'file'],
+    
+    const requestData = {
+      references: ids,
       user: userIdResult.userId
-    };
-    const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
+    }
+    console.log('Request data for references:', JSON.stringify(requestData, null, 2))
+    console.log('=====================================')
+    
+    const response = await axios.post(`${API_BASE_URL}/references`, requestData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
-    return response.data
+    
+    console.log('References response status:', response.status)
+    console.log('References response data length:', response.data?.length || 0)
+    return response.data || []
   } catch (error) {
     console.error('Get references error:', error)
     if (axios.isAxiosError(error)) {
@@ -83,61 +93,48 @@ export async function getReferencesAction(options?: { folderId?: string }): Prom
 }
 
 // Server-side function to get references (for use in server components)
-export async function getReferences(options?: { folderId?: string }): Promise<ReferenceResponse[]> {
+export async function getReferences(options: { folderId: string }): Promise<ReferenceResponse[]> {
   try {
     const token = await getAuthToken();
-    
-   
     
     if (!token) {
       return [];
     }
 
-    if (options?.folderId) {
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.references || []
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        throw new Error('Failed to get user ID for filtering');
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/references`, {
-        references: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.data || []
+    // Always require folderId for knowledge base
+    if (!options.folderId) {
+      console.error('Knowledge base requires a folderId (client ID)');
+      return [];
     }
 
+    const files = await getFolderFileIds(options.folderId)
+    console.log('Files:', files); 
+    const ids = files?.references || []
+    console.log('Ids:', ids);
+    console.log('Ids length:', ids.length);
+    console.log('Ids is empty?', ids.length === 0);
+    if (ids.length === 0) {
+      return []
+    }
+    
+    // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
-
-    const requestBody: { types: string[]; user: string } = {
-      types: ['text', 'webpage', 'file'],
+    
+    const response = await axios.post(`${API_BASE_URL}/references`, {
+      references: ids,
       user: userIdResult.userId
-    };
-
-    const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
-    const references = response.data || []
-    return references
+    
+    return response.data || []
   } catch (error) {
     console.error('Get references server error:', error)
     if (axios.isAxiosError(error)) {
@@ -152,7 +149,7 @@ export async function getReferences(options?: { folderId?: string }): Promise<Re
 }
 
 // Create a new reference/knowledge base item
-export async function createReferenceAction(data: KnowledgeBaseInput, options?: { folderId?: string }): Promise<ReferenceResponse & { linked?: boolean; linkError?: string }> {
+export async function createReferenceAction(data: KnowledgeBaseInput, options: { folderId: string }): Promise<ReferenceResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -218,13 +215,48 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options?: 
     let linked: boolean | undefined
     let linkError: string | undefined
     if (options?.folderId && created?._id) {
-      const result = await pushToFolder(options.folderId, { references: [created._id] }, [
-        '/clients',
-        '/clients/knowledge',
-        '/clients/dashboards/knowledge'
-      ])
-      linked = result.linked
-      linkError = result.linkError
+      const pushData = {
+        folder: options.folderId,
+        references: [created._id]
+      }
+      
+      console.log('=== PUSH TO FOLDER DEBUG (KNOWLEDGE) ===')
+      console.log('Folder ID:', options.folderId)
+      console.log('Created Reference ID:', created._id)
+      console.log('Push Data:', JSON.stringify(pushData, null, 2))
+      console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+      console.log('Reference ID is null?', created._id === null || created._id === undefined)
+      console.log('References array:', [created._id])
+      console.log('References array length:', [created._id].length)
+      console.log('================================')
+      
+      try {
+        const pushResponse = await axios.post(`${API_BASE_URL}/folders/push`, pushData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('Push response status:', pushResponse.status)
+        console.log('Push response data:', pushResponse.data)
+        linked = true
+      } catch (pushError: unknown) {
+        console.error('Push to folder error:', pushError)
+        console.error('Push error response:', axios.isAxiosError(pushError) ? pushError.response?.data : 'Not an axios error')
+        console.error('Push error status:', axios.isAxiosError(pushError) ? pushError.response?.status : 'Not an axios error')
+        linked = false
+        linkError = axios.isAxiosError(pushError) 
+          ? pushError.response?.data?.message || 'Failed to link to folder'
+          : 'Failed to link to folder'
+      }
+    } else {
+      console.log('=== PUSH SKIPPED (KNOWLEDGE) ===')
+      console.log('Folder ID provided?', !!options?.folderId)
+      console.log('Created reference has ID?', !!created?._id)
+      console.log('Options:', options)
+      console.log('Created reference:', created)
+      console.log('===================')
     }
 
     revalidatePath('/clients')
@@ -308,7 +340,7 @@ export async function editReferenceAction(
 }
 
 // Remove a reference
-export async function removeReferenceAction(referenceId: string, options?: { folderId?: string }): Promise<void> {
+export async function removeReferenceAction(referenceId: string, options: { folderId: string }): Promise<void> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -326,11 +358,43 @@ export async function removeReferenceAction(referenceId: string, options?: { fol
     
     // Pull from folder if provided
     if (options?.folderId) {
-      await pullFromFolder(options.folderId, { references: [referenceId] }, [
-        '/clients',
-        '/clients/knowledge',
-        '/clients/dashboards/knowledge'
-      ])
+      const pullData = {
+        folder: options.folderId,
+        references: [referenceId]
+      }
+      
+      console.log('=== PULL FROM FOLDER DEBUG (KNOWLEDGE) ===')
+      console.log('Folder ID:', options.folderId)
+      console.log('Reference ID to remove:', referenceId)
+      console.log('Pull Data:', JSON.stringify(pullData, null, 2))
+      console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+      console.log('Reference ID is null?', referenceId === null || referenceId === undefined)
+      console.log('References array:', [referenceId])
+      console.log('References array length:', [referenceId].length)
+      console.log('================================')
+      
+      try {
+        const pullResponse = await axios.post(`${API_BASE_URL}/folders/pull`, pullData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('Pull response status:', pullResponse.status)
+        console.log('Pull response data:', pullResponse.data)
+      } catch (pullError: unknown) {
+        console.error('Pull from folder error:', pullError)
+        console.error('Pull error response:', axios.isAxiosError(pullError) ? pullError.response?.data : 'Not an axios error')
+        console.error('Pull error status:', axios.isAxiosError(pullError) ? pullError.response?.status : 'Not an axios error')
+        // Don't throw error for pull failure, just log it
+      }
+    } else {
+      console.log('=== PULL SKIPPED (KNOWLEDGE) ===')
+      console.log('Folder ID provided?', !!options?.folderId)
+      console.log('Reference ID:', referenceId)
+      console.log('Options:', options)
+      console.log('===================')
     }
     
     revalidatePath('/clients')

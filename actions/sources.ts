@@ -190,50 +190,37 @@ export async function getContentEngineSources(options?: { folderId?: string }): 
       return [];
     }
 
-    if (options?.folderId) {
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.sources || []
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        console.error('Failed to get user ID for filtering');
-        return [];
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/sources`, {
-        sources: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.data || []
+    // Always require a folderId for content engine sources
+    if (!options?.folderId) {
+      console.error('Content engine sources require a folderId (client ID)');
+      return [];
     }
 
+    const files = await getFolderFileIds(options.folderId)
+    const ids = files?.sources || []
+    if (ids.length === 0) {
+      console.log('No sources found for client folder:', options.folderId)
+      return []
+    }
+    
+    // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
-
-    const requestBody: { types: string[]; user: string } = {
-      types: ['text', 'file', 'webpage'],
+    
+    const response = await axios.post(`${API_BASE_URL}/sources`, {
+      sources: ids,
       user: userIdResult.userId
-    };
-
-    const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
+    }, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
+    
+    console.log('Content engine sources fetched:', response.data?.length || 0, 'sources for client:', options.folderId)
     return response.data || []
   } catch (error) {
     console.error('Get content engine sources error:', error)

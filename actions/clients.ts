@@ -359,3 +359,68 @@ export async function deleteClientAction(clientId: string) {
     };
   }
 }
+
+/**
+ * Server action to check if user has any clients available
+ * This is used by middleware to determine if user can access content-engine
+ */
+export async function hasClientsAction() {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return {
+        success: false,
+        hasClients: false,
+        error: 'Authentication required'
+      };
+    }
+
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      return {
+        success: false,
+        hasClients: false,
+        error: 'Failed to get user ID for filtering'
+      };
+    }
+
+    // Fetch folders with user filtering
+    const response = await axios.post(`${BACKEND_URL}/folders`, {
+      user: userIdResult.userId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      // Filter for client folders
+      const allFolders = response.data;
+      const clientFolders = allFolders.filter((folder: { _id: string; metadata?: { type?: string } }) => {
+        return folder.metadata && folder.metadata.type === "client";
+      });
+      
+      return {
+        success: true,
+        hasClients: clientFolders.length > 0,
+        clientCount: clientFolders.length
+      };
+    } else {
+      return {
+        success: false,
+        hasClients: false,
+        error: 'Failed to fetch clients'
+      };
+    }
+  } catch (error: unknown) {
+    console.error('Has clients check error:', error);
+    
+    return {
+      success: false,
+      hasClients: false,
+      error: error instanceof Error ? error.message : 'Failed to check clients'
+    };
+  }
+}

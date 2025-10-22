@@ -3,6 +3,7 @@
 import withAuth from "@/lib/withAuth"
 import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
+import { useClient } from "@/context/ClientContext"
 
 const columns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -23,10 +24,30 @@ const data = Array.from({ length: 25 }, () => ({
 }))
 
 function MediaListeningPage() {
+  const { selectedClient, isCampaignType, parentClient } = useClient()
+  
+  // Dynamic breadcrumbs based on folder type
+  const getBreadcrumbs = () => {
+    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
+    
+    if (isCampaignType && parentClient) {
+      return [
+        ...baseCrumbs,
+        { label: parentClient.title || "Client", href: "/clients/channels" },
+        { label: selectedClient?.title || "Campaign" },
+        { label: "Listado Media Listening" }
+      ]
+    }
+    
+    return [...baseCrumbs, { label: "Listado Media Listening" }]
+  }
+  
+  const breadcrumbs = getBreadcrumbs()
+  
   return (
     <DashboardLayout
       title="Listado Media Listening"
-      breadcrumbs={[{ label: "Dashboard" }, { label: "Clientes" , href: "/clients/channels" }, { label: "Listado Media Listening" }]}
+      breadcrumbs={breadcrumbs}
       onAddClick={() => console.log("Add clicked")}
     >
       <DataTable

@@ -30,9 +30,11 @@ export function useCreateReference() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: createReferenceAction,
+    mutationFn: ({ data, folderId }: { data: KnowledgeBaseInput; folderId: string }) =>
+      createReferenceAction(data, { folderId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: knowledgeKeys.lists() })
+      // Invalidate ALL references queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['references'] })
       toast.success('Knowledge base item created successfully')
     },
     onError: (error: Error) => {
@@ -50,7 +52,8 @@ export function useEditReference() {
     mutationFn: ({ referenceId, data }: { referenceId: string; data: Partial<KnowledgeBaseInput> }) =>
       editReferenceAction(referenceId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: knowledgeKeys.lists() })
+      // Invalidate ALL references queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['references'] })
       toast.success('Knowledge base item updated successfully')
     },
     onError: (error: Error) => {
@@ -65,9 +68,11 @@ export function useRemoveReference() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: removeReferenceAction,
+    mutationFn: ({ referenceId, folderId }: { referenceId: string; folderId: string }) =>
+      removeReferenceAction(referenceId, { folderId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: knowledgeKeys.lists() })
+      // Invalidate ALL references queries (including folder-specific ones)
+      queryClient.invalidateQueries({ queryKey: ['references'] })
       toast.success('Knowledge base item removed successfully')
     },
     onError: (error: Error) => {
@@ -84,10 +89,26 @@ export function useKnowledge() {
   const removeReference = useRemoveReference()
 
   return {
-    // Mutations
-    createReference: createReference.mutate,
+    // Mutations with backward compatibility
+    createReference: (data: KnowledgeBaseInput, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
+      createReference.mutate(
+        { data, folderId: undefined }, // Will be set by the form component
+        {
+          onSuccess: options?.onSuccess,
+          onError: options?.onError,
+        }
+      )
+    },
     editReference: editReference.mutate,
-    removeReference: removeReference.mutate,
+    removeReference: (referenceId: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => {
+      removeReference.mutate(
+        { referenceId, folderId: undefined }, // Will be set by the form component
+        {
+          onSuccess: options?.onSuccess,
+          onError: options?.onError,
+        }
+      )
+    },
     
     // Loading states
     isCreating: createReference.isPending,
