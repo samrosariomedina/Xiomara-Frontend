@@ -25,8 +25,11 @@ export function ClientProvider({ children }: ClientProviderProps) {
   const [selectedClient, setSelectedClientState] = useState<ClientResponse | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Load client from localStorage on mount
+  // Load client from localStorage on mount (client-side only)
   useEffect(() => {
+    // Only run on client side to prevent hydration mismatch
+    if (typeof window === 'undefined') return
+    
     const savedClient = getSelectedClientFromCache()
     if (savedClient) {
       // Convert ClientData to ClientResponse format

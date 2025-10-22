@@ -6,6 +6,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import type { SourceResponse } from '@/lib/schemas'
 import { getCurrentUserIdAction } from "./auth"
+import { getFolderFileIds } from './_folders'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -24,33 +25,77 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 // Get all sources
-export async function getSourcesAction(): Promise<SourceResponse[]> {
+export async function getSourcesAction(options?: { folderId?: string }): Promise<SourceResponse[]> {
   try {
     const token = await getAuthToken();
     if (!token) {
       throw new Error('Authentication required');
     }
 
-    // Get current user ID for filtering
+    // Folder-scoped read if folderId provided
+    if (options?.folderId) {
+      console.log('=== FOLDER-SCOPED READ DEBUG ===')
+      console.log('Folder ID:', options.folderId)
+      console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+      
+      const files = await getFolderFileIds(options.folderId)
+      console.log('Folder files retrieved:', files)
+      console.log('Folder files is null?', files === null || files === undefined)
+      
+      const ids = files?.sources || []
+      console.log('Source IDs from folder:', ids)
+      console.log('Source IDs array length:', ids.length)
+      console.log('Source IDs is empty?', ids.length === 0)
+      
+      if (ids.length === 0) {
+        console.log('No sources found in folder, returning empty array')
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      console.log('User ID result:', userIdResult)
+      console.log('User ID success?', userIdResult.success)
+      console.log('User ID:', userIdResult.userId)
+      
+      if (!userIdResult.success || !userIdResult.userId) {
+        throw new Error('Failed to get user ID for filtering');
+      }
+      
+      const requestData = {
+        sources: ids,
+        user: userIdResult.userId
+      }
+      console.log('Request data for sources:', JSON.stringify(requestData, null, 2))
+      console.log('=====================================')
+      
+      const response = await axios.post(`${API_BASE_URL}/sources`, requestData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      console.log('Sources response status:', response.status)
+      console.log('Sources response data length:', response.data?.length || 0)
+      return response.data || []
+    }
+
+    // Default user-filtered read (manually added types)
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       throw new Error('Failed to get user ID for filtering');
     }
-
-    // For non-admin users, let the backend handle user filtering automatically
-    // Only send user parameter for admin users who need to query other users' data
-    const requestBody: { types: string[] } = {
-      types: ['text', 'file', 'webpage'] // Filter for manually added sources
+    const requestBody: { types: string[]; user: string } = {
+      types: ['text', 'file', 'webpage'],
+      user: userIdResult.userId
     };
-
     const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
-    
-    
     return response.data
   } catch (error) {
     console.error('Get sources error:', error)
@@ -62,7 +107,7 @@ export async function getSourcesAction(): Promise<SourceResponse[]> {
 }
 
 // Server-side function to get sources (for use in server components)
-export async function getSources(): Promise<SourceResponse[]> {
+export async function getSources(options?: { folderId?: string }): Promise<SourceResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -70,16 +115,46 @@ export async function getSources(): Promise<SourceResponse[]> {
       return [];
     }
 
-    // Get current user ID for filtering
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      console.log('Files:', files); 
+      const ids = files?.sources || []
+      console.log('Ids:', ids);
+      console.log('Ids length:', ids.length);
+      console.log('Ids is empty?', ids.length === 0);
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/sources`, {
+        sources: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
+    }
+
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
 
-    // For non-admin users, let the backend handle user filtering automatically
-    const requestBody: { types: string[] } = {
-      types: ['text', 'file', 'webpage'] // Filter for manually added sources
+    const requestBody: { types: string[]; user: string } = {
+      types: ['text', 'file', 'webpage'],
+      user: userIdResult.userId
     };
 
     const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
@@ -88,7 +163,6 @@ export async function getSources(): Promise<SourceResponse[]> {
         'Content-Type': 'application/json'
       }
     })
-    
     const sources = response.data || []
     
     // Note: We can't use localStorage in server components, 
@@ -108,7 +182,7 @@ export async function getSources(): Promise<SourceResponse[]> {
 }
 
 // Server action to get sources for content engine
-export async function getContentEngineSources(): Promise<SourceResponse[]> {
+export async function getContentEngineSources(options?: { folderId?: string }): Promise<SourceResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -116,16 +190,42 @@ export async function getContentEngineSources(): Promise<SourceResponse[]> {
       return [];
     }
 
-    // Get current user ID for filtering
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.sources || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/sources`, {
+        sources: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
+    }
+
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
 
-    // For non-admin users, let the backend handle user filtering automatically
-    const requestBody: { types: string[] } = {
-      types: ['text', 'file', 'webpage'] // Filter for manually added sources
+    const requestBody: { types: string[]; user: string } = {
+      types: ['text', 'file', 'webpage'],
+      user: userIdResult.userId
     };
 
     const response = await axios.post(`${API_BASE_URL}/sources`, requestBody, {
@@ -134,7 +234,6 @@ export async function getContentEngineSources(): Promise<SourceResponse[]> {
         'Content-Type': 'application/json'
       }
     })
-    
     return response.data || []
   } catch (error) {
     console.error('Get content engine sources error:', error)
@@ -156,7 +255,7 @@ export async function createSourceAction(data: {
   file?: File;
   url?: string;
   text?: string;
-}): Promise<SourceResponse> {
+}, options?: { folderId?: string }): Promise<SourceResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -247,11 +346,61 @@ export async function createSourceAction(data: {
       },
     })
     
+    const created: SourceResponse = response.data
+
+    // Push to folder if provided
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (options?.folderId && created?._id) {
+      const pushData = {
+        folder: options.folderId,
+        sources: [created._id]
+      }
+      
+      console.log('=== PUSH TO FOLDER DEBUG ===')
+      console.log('Folder ID:', options.folderId)
+      console.log('Created Source ID:', created._id)
+      console.log('Push Data:', JSON.stringify(pushData, null, 2))
+      console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+      console.log('Source ID is null?', created._id === null || created._id === undefined)
+      console.log('Sources array:', [created._id])
+      console.log('Sources array length:', [created._id].length)
+      console.log('================================')
+      
+      try {
+        const pushResponse = await axios.post(`${API_BASE_URL}/folders/push`, pushData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('Push response status:', pushResponse.status)
+        console.log('Push response data:', pushResponse.data)
+        linked = true
+      } catch (pushError: unknown) {
+        console.error('Push to folder error:', pushError)
+        console.error('Push error response:', axios.isAxiosError(pushError) ? pushError.response?.data : 'Not an axios error')
+        console.error('Push error status:', axios.isAxiosError(pushError) ? pushError.response?.status : 'Not an axios error')
+        linked = false
+        linkError = axios.isAxiosError(pushError) 
+          ? pushError.response?.data?.message || 'Failed to link to folder'
+          : 'Failed to link to folder'
+      }
+    } else {
+      console.log('=== PUSH SKIPPED ===')
+      console.log('Folder ID provided?', !!options?.folderId)
+      console.log('Created source has ID?', !!created?._id)
+      console.log('Options:', options)
+      console.log('Created source:', created)
+      console.log('===================')
+    }
+
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')
     revalidatePath('/clients/dashboards/fuentes')
     revalidatePath('/clients/content-engine')
-    return response.data
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Create source error:', error)
     if (axios.isAxiosError(error)) {
@@ -355,7 +504,7 @@ export async function editSourceAction(
 }
 
 // Remove a source
-export async function removeSourceAction(sourceId: string): Promise<void> {
+export async function removeSourceAction(sourceId: string, options?: { folderId?: string }): Promise<void> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -370,6 +519,47 @@ export async function removeSourceAction(sourceId: string): Promise<void> {
         'Content-Type': 'application/json'
       }
     })
+    
+    // Pull from folder if provided
+    if (options?.folderId) {
+      const pullData = {
+        folder: options.folderId,
+        sources: [sourceId]
+      }
+      
+      console.log('=== PULL FROM FOLDER DEBUG ===')
+      console.log('Folder ID:', options.folderId)
+      console.log('Source ID to remove:', sourceId)
+      console.log('Pull Data:', JSON.stringify(pullData, null, 2))
+      console.log('Folder ID is null?', options.folderId === null || options.folderId === undefined)
+      console.log('Source ID is null?', sourceId === null || sourceId === undefined)
+      console.log('Sources array:', [sourceId])
+      console.log('Sources array length:', [sourceId].length)
+      console.log('================================')
+      
+      try {
+        const pullResponse = await axios.post(`${API_BASE_URL}/folders/pull`, pullData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('Pull response status:', pullResponse.status)
+        console.log('Pull response data:', pullResponse.data)
+      } catch (pullError: unknown) {
+        console.error('Pull from folder error:', pullError)
+        console.error('Pull error response:', axios.isAxiosError(pullError) ? pullError.response?.data : 'Not an axios error')
+        console.error('Pull error status:', axios.isAxiosError(pullError) ? pullError.response?.status : 'Not an axios error')
+        // Don't throw error for pull failure, just log it
+      }
+    } else {
+      console.log('=== PULL SKIPPED ===')
+      console.log('Folder ID provided?', !!options?.folderId)
+      console.log('Source ID:', sourceId)
+      console.log('Options:', options)
+      console.log('===================')
+    }
     
     revalidatePath('/clients')
     revalidatePath('/clients/fuentes')

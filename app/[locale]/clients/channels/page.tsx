@@ -3,8 +3,6 @@ import DashBoard from "@/components/pages/dashboardPage";
 import { ClientAutoSelector } from "@/components/clients/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getReferences } from "@/actions/knowledge";
-import { getSources } from "@/actions/sources";
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string }> };
@@ -35,17 +33,10 @@ export default async function Page() {
     redirect('/auth/login');
   }
 
-  // Fetch references and sources data server-side
-  const [references, sources] = await Promise.all([
-    getReferences(),
-    getSources()
-  ]);
-  
-
   return (
     <div>
       <ClientAutoSelector />
-      <DashBoard references={references} sources={sources} />
+      <DashBoard />
     </div>
   )
 }

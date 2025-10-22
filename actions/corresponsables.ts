@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import axios from "axios";
 import FormData from 'form-data';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUserIdAction } from "./auth";
+import { getFolderFileIds } from './_folders';
+import { getCurrentUserIdAction } from './auth';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
@@ -380,15 +381,23 @@ export async function getCorresponsablesAction(folderId: string) {
       throw new Error('Authentication required');
     }
 
+    // Get listener IDs from folder via helper (uses user filtering internally)
+    const files = await getFolderFileIds(folderId);
+    const listenerIds = files?.listeners || [];
+
+    if (!listenerIds.length) {
+      return { success: true, data: [] };
+    }
+
     // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       throw new Error('Failed to get user ID for filtering');
     }
 
-    // First get the folder to get the listener IDs
-    const folderResponse = await axios.post(`${BACKEND_URL}/folders`, {
-      folders: [folderId],
+    // Fetch listeners by ids with user in body
+    const response = await axios.post(`${BACKEND_URL}/listeners`, {
+      listeners: listenerIds,
       user: userIdResult.userId
     }, {
       headers: {
@@ -396,44 +405,8 @@ export async function getCorresponsablesAction(folderId: string) {
         'Content-Type': 'application/json'
       }
     });
-
-    if (folderResponse.status === 200 && folderResponse.data.length > 0) {
-      const folder = folderResponse.data[0];
-      const listenerIds = folder.items?.listeners || [];
-
-      if (listenerIds.length === 0) {
-        return {
-          success: true,
-          data: []
-        };
-      }
-
-      // Fetch the listeners with user filtering
-      const listenersResponse = await axios.post(`${BACKEND_URL}/listeners`, {
-        listeners: listenerIds,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (listenersResponse.status === 200) {
-        return {
-          success: true,
-          data: listenersResponse.data
-        };
-      } else {
-        throw new Error('Failed to fetch listeners');
-      }
-    } else {
-      // No folder found or empty response - return empty array instead of error
-      return {
-        success: true,
-        data: []
-      };
-    }
+    
+    return { success: true, data: response.data || [] };
   } catch (error: unknown) {
     console.error('Get corresponsables error:', error);
 

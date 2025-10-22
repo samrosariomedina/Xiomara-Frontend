@@ -29,7 +29,8 @@ export function useCreateSource() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: createSourceAction,
+    mutationFn: ({ data, folderId }: { data: any; folderId?: string }) =>
+      createSourceAction(data, folderId ? { folderId } : undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sourcesKeys.lists() })
       toast.success('Source created successfully')
@@ -77,14 +78,14 @@ export function useRemoveSource() {
 }
 
 // Combined hook for sources mutations only (data fetching is now server-side)
-export function useSourcesMutations() {
+export function useSourcesMutations(folderId?: string) {
   const createSource = useCreateSource()
   const editSource = useEditSource()
   const removeSource = useRemoveSource()
 
   return {
     // Mutations
-    createSource: createSource.mutate,
+    createSource: (data: any) => createSource.mutate({ data, folderId }),
     editSource: editSource.mutate,
     removeSource: removeSource.mutate,
     

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Brain } from "lucide-react"
 import { usePathname, useRouter } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { useTranslations } from 'next-intl'
@@ -24,6 +24,11 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
 
   const goToClients = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.page, pathname || '/')
+    router.push(localizedRoute)
+  }
+
+  const goToContentEngine = () => {
+    const localizedRoute = getLocalizedRouteFromPathname('/clients/content-engine', pathname || '/')
     router.push(localizedRoute)
   }
 
@@ -55,15 +60,22 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
                   {t('title')}
                 </h1>
 
-                <div className="">
+                <div className="flex gap-2">
                   <Button 
-                    className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white  py-2 flex items-center" 
+                    className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white py-2 flex items-center" 
                     aria-label={t('addSources')}
                     onClick={() => setIsSourcesAdminOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
                     <span className="ml-2 lg:hidden">{isEs ? 'Crear' : 'Create'}</span>
                     <span className="hidden lg:inline ml-2">{t('addSources')}</span>
+                  </Button>
+                  <Button 
+                    className="rounded-full bg-green-600 hover:bg-green-700 text-white py-2 flex items-center" 
+                    onClick={goToContentEngine}
+                  >
+                    <Brain className="h-4 w-4" />
+                    <span className="ml-2">Content Engine</span>
                   </Button>
                 </div>
               </div>
@@ -102,7 +114,7 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
 
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
               <Button 
                 className="rounded-full bg-[#31499F] hover:bg-blue-800 text-white px-4 py-2 flex items-center" 
                 aria-label={t('addSources')}
@@ -110,6 +122,13 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
               >
                 <Plus className="h-4 w-4" />
                 <span className="ml-2">{t('addSources')}</span>
+              </Button>
+              <Button 
+                className="rounded-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 flex items-center" 
+                onClick={goToContentEngine}
+              >
+                <Brain className="h-4 w-4" />
+                <span className="ml-2">Content Engine</span>
               </Button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { cookies } from "next/headers"
 import axios from 'axios'
 import { getCurrentUserIdAction } from "./auth"
+import { getFolderFileIds, pushToFolder } from './_folders'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -43,8 +44,9 @@ export async function generateSummaryAction(
   sourceIds: string[],
   prompts?: string[],
   options?: GenerateSummaryOptions,
-  userId?: string
-): Promise<SummaryResponse> {
+  userId?: string,
+  link?: { folderId?: string }
+): Promise<SummaryResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -80,8 +82,19 @@ export async function generateSummaryAction(
         'Content-Type': 'application/json'
       }
     })
+    
+    const created: SummaryResponse = response.data
 
-    return response.data
+    // Optional push to folder
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (link?.folderId && created?._id) {
+      const result = await pushToFolder(link.folderId, { summaries: [created._id] })
+      linked = result.linked
+      linkError = result.linkError
+    }
+
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Generate summary error:', error)
     if (axios.isAxiosError(error)) {
@@ -332,7 +345,7 @@ export async function editSummaryAction(
 }
 
 // Get all summaries
-export async function getSummaries(userId?: string): Promise<SummaryResponse[]> {
+export async function getSummaries(userId?: string, options?: { folderId?: string }): Promise<SummaryResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -340,8 +353,34 @@ export async function getSummaries(userId?: string): Promise<SummaryResponse[]> 
       return [];
     }
 
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.summaries || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/summaries`, {
+        summaries: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
+    }
+
     const response = await axios.post(`${API_BASE_URL}/summaries`, {
-      // Include user ID if provided
       ...(userId && { user: userId })
     }, {
       headers: {
@@ -349,7 +388,6 @@ export async function getSummaries(userId?: string): Promise<SummaryResponse[]> 
         'Content-Type': 'application/json'
       }
     })
-    
     return response.data || []
   } catch (error) {
     console.error('Get summaries error:', error)
@@ -365,12 +403,39 @@ export async function getSummaries(userId?: string): Promise<SummaryResponse[]> 
 }
 
 // Server action to get all user summaries
-export async function getUserSummariesAction(): Promise<SummaryResponse[]> {
+export async function getUserSummariesAction(options?: { folderId?: string }): Promise<SummaryResponse[]> {
   try {
     const token = await getAuthToken();
     
     if (!token) {
       return [];
+    }
+
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.summaries || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/summaries`, {
+        summaries: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
     }
 
     // Get current user ID for filtering
@@ -379,7 +444,7 @@ export async function getUserSummariesAction(): Promise<SummaryResponse[]> {
       console.error('Failed to get user ID for filtering');
       return [];
     }
-
+    
     const response = await axios.post(`${API_BASE_URL}/summaries`, {
       user: userIdResult.userId
     }, {
@@ -388,7 +453,6 @@ export async function getUserSummariesAction(): Promise<SummaryResponse[]> {
         'Content-Type': 'application/json'
       }
     })
-    
     return response.data || []
   } catch (error) {
     console.error('Get user summaries error:', error)
@@ -406,8 +470,9 @@ export async function getUserSummariesAction(): Promise<SummaryResponse[]> {
 // Server action to generate new summary from selected sources
 export async function generateNewSummaryAction(
   sourceIds: string[],
-  prompts?: string[]
-): Promise<SummaryResponse> {
+  prompts?: string[],
+  link?: { folderId?: string }
+): Promise<SummaryResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -441,7 +506,18 @@ export async function generateNewSummaryAction(
       }
     })
 
-    return response.data
+    const created: SummaryResponse = response.data
+
+    // Optional push to folder
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (link?.folderId && created?._id) {
+      const result = await pushToFolder(link.folderId, { summaries: [created._id] })
+      linked = result.linked
+      linkError = result.linkError
+    }
+
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Generate new summary error:', error)
     if (axios.isAxiosError(error)) {

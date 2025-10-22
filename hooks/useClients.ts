@@ -1,11 +1,13 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { getClientsAction, createClientAction, deleteClientAction } from '@/actions/clients'
-import { type ClientInput } from '@/lib/schemas'
+import { type ClientInput, type ClientResponse } from '@/lib/schemas'
 
 export function useClients() {
   const queryClient = useQueryClient()
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null)
 
   // Query for fetching clients
   const {
@@ -28,6 +30,13 @@ export function useClients() {
     refetchInterval: 60 * 1000 // Refetch every minute for real-time updates
   })
 
+  // Auto-select first client if none selected and clients are available
+  useEffect(() => {
+    if (clients.length > 0 && !selectedClient) {
+      setSelectedClient(clients[0])
+    }
+  }, [clients, selectedClient])
+
   // Mutation for creating a client
   const createClientMutation = useMutation({
     mutationFn: async (clientData: ClientInput) => {
@@ -42,9 +51,13 @@ export function useClients() {
       }
       return result.data
     },
-    onSuccess: () => {
+    onSuccess: (newClient) => {
       // Invalidate and refetch clients
       queryClient.invalidateQueries({ queryKey: ['clients'] })
+      // Auto-select the newly created client
+      if (newClient) {
+        setSelectedClient(newClient)
+      }
     }
   })
 
@@ -57,14 +70,20 @@ export function useClients() {
       }
       return result
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedClientId) => {
       // Invalidate and refetch clients
       queryClient.invalidateQueries({ queryKey: ['clients'] })
+      // If the deleted client was selected, clear selection
+      if (selectedClient?._id === deletedClientId) {
+        setSelectedClient(null)
+      }
     }
   })
 
   return {
     clients,
+    selectedClient,
+    setSelectedClient,
     isLoading,
     error,
     refetch,

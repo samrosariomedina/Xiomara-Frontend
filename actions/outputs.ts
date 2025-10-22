@@ -3,6 +3,7 @@
 import { cookies } from "next/headers"
 import axios from 'axios'
 import { getCurrentUserIdAction } from "./auth"
+import { getFolderFileIds, pushToFolder } from './_folders'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -48,8 +49,9 @@ export async function generateOutputForTemplateAction(
   summaryId: string,
   templateId: string,
   prompts?: string[],
-  options?: OutputGenerationOptions
-): Promise<OutputResponse> {
+  options?: OutputGenerationOptions,
+  link?: { folderId?: string }
+): Promise<OutputResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -85,8 +87,19 @@ export async function generateOutputForTemplateAction(
         'Content-Type': 'application/json'
       }
     })
+    
+    const created: OutputResponse = response.data
 
-    return response.data
+    // Optional push to folder
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (link?.folderId && created?._id) {
+      const result = await pushToFolder(link.folderId, { outputs: [created._id] })
+      linked = result.linked
+      linkError = result.linkError
+    }
+
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Generate output for template error:', error)
     if (axios.isAxiosError(error)) {
@@ -124,8 +137,9 @@ export async function generateOutputAction(
   summaryId: string,
   templates?: string[],
   prompts?: string[],
-  options?: OutputGenerationOptions
-): Promise<OutputResponse> {
+  options?: OutputGenerationOptions,
+  link?: { folderId?: string }
+): Promise<OutputResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -157,8 +171,18 @@ export async function generateOutputAction(
         'Content-Type': 'application/json'
       }
     })
+    
+    const created: OutputResponse = response.data
 
-    return response.data
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (link?.folderId && created?._id) {
+      const result = await pushToFolder(link.folderId, { outputs: [created._id] })
+      linked = result.linked
+      linkError = result.linkError
+    }
+
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Generate output error:', error)
     if (axios.isAxiosError(error)) {
@@ -251,12 +275,39 @@ export async function addOutputAction(
 }
 
 // Get all outputs
-export async function getOutputsAction(): Promise<OutputResponse[]> {
+export async function getOutputsAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
   try {
     const token = await getAuthToken();
     
     if (!token) {
       return [];
+    }
+
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.outputs || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/outputs`, {
+        outputs: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
     }
 
     // Get current user ID for filtering
@@ -290,9 +341,9 @@ export async function getOutputsAction(): Promise<OutputResponse[]> {
 }
 
 // Get all outputs for current user (sorted by timestamp, newest first)
-export async function getAllOutputsAction(): Promise<OutputResponse[]> {
+export async function getAllOutputsAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
   try {
-    const outputs = await getOutputsAction()
+    const outputs = await getOutputsAction(options)
     
     // Sort by timestamp, newest first
     const sortedOutputs = outputs.sort((a, b) => 
@@ -307,7 +358,7 @@ export async function getAllOutputsAction(): Promise<OutputResponse[]> {
 }
 
 // Get outputs with template names
-export async function getOutputsWithTemplateNamesAction(): Promise<OutputResponse[]> {
+export async function getOutputsWithTemplateNamesAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -315,15 +366,46 @@ export async function getOutputsWithTemplateNamesAction(): Promise<OutputRespons
       return [];
     }
 
-    // First get all outputs
-    const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {}, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    let outputs: OutputResponse[] = [];
+
+    if (options?.folderId) {
+      // Folder-scoped read
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.outputs || []
+      
+      if (ids.length === 0) {
+        return []
       }
-    })
-    
-    const outputs = outputsResponse.data || []
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        console.error('Failed to get user ID for filtering');
+        return [];
+      }
+      
+      const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {
+        outputs: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      outputs = outputsResponse.data || []
+    } else {
+      // Default user-filtered read
+      const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      outputs = outputsResponse.data || []
+    }
     
     // Get all templates to map template IDs to names
     const templatesResponse = await axios.post(`${API_BASE_URL}/templates`, {}, {
@@ -334,21 +416,21 @@ export async function getOutputsWithTemplateNamesAction(): Promise<OutputRespons
     })
     
     const templates = templatesResponse.data || []
-    const templateMap = new Map(templates.map((template: any) => [template._id, template.title]))
+    const templateMap = new Map(templates.map((template: { _id: string; title: string }) => [template._id, template.title]))
     
     // Enhance outputs with template names
-    const enhancedOutputs = outputs.map((output: any) => ({
+    const enhancedOutputs = outputs.map((output: OutputResponse) => ({
       ...output,
-      items: output.items.map((item: any) => ({
+      items: output.items.map((item: OutputItem) => ({
         ...item,
         templateName: item.template ? templateMap.get(item.template) || 'Unknown Template' : 'Manual Content'
       }))
     }))
     
     // Sort by timestamp, newest first
-    return enhancedOutputs.sort((a: any, b: any) => 
+    return enhancedOutputs.sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
+    ) as OutputResponse[]
   } catch (error) {
     console.error('Get outputs with template names error:', error)
     return []
@@ -356,9 +438,9 @@ export async function getOutputsWithTemplateNamesAction(): Promise<OutputRespons
 }
 
 // Get latest output for current user (for backward compatibility)
-export async function getLatestOutputAction(): Promise<OutputResponse | null> {
+export async function getLatestOutputAction(options?: { folderId?: string }): Promise<OutputResponse | null> {
   try {
-    const outputs = await getAllOutputsAction()
+    const outputs = await getAllOutputsAction(options)
     return outputs.length > 0 ? outputs[0] : null
   } catch (error) {
     console.error('Get latest output error:', error)
@@ -440,7 +522,7 @@ export async function removeOutputAction(
       throw new Error('Output ID is required');
     }
 
-    const requestBody: any = {
+    const requestBody: { output: string; items?: string[] } = {
       output: outputId
     }
 

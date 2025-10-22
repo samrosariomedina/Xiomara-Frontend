@@ -6,29 +6,48 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getAuthHeaders() {
-  if (typeof window !== 'undefined') {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') {
+    return {};
+  }
+  
+  try {
     const token = localStorage.getItem('token');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch {
+    return {};
   }
-  return {};
 }
 
 export function isAuthenticated() {
-  if (typeof window !== 'undefined') {
-    return !!localStorage.getItem('token');
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') {
+    return false;
   }
-  return false;
+  
+  try {
+    return !!localStorage.getItem('token');
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Format date safely for SSR/hydration compatibility
  * Returns ISO date string (YYYY-MM-DD) to avoid locale/timezone differences
  */
-export function formatDateSafe(dateString: string): string {
+export function formatDateSafe(dateString: string | undefined | null): string {
+  if (!dateString) return 'N/A';
+  
   try {
-    return new Date(dateString).toISOString().split('T')[0];
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    return date.toISOString().split('T')[0];
   } catch {
-    return dateString; // Return original if parsing fails
+    return 'N/A'; // Return safe fallback if parsing fails
   }
 }
 

@@ -282,6 +282,7 @@ export interface SourceResponse {
   _id: string;
   title: string | null;
   type: string;
+  items: Record<string, string[]>;
   content: string;
   timestamp: string;
   origin: string | null;
@@ -332,9 +333,11 @@ export const createCampaignSchema = z.object({
       const selectedDate = new Date(date + 'T00:00:00'); // Ensure timezone consistency
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      return selectedDate >= today;
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return selectedDate >= yesterday;
     }, {
-      message: 'Start date must be today or in the future'
+      message: 'Start date must be yesterday or later'
     }),
   description: z.string().optional()
 });

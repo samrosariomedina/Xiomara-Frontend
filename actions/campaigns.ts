@@ -120,9 +120,16 @@ export async function getCampaignsByClientAction(clientId: string) {
       throw new Error('Authentication required');
     }
 
-    // Fetch all folders with parent set to the client ID
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      throw new Error('Failed to get user ID for filtering');
+    }
+
+    // Fetch all folders with parent set to the client ID and user filtering
     const response = await axios.post(`${BACKEND_URL}/folders`, {
-      parent: clientId
+      parent: clientId,
+      user: userIdResult.userId
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,

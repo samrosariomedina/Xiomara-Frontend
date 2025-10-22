@@ -14,6 +14,7 @@ import SourcesList from "../ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
 import { useSourcesMutations } from '@/hooks/useSources'
 import { useDataWithCache } from '@/hooks/useDataWithCache'
+import { useClient } from '@/context/ClientContext'
 import { formatDateSafe } from '@/lib/utils'
 import type { SourceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
@@ -56,8 +57,16 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     text: "",
   })
 
-  const { createSource, isCreating } = useSourcesMutations()
+  const { selectedClient } = useClient()
+  const { createSource, isCreating } = useSourcesMutations(selectedClient?._id)
   const router = useRouter()
+
+  // Debug logging for selected client
+  console.log('=== FUENTES FORM DEBUG ===')
+  console.log('Selected Client:', selectedClient)
+  console.log('Selected Client ID:', selectedClient?._id)
+  console.log('Folder ID being used for mutations:', selectedClient?._id)
+  console.log('================================')
 
   // Utility function to strip HTML and clean text content
   const stripHtmlAndCleanText = (htmlText: string): string => {

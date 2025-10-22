@@ -41,6 +41,9 @@ interface CacheData<T> {
  * Save data to localStorage with timestamp
  */
 export function saveToCache<T>(key: string, data: T[]): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
   try {
     const cacheData: CacheData<T> = {
       data,
@@ -56,6 +59,9 @@ export function saveToCache<T>(key: string, data: T[]): void {
  * Retrieve data from localStorage if it's still valid
  */
 export function getFromCache<T>(key: string): T[] | null {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return null
+  
   try {
     const cached = localStorage.getItem(key)
     if (!cached) return null
@@ -79,6 +85,9 @@ export function getFromCache<T>(key: string): T[] | null {
  * Clear all cached data
  */
 export function clearCache(): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
   try {
     Object.values(CACHE_KEYS).forEach(key => {
       localStorage.removeItem(key)
@@ -120,6 +129,9 @@ export function getSourcesFromCache(): SourceResponse[] | null {
  * Check if cache is valid
  */
 export function isCacheValid(key: string): boolean {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return false
+  
   try {
     const cached = localStorage.getItem(key)
     if (!cached) return false
@@ -137,6 +149,9 @@ export function isCacheValid(key: string): boolean {
  * Save selected client to cache
  */
 export function saveSelectedClientToCache(client: ClientData): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
   try {
     localStorage.setItem(CACHE_KEYS.SELECTED_CLIENT, JSON.stringify(client))
   } catch {
@@ -148,6 +163,9 @@ export function saveSelectedClientToCache(client: ClientData): void {
  * Get selected client from cache
  */
 export function getSelectedClientFromCache(): ClientData | null {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return null
+  
   try {
     const cached = localStorage.getItem(CACHE_KEYS.SELECTED_CLIENT)
     return cached ? JSON.parse(cached) as ClientData : null
@@ -160,6 +178,9 @@ export function getSelectedClientFromCache(): ClientData | null {
  * Clear selected client from cache
  */
 export function clearSelectedClientFromCache(): void {
+  // Only run on client side to prevent hydration mismatch
+  if (typeof window === 'undefined') return
+  
   try {
     localStorage.removeItem(CACHE_KEYS.SELECTED_CLIENT)
   } catch {

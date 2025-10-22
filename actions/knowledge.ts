@@ -6,6 +6,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import type { KnowledgeBaseInput, ReferenceResponse } from '@/lib/schemas'
 import { getCurrentUserIdAction } from "./auth"
+import { getFolderFileIds, pushToFolder, pullFromFolder } from './_folders'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'
 
@@ -24,33 +25,53 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 // Get all references/knowledge base items (server-side)
-export async function getReferencesAction(): Promise<ReferenceResponse[]> {
+export async function getReferencesAction(options?: { folderId?: string }): Promise<ReferenceResponse[]> {
   try {
     const token = await getAuthToken();
     if (!token) {
       throw new Error('Authentication required');
     }
 
-    // Get current user ID for filtering
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.references || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        throw new Error('Failed to get user ID for filtering');
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/references`, {
+        references: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
+    }
+
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       throw new Error('Failed to get user ID for filtering');
     }
-
-    // For non-admin users, let the backend handle user filtering automatically
-    // Only send user parameter for admin users who need to query other users' data
-    const requestBody: { types: string[] } = {
-      types: ['text', 'webpage', 'file'] // Filter for knowledge base types
+    const requestBody: { types: string[]; user: string } = {
+      types: ['text', 'webpage', 'file'],
+      user: userIdResult.userId
     };
-
     const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
-    
-    
     return response.data
   } catch (error) {
     console.error('Get references error:', error)
@@ -62,24 +83,51 @@ export async function getReferencesAction(): Promise<ReferenceResponse[]> {
 }
 
 // Server-side function to get references (for use in server components)
-export async function getReferences(): Promise<ReferenceResponse[]> {
+export async function getReferences(options?: { folderId?: string }): Promise<ReferenceResponse[]> {
   try {
     const token = await getAuthToken();
+    
+   
     
     if (!token) {
       return [];
     }
 
-    // Get current user ID for filtering
+    if (options?.folderId) {
+      const files = await getFolderFileIds(options.folderId)
+      const ids = files?.references || []
+      if (ids.length === 0) {
+        return []
+      }
+      
+      // Get current user ID for filtering
+      const userIdResult = await getCurrentUserIdAction();
+      if (!userIdResult.success || !userIdResult.userId) {
+        throw new Error('Failed to get user ID for filtering');
+      }
+      
+      const response = await axios.post(`${API_BASE_URL}/references`, {
+        references: ids,
+        user: userIdResult.userId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data || []
+    }
+
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
 
-    // For non-admin users, let the backend handle user filtering automatically
-    const requestBody: { types: string[] } = {
-      types: ['text', 'webpage', 'file']
+    const requestBody: { types: string[]; user: string } = {
+      types: ['text', 'webpage', 'file'],
+      user: userIdResult.userId
     };
 
     const response = await axios.post(`${API_BASE_URL}/references`, requestBody, {
@@ -88,11 +136,7 @@ export async function getReferences(): Promise<ReferenceResponse[]> {
         'Content-Type': 'application/json'
       }
     })
-    
     const references = response.data || []
-    
-    // Note: We can't use localStorage in server components, 
-    // but we'll handle caching in the client components
     return references
   } catch (error) {
     console.error('Get references server error:', error)
@@ -108,7 +152,7 @@ export async function getReferences(): Promise<ReferenceResponse[]> {
 }
 
 // Create a new reference/knowledge base item
-export async function createReferenceAction(data: KnowledgeBaseInput): Promise<ReferenceResponse> {
+export async function createReferenceAction(data: KnowledgeBaseInput, options?: { folderId?: string }): Promise<ReferenceResponse & { linked?: boolean; linkError?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -168,10 +212,25 @@ export async function createReferenceAction(data: KnowledgeBaseInput): Promise<R
       },
     })
     
+    const created: ReferenceResponse = response.data
+
+    // Push to folder if provided
+    let linked: boolean | undefined
+    let linkError: string | undefined
+    if (options?.folderId && created?._id) {
+      const result = await pushToFolder(options.folderId, { references: [created._id] }, [
+        '/clients',
+        '/clients/knowledge',
+        '/clients/dashboards/knowledge'
+      ])
+      linked = result.linked
+      linkError = result.linkError
+    }
+
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
     revalidatePath('/clients/dashboards/knowledge')
-    return response.data
+    return { ...created, linked, linkError }
   } catch (error) {
     console.error('Create reference error:', error)
     if (axios.isAxiosError(error)) {
@@ -249,7 +308,7 @@ export async function editReferenceAction(
 }
 
 // Remove a reference
-export async function removeReferenceAction(referenceId: string): Promise<void> {
+export async function removeReferenceAction(referenceId: string, options?: { folderId?: string }): Promise<void> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -264,6 +323,15 @@ export async function removeReferenceAction(referenceId: string): Promise<void> 
         'Content-Type': 'application/json'
       }
     })
+    
+    // Pull from folder if provided
+    if (options?.folderId) {
+      await pullFromFolder(options.folderId, { references: [referenceId] }, [
+        '/clients',
+        '/clients/knowledge',
+        '/clients/dashboards/knowledge'
+      ])
+    }
     
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
