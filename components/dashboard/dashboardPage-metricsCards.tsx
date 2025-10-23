@@ -22,6 +22,7 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
   const {
     data: cachedSources
   } = useDataWithCache(sources, { cacheKey: 'sources' })
+  
   // Get selected client from context
   const { selectedClient } = useClient()
   
@@ -30,6 +31,15 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
     corresponsables = [], 
     isLoading: isLoadingCorresponsables 
   } = useCorresponsables(selectedClient?._id)
+
+  // Calculate media listeners count (sources with listener types)
+  const mediaListenersCount = cachedSources.filter(source => 
+    source.type === 'telegram' || 
+    source.type === 'whatsapp' || 
+    source.type === 'youtube' || 
+    source.type === 'twitter' ||
+    source.type === 'listener'
+  ).length
 
   const metrics = [
     {
@@ -40,7 +50,7 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
     },
     {
       title: "Media listeners",
-      value: "0",
+      value: mediaListenersCount.toString(),
       icon: Ear,
       iconColor: "text-gray-600",
     },
