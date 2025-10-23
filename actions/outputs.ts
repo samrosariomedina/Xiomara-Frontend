@@ -275,7 +275,7 @@ export async function addOutputAction(
 }
 
 // Get all outputs
-export async function getOutputsAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
+export async function getOutputsAction(options: { folderId: string }): Promise<OutputResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -283,41 +283,21 @@ export async function getOutputsAction(options?: { folderId?: string }): Promise
       return [];
     }
 
-    if (options?.folderId) {
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.outputs || []
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        console.error('Failed to get user ID for filtering');
-        return [];
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/outputs`, {
-        outputs: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.data || []
+    const files = await getFolderFileIds(options.folderId)
+    const ids = files?.outputs || []
+    if (ids.length === 0) {
+      return []
     }
-
+    
     // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
       console.error('Failed to get user ID for filtering');
       return [];
     }
-
+    
     const response = await axios.post(`${API_BASE_URL}/outputs`, {
+      outputs: ids,
       user: userIdResult.userId
     }, {
       headers: {
@@ -341,7 +321,7 @@ export async function getOutputsAction(options?: { folderId?: string }): Promise
 }
 
 // Get all outputs for current user (sorted by timestamp, newest first)
-export async function getAllOutputsAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
+export async function getAllOutputsAction(options: { folderId: string }): Promise<OutputResponse[]> {
   try {
     const outputs = await getOutputsAction(options)
     
@@ -358,7 +338,7 @@ export async function getAllOutputsAction(options?: { folderId?: string }): Prom
 }
 
 // Get outputs with template names
-export async function getOutputsWithTemplateNamesAction(options?: { folderId?: string }): Promise<OutputResponse[]> {
+export async function getOutputsWithTemplateNamesAction(options: { folderId: string }): Promise<OutputResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -366,46 +346,32 @@ export async function getOutputsWithTemplateNamesAction(options?: { folderId?: s
       return [];
     }
 
-    let outputs: OutputResponse[] = [];
-
-    if (options?.folderId) {
-      // Folder-scoped read
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.outputs || []
-      
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        console.error('Failed to get user ID for filtering');
-        return [];
-      }
-      
-      const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {
-        outputs: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      outputs = outputsResponse.data || []
-    } else {
-      // Default user-filtered read
-      const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      outputs = outputsResponse.data || []
+    // Folder-scoped read
+    const files = await getFolderFileIds(options.folderId)
+    const ids = files?.outputs || []
+    
+    if (ids.length === 0) {
+      return []
     }
+    
+    // Get current user ID for filtering
+    const userIdResult = await getCurrentUserIdAction();
+    if (!userIdResult.success || !userIdResult.userId) {
+      console.error('Failed to get user ID for filtering');
+      return [];
+    }
+    
+    const outputsResponse = await axios.post(`${API_BASE_URL}/outputs`, {
+      outputs: ids,
+      user: userIdResult.userId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const outputs = outputsResponse.data || []
     
     // Get all templates to map template IDs to names
     const templatesResponse = await axios.post(`${API_BASE_URL}/templates`, {}, {
@@ -428,7 +394,7 @@ export async function getOutputsWithTemplateNamesAction(options?: { folderId?: s
     }))
     
     // Sort by timestamp, newest first
-    return enhancedOutputs.sort((a, b) => 
+    return enhancedOutputs.sort((a: OutputResponse, b: OutputResponse) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     ) as OutputResponse[]
   } catch (error) {
@@ -438,7 +404,7 @@ export async function getOutputsWithTemplateNamesAction(options?: { folderId?: s
 }
 
 // Get latest output for current user (for backward compatibility)
-export async function getLatestOutputAction(options?: { folderId?: string }): Promise<OutputResponse | null> {
+export async function getLatestOutputAction(options: { folderId: string }): Promise<OutputResponse | null> {
   try {
     const outputs = await getAllOutputsAction(options)
     return outputs.length > 0 ? outputs[0] : null

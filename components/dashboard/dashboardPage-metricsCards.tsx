@@ -69,7 +69,7 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
   ]
 
   return (
-  <div className="px-4  grid grid-cols-2 lg:grid-cols-4 gap-3  lg:gap-6 mt-4  max-w-full mx-auto">
+    <div className="px-4 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mt-6 max-w-full mx-auto">
       {metrics.map((metric, index) => (
         <MetricCard
           key={index}

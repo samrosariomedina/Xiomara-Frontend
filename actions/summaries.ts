@@ -403,7 +403,7 @@ export async function getSummaries(userId?: string, options?: { folderId?: strin
 }
 
 // Server action to get all user summaries
-export async function getUserSummariesAction(options?: { folderId?: string }): Promise<SummaryResponse[]> {
+export async function getUserSummariesAction(options: { folderId: string }): Promise<SummaryResponse[]> {
   try {
     const token = await getAuthToken();
     
@@ -411,33 +411,12 @@ export async function getUserSummariesAction(options?: { folderId?: string }): P
       return [];
     }
 
-    if (options?.folderId) {
-      const files = await getFolderFileIds(options.folderId)
-      const ids = files?.summaries || []
-      if (ids.length === 0) {
-        return []
-      }
-      
-      // Get current user ID for filtering
-      const userIdResult = await getCurrentUserIdAction();
-      if (!userIdResult.success || !userIdResult.userId) {
-        console.error('Failed to get user ID for filtering');
-        return [];
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/summaries`, {
-        summaries: ids,
-        user: userIdResult.userId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.data || []
+    const files = await getFolderFileIds(options.folderId)
+    const ids = files?.summaries || []
+    if (ids.length === 0) {
+      return []
     }
-
+    
     // Get current user ID for filtering
     const userIdResult = await getCurrentUserIdAction();
     if (!userIdResult.success || !userIdResult.userId) {
@@ -446,6 +425,7 @@ export async function getUserSummariesAction(options?: { folderId?: string }): P
     }
     
     const response = await axios.post(`${API_BASE_URL}/summaries`, {
+      summaries: ids,
       user: userIdResult.userId
     }, {
       headers: {
@@ -453,6 +433,7 @@ export async function getUserSummariesAction(options?: { folderId?: string }): P
         'Content-Type': 'application/json'
       }
     })
+    
     return response.data || []
   } catch (error) {
     console.error('Get user summaries error:', error)

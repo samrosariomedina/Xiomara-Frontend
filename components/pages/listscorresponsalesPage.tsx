@@ -44,7 +44,7 @@ const transformCorresponsablesData = (corresponsables: CorresponsableData[]) => 
   return corresponsables.map((corresponsable) => ({
     id: corresponsable._id,
     nombre: corresponsable.title,
-    fuentesCreadas: "0", // This would need to be calculated from actual sources
+    fuentesCreadas: "0",
     estado: corresponsable.approved ? "Activo" : "Pendiente",
     celular: corresponsable.origin || "N/A",
     ubicacion: "N/A", // This field doesn't exist in corresponsables data
@@ -53,15 +53,15 @@ const transformCorresponsablesData = (corresponsables: CorresponsableData[]) => 
   }))
 }
 
-// Mock fuentes data (since we don't have sources data yet)
-const fuentesData = Array.from({ length: 25 }, () => ({
-  nombre: "Nombre",
-  tipo: "PDF",
-  contenido: "Lorem ipsum dolor sit",
-  estado: "En uso",
-  creadoPor: "Nombre de la persona",
-  ultimaActualizacion: "16/06/2025",
-}))
+// Empty fuentes data - will be populated from actual sources
+const fuentesData: Array<{
+  nombre: string;
+  tipo: string;
+  contenido: string;
+  estado: string;
+  creadoPor: string;
+  ultimaActualizacion: string;
+}> = []
 
  function CorresponsalesPage() {
   const [activeTab, setActiveTab] = useState("usuarios")

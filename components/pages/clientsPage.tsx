@@ -79,32 +79,15 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
   // Transform ClientResponse to Client type for the UI - memoized to prevent unnecessary re-renders
   const clients: Client[] = useMemo(() => {
     return clientsData.map((clientData: ClientResponse) => {
-      const mockCampaigns = [
-        {
-          id: `campaign-1-${clientData._id}`,
-          name: 'Digital Marketing Campaign',
-          createdDate: '2024-01-15',
-          connectedSources: { whatsapp: 3, email: 2, other: 1 },
-          status: 'Activa',
-        },
-        {
-          id: `campaign-2-${clientData._id}`,
-          name: 'Brand Awareness Campaign',
-          createdDate: '2024-01-10',
-          connectedSources: { whatsapp: 1, email: 4, other: 2 },
-          status: 'Inactiva',
-        }
-      ];
-
       return {
         id: clientData._id,
         name: clientData.metadata?.contactName || clientData.title || 'Unnamed Client',
         contact: clientData.metadata?.email || '',
         email: clientData.metadata?.email || '',
         createdDate: formatDateSafe(clientData.timestamp),
-        campaigns: mockCampaigns.length,
+        campaigns: 0,
         avatar: "/avatar.svg",
-        campaignDetails: mockCampaigns
+        campaignDetails: []
       };
     })
   }, [clientsData])

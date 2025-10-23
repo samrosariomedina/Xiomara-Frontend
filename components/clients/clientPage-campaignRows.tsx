@@ -156,24 +156,7 @@ export function CampaignRow({
           <div className="text-sm text-gray-900">{campaign.createdDate}</div>
         </div>
 
-        {/* Connected Sources (flex-1) */}
-        <div className="flex-1 text-center">
-          <div className="text-xs text-gray-400 mb-1">Fuentes conectadas</div>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-              <Ear className="h-3 w-3 text-[#31499F]" />
-              <span className="text-xs text-gray-900">{campaign.connectedSources.whatsapp}</span>
-            </div>
-            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-              <Users className="h-3 w-3 text-[#31499F]" />
-              <span className="text-xs text-gray-900">{campaign.connectedSources.email}</span>
-            </div>
-            <div className="flex items-center space-x-1 bg-[#F7F9FF] px-2 py-1 rounded-xl">
-              <Globe className="h-3 w-3 text-[#31499F]" />
-              <span className="text-xs text-gray-900">{campaign.connectedSources.other}</span>
-            </div>
-          </div>
-        </div>
+    
 
         {/* Status and Actions (flex-1) */}
         <div className="flex-1 flex items-center justify-end gap-2">

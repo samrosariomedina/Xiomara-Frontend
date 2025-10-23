@@ -28,12 +28,14 @@ export default function ContentEnginePage(){
     const [isLoadingSources, setIsLoadingSources] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
-    // Server-side data fetching for all outputs with template names
+    // Server-side data fetching for all outputs with template names (folder-scoped)
     const { data: allOutputs = [], isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
-        queryKey: ['all-outputs-with-templates'],
+        queryKey: ['outputs-with-templates', selectedClient?._id],
         queryFn: async () => {
-            return await getOutputsWithTemplateNamesAction()
+            if (!selectedClient?._id) return [];
+            return await getOutputsWithTemplateNamesAction({ folderId: selectedClient._id });
         },
+        enabled: !!selectedClient?._id,
         staleTime: 30 * 1000, // 30 seconds
     })
 

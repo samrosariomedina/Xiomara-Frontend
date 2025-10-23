@@ -322,7 +322,7 @@ export const csvUploadSchema = z.object({
 
 export type CsvUploadInput = z.infer<typeof csvUploadSchema>;
 
-// Campaign Form Schema
+// Campaign Form Schema for creating new campaigns
 export const createCampaignSchema = z.object({
   name: z.string().min(1, 'Campaign name is required').max(100, 'Campaign name must be less than 100 characters'),
   type: z.enum(['Comunicado', 'Redes Sociales', 'Blog post', 'Email newsletter', 'Other'], {
@@ -342,7 +342,18 @@ export const createCampaignSchema = z.object({
   description: z.string().optional()
 });
 
+// Campaign Form Schema for editing existing campaigns (allows past dates)
+export const editCampaignSchema = z.object({
+  name: z.string().min(1, 'Campaign name is required').max(100, 'Campaign name must be less than 100 characters'),
+  type: z.enum(['Comunicado', 'Redes Sociales', 'Blog post', 'Email newsletter', 'Other'], {
+    message: 'Please select a valid campaign type'
+  }),
+  startDate: z.string().min(1, 'Start date is required'),
+  description: z.string().optional()
+});
+
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+export type EditCampaignInput = z.infer<typeof editCampaignSchema>;
 
 // Campaign response type from backend
 export interface CampaignResponse {

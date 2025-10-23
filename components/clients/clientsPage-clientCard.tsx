@@ -8,7 +8,6 @@ import {
   LineChart,
   Plus,
   TrendingUp,
-  TrendingDown,
   MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -36,8 +35,8 @@ export function ClientCard({
     id: campaign._id,
     name: campaign.title || 'Unnamed Campaign',
     createdDate: new Date(campaign.timestamp).toLocaleDateString(),
-    connectedSources: { whatsapp: 0, email: 0, other: 0 }, // TODO: calculate from actual sources
-    status: 'Activa', // TODO: determine status from metadata
+    connectedSources: { whatsapp: 0, email: 0, other: 0 },
+    status: 'Activa',
   }))
 
   const router = useRouter()
@@ -122,18 +121,14 @@ export function ClientCard({
           </div>
 
           {/* Campaigns Section (equal width) */}
-          <div className="text-center mr-15">
-            <div className="text-xs text-start text-gray-400 mb-1">{t('campaigns')}</div>
-            <div className="flex items-center justify-center space-x-3">
-              <div className="flex items-center space-x-2 bg-[#F7F9FF] rounded-full px-2 py-1">
+          <div className="text-center">
+            {/* <div className="text-xs text-gray-400 mb-1">{t('campaigns')}</div> */}
+            {/* <div className="flex items-center justify-center">
+              <div className="flex items-center space-x-2 bg-[#F7F9FF] rounded-full px-3 py-1.5">
                 <TrendingUp className="h-3 w-3 text-[#31499F]" />
                 <span className="text-sm text-gray-900 font-medium">{client.campaigns}</span>
               </div>
-              <div className="flex items-center space-x-2 bg-[#F7F9FF] rounded-full px-2 py-1">
-                <TrendingDown className="h-3 w-3 text-[#31499F]" />
-                <span className="text-sm text-gray-900 font-medium">1</span>
-              </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Section - Actions (equal width) */}

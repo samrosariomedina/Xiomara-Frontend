@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { createCampaignSchema, CreateCampaignInput } from "@/lib/schemas";
+import { createCampaignSchema, editCampaignSchema, CreateCampaignInput, EditCampaignInput } from "@/lib/schemas";
 import { createCampaignAction, editCampaignAction } from "@/actions/campaigns";
 
 interface CreateCampaignDialogProps {
@@ -57,8 +57,8 @@ export function CreateCampaignDialog({
     setValue,
     watch,
     reset,
-  } = useForm<CreateCampaignInput>({
-    resolver: zodResolver(createCampaignSchema),
+  } = useForm<CreateCampaignInput | EditCampaignInput>({
+    resolver: zodResolver(isEditMode ? editCampaignSchema : createCampaignSchema),
     defaultValues: {
       name: editCampaign?.name || "",
       type: (editCampaign?.type || "Comunicado") as CreateCampaignInput["type"],
@@ -88,7 +88,7 @@ export function CreateCampaignDialog({
     }
   }, [editCampaign, reset]);
 
-  const onSubmit = async (data: CreateCampaignInput) => {
+  const onSubmit = async (data: CreateCampaignInput | EditCampaignInput) => {
     try {
       const result = isEditMode
         ? await editCampaignAction(editCampaign!.id, data)

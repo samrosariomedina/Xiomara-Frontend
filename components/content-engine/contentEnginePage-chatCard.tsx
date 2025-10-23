@@ -8,6 +8,7 @@ import PostEditor from '@/components/content-engine/contentEnginePage-postEdit'
 import EditForm from '@/components/content-engine/contentEnginePage-editForm'
 import { useTemplates } from '@/context/TemplatesContext'
 import { useAuth } from '@/context/AuthContext'
+import { useClient } from '@/context/ClientContext'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { generateSummaryAction, iterateSummaryAction, getUserSummariesAction, editSummaryAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
@@ -29,6 +30,7 @@ export default function ChatCard({
 }: ChatCardProps) {
     const { templates } = useTemplates()
     const { user } = useAuth()
+    const { selectedClient } = useClient()
     console.log('Templates available in ChatCard:', templates.length)
     
     // Local state for this component
@@ -40,18 +42,19 @@ export default function ChatCard({
     const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
 
-    // Server-side data fetching for user summaries (for summaries view dialog)
+    // Server-side data fetching for user summaries (folder-scoped)
     const { data: userSummaries = [], isLoading: isLoadingSummaries, refetch: refetchSummaries } = useQuery({
-        queryKey: ['user-summaries-for-dialog'],
-        queryFn: () => getUserSummariesAction(),
+        queryKey: ['user-summaries-for-dialog', selectedClient?._id],
+        queryFn: () => getUserSummariesAction({ folderId: selectedClient!._id }),
+        enabled: !!selectedClient?._id,
         staleTime: 2 * 60 * 1000, // 2 minutes
     })
 
     // Server-side data fetching for latest output (for output card)
     const { refetch: refetchOutput } = useQuery({
-        queryKey: ['latest-output'],
-        queryFn: () => getLatestOutputAction(),
-        enabled: !!generatedSummary, // Only fetch when we have a summary
+        queryKey: ['latest-output', selectedClient?._id],
+        queryFn: () => getLatestOutputAction({ folderId: selectedClient!._id }),
+        enabled: !!generatedSummary && !!selectedClient?._id, // Only fetch when we have a summary and client
         staleTime: 30 * 1000, // 30 seconds
     })
 
@@ -80,7 +83,7 @@ export default function ChatCard({
     // React Query mutation for initial summary generation
     const generateSummaryMutation = useMutation({
         mutationFn: ({ sourceIds, prompts }: { sourceIds: string[], prompts?: string[] }) => 
-            generateSummaryAction(sourceIds, prompts, undefined, user?._id),
+            generateSummaryAction(sourceIds, prompts, undefined, user?._id, { folderId: selectedClient?._id }),
         onSuccess: (summary) => {
             setGeneratedSummary(summary)
             toast.success('Summary generated successfully!')
@@ -125,7 +128,7 @@ export default function ChatCard({
     // React Query mutation for multiple template-based output generation
     const generateOutputMutation = useMutation({
         mutationFn: ({ summaryId, templateIds }: { summaryId: string, templateIds: string[] }) => 
-            generateOutputAction(summaryId, templateIds),
+            generateOutputAction(summaryId, templateIds, undefined, undefined, { folderId: selectedClient?._id }),
         onSuccess: (output) => {
             toast.success('Output generated successfully!')
             console.log('Generated output:', output)

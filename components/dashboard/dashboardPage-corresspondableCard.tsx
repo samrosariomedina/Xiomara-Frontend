@@ -1,7 +1,7 @@
 "use client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, MoreVertical, Globe, ChevronDown, LucideImage } from "lucide-react"
+import { Plus, MoreVertical, Globe, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
 import { Badge } from "@/components/ui/badge"
@@ -245,57 +245,10 @@ export function CorresponsablesSection({ onEdit, onDelete }: CorresponsablesSect
 
           {/* List of campaign images/sources - matches the image layout */}
           <div className="space-y-4">
-            {/* Create mock data for campaign sources based on image */}
-            {[1, 2, 3, 4, 5,6,7,8,9,10,11,12].map((id) => (
-              <div key={id} className="flex flex-col py-1">
-                {/* Top row: content + timestamp + actions */}
-                <div className="flex justify-between w-full">
-                  {/* Left side: checkbox + image icon + name */}
-                  <div className="flex items-center space-x-3">
-                    {/* Individual row checkbox */}
-                    <Checkbox id={`fuente-${id}`} className="h-4 w-4 rounded border-gray-300" />
-                    <div className="flex items-center">
-                      {/* Image icon - using a document/file icon as placeholder */}
-                      <div className="flex items-center justify-center w-8 h-8 rounded-md mr-3 bg-gray-100">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M8.5 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V13C1 13.5304 1.21071 14.0391 1.58579 14.4142C1.96086 14.7893 2.46957 15 3 15H13C13.5304 15 14.0391 14.7893 14.4142 14.4142C14.7893 14.0391 15 13.5304 15 13V7.5L8.5 1Z" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M8 1V8H15" stroke="#64748B" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                      <div>
-                      <p className="block text-sm font-medium">{t('fuentes.campaignTitle')}</p>
-                      <div className="flex  ">
-                        {/* Campaign name - matches text in image */}
-                        
-                        {/* Image label - small text below name */}
-                        <LucideImage className="h-3 w-3 mt-[2px]"/>
-                        <p className="ml-1 text-xs text-gray-500">{t('fuentes.imageLabel')}</p>
-                      </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right side: timestamp + action button */}
-                  <div className="flex items-center">
-                    {/* Timestamp as in image */}
-                    <span className="text-xs text-gray-500 mr-2">{t('fuentes.time')}</span>
-                    
-                    {/* Action menu button */}
-                    <button className="text-gray-500">
-                      <MoreVertical className="h-4 w-4 text-black" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Bottom row: Empty left, "Add to campaign" link right */}
-                <div className="flex justify-end mt-2">
-                  {/* "Agregar a campaña" link - blue text link as shown in image */}
-                  <a href="#" className="text-xs text-[#31499F] underline whitespace-nowrap">
-                    {t('fuentes.addToCampaign')}
-                  </a>
-                </div>
-              </div>
-            ))}
+            {/* Empty state - no sources available */}
+            <div className="text-center py-8 text-gray-500">
+              <p>No sources available</p>
+            </div>
           </div>
         </div>
       )}
