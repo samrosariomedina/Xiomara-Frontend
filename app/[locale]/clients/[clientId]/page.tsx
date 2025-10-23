@@ -1,30 +1,31 @@
 import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
-import { ClientAutoSelector } from "@/components/clients/ClientAutoSelector";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 type MaybePromise<T> = T | Promise<T>;
-type ParamsLike = { params: MaybePromise<{ locale: string }> };
+type ParamsLike = { params: MaybePromise<{ locale: string; clientId: string }> };
 
 export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
-  const params = await props.params;
-  const { locale } = params
-  const title = 'Dashboard | Xiomara'
-  const description = 'Overview and metrics for your clients and campaigns.'
-  const path = `/${locale}/clients`
+  const { params } = await props;
+  const { locale, clientId } = params;
+  
+  const title = `Client Dashboard - ${clientId}`;
+  const description = `Dashboard for client ${clientId}`;
 
   return {
     title,
     description,
-    robots: { index: true, follow: true },
-    alternates: { canonical: path },
-    openGraph: { title, description, url: path, siteName: 'Xiomara' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
     twitter: { card: 'summary', title, description },
   }
 }
 
-export default async function Page() {
+export default async function ClientDashboardPage(props: ParamsLike) {
   // Check authentication on server side
   const cookieStore = await cookies();
   const token = cookieStore.get('authToken')?.value;
@@ -33,12 +34,12 @@ export default async function Page() {
     redirect('/auth/login');
   }
 
+  const { params } = await props;
+  const { clientId } = params;
+
   return (
     <div>
-      <ClientAutoSelector />
-      <DashBoard />
+      <DashBoard clientId={clientId} />
     </div>
   )
 }
-
-

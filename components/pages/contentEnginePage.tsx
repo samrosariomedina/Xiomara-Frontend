@@ -11,7 +11,7 @@ import { getContentEngineSources } from '@/actions/sources'
 import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
 import type { OutputResponse } from '@/actions/outputs'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
 
 export default function ContentEnginePage(){
@@ -19,6 +19,7 @@ export default function ContentEnginePage(){
     const { templates } = useTemplates()
     const { selectedClient, isInitialized } = useClient()
     const router = useRouter()
+    const queryClient = useQueryClient()
     console.log('Templates available:', templates.length)
     
     // Lifted state from FuentesCard
@@ -41,11 +42,12 @@ export default function ContentEnginePage(){
 
     // Function to refresh sources
     const refreshSources = useCallback(async () => {
+        if (!selectedClient?._id) return
         try {
             setIsLoadingSources(true)
             // Use selected client ID for filtering sources
             const fetchedSources = await getContentEngineSources({ 
-                folderId: selectedClient?._id 
+                folderId: selectedClient._id 
             })
             setSources(fetchedSources)
             setFilteredSources(fetchedSources)
@@ -56,6 +58,25 @@ export default function ContentEnginePage(){
         }
     }, [selectedClient?._id])
 
+
+    // Clear all queries and state when client changes
+    useEffect(() => {
+        if (selectedClient) {
+            // Invalidate all queries for the new client
+            queryClient.invalidateQueries({ queryKey: ['outputs-with-templates'] })
+            queryClient.invalidateQueries({ queryKey: ['user-summaries-for-dialog'] })
+            queryClient.invalidateQueries({ queryKey: ['latest-output'] })
+            queryClient.invalidateQueries({ queryKey: ['sources'] })
+            
+            // Clear local state
+            setSelectedSourceIds([])
+            setSearchQuery("")
+            
+            // Trigger summary clearing
+            setClearSummary(true)
+            setTimeout(() => setClearSummary(false), 100) // Reset after triggering
+        }
+    }, [selectedClient, queryClient])
 
     // Fetch sources when client is selected and initialized
     useEffect(() => {
@@ -94,7 +115,10 @@ export default function ContentEnginePage(){
 
     const handleClearSelectedSources = () => {
         setSelectedSourceIds([])
-    } 
+    }
+
+    // State to trigger summary clearing
+    const [clearSummary, setClearSummary] = useState(false) 
 
     // Show loading state while client context is initializing
     if (!isInitialized) {
@@ -247,6 +271,7 @@ export default function ContentEnginePage(){
                                         selectedSourceIds={selectedSourceIds}
                                         onOutputGenerated={refetchOutput}
                                         onClearSelectedSources={handleClearSelectedSources}
+                                        clearSummary={clearSummary}
                                     />
                                 </div>
                             </section>
@@ -289,6 +314,7 @@ export default function ContentEnginePage(){
                                     selectedSourceIds={selectedSourceIds}
                                     onOutputGenerated={refetchOutput}
                                     onClearSelectedSources={handleClearSelectedSources}
+                                    clearSummary={clearSummary}
                                 />
                             </div>
                         )}

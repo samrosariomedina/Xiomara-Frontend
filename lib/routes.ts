@@ -30,8 +30,10 @@ export const routes = {
       media: '/clients/media',
     },
     
-    // Client-specific pages
+    // Client-specific pages with route params
     channels: '/clients/channels',
+    clientDashboard: (clientId: string) => `/clients/${clientId}`,
+    campaignDashboard: (clientId: string, campaignId: string) => `/clients/${clientId}/campaigns/${campaignId}`,
     contentEngine: '/clients/content-engine',
   },
 } as const

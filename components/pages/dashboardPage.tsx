@@ -9,6 +9,7 @@ import { FuentesGeneralesSection } from "@/components/dashboard/dashboardPage-fu
 import { KnowledgeBaseSection } from "@/components/dashboard/dashboardPage-knowledgeCard";
 import { MediaListeningSection } from "@/components/dashboard/dashboardPage-mediaCard";
 import { ClientInfoDisplay } from "@/components/dashboard/ClientInfoDisplay";
+import { CampaignTable } from "@/components/dashboard/dashboardPage-campaignTable";
 import { useClient } from "@/context/ClientContext";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReferences, removeReferenceAction } from "@/actions/knowledge";
@@ -20,7 +21,12 @@ import type { SourceResponse, ReferenceResponse } from "@/lib/schemas";
 import type { CorresponsableData } from "@/components/dashboard/dashboardPage-corresspondableCard";
 import SourcesAdministrator from "./dashboardPage-Forms";
 
-function DashBoard() {
+interface DashBoardProps {
+  clientId?: string;
+  campaignId?: string;
+}
+
+function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
   const { selectedClient } = useClient();
   const queryClient = useQueryClient();
 
@@ -38,34 +44,37 @@ function DashBoard() {
   console.log('Folder ID being used for fetching:', selectedClient?._id)
   console.log('================================')
 
-  // Fetch references for selected client
+  // Determine the folder ID to use - prioritize route params over context
+  const folderId = campaignId || clientId || selectedClient?._id;
+
+  // Fetch references for selected client/campaign
   const {
     data: references = [],
     isLoading: referencesLoading,
     error: referencesError
   } = useQuery({
-    queryKey: ['references', selectedClient?._id],
+    queryKey: ['references', folderId],
     queryFn: async () => {
-      if (!selectedClient?._id) return [];
-      return await getReferences({ folderId: selectedClient._id });
+      if (!folderId) return [];
+      return await getReferences({ folderId });
     },
-    enabled: !!selectedClient?._id,
+    enabled: !!folderId,
     staleTime: 30 * 1000,
     retry: 2,
   });
 
-  // Fetch sources for selected client
+  // Fetch sources for selected client/campaign
   const {
     data: sources = [],
     isLoading: sourcesLoading,
     error: sourcesError
   } = useQuery({
-    queryKey: ['sources', selectedClient?._id],
+    queryKey: ['sources', folderId],
     queryFn: async () => {
-      if (!selectedClient?._id) return [];
-      return await getSources({ folderId: selectedClient._id });
+      if (!folderId) return [];
+      return await getSources({ folderId });
     },
-    enabled: !!selectedClient?._id,
+    enabled: !!folderId,
     staleTime: 30 * 1000,
     retry: 2,
   });
@@ -172,8 +181,8 @@ function DashBoard() {
     setEditingCorresponsable(null);
   };
 
-  // Show loading state if no client selected or data is loading
-  if (!selectedClient) {
+  // Show loading state if no client selected and no route params or data is loading
+  if (!selectedClient && !folderId) {
     return (
       <>
         <Navbar />
@@ -227,6 +236,14 @@ function DashBoard() {
         <div className="max-w-[90rem] mx-auto p-3 pt-5   ">
          <DashboardHeader references={references} sources={sources} />
          <ClientInfoDisplay />
+         
+         {/* Campaign Table - Only show if client has campaigns and is not a campaign itself */}
+         {folderId && !campaignId && (
+           <div className="mt-6">
+             <CampaignTable clientId={folderId} />
+           </div>
+         )}
+
           <MetricsCards references={references} sources={sources} />
 
         {/* Desktop: Side by side cards, Mobile: Stacked accordion */}

@@ -7,7 +7,6 @@ import {
   Edit,
   LineChart,
   Plus,
-  TrendingUp,
   MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -62,7 +61,8 @@ export function ClientCard({
       timestamp: new Date().toISOString(),
     }
     setSelectedClient(clientResponse)
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.channels, pathname || '/')
+    // Navigate to client dashboard using simplified route structure
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.clientDashboard(String(client.id)), pathname || '/')
     router.push(localizedRoute)
   }
 

@@ -83,8 +83,8 @@ export function CampaignRow({
     // Set campaign as selected client
     setSelectedClient(campaignResponse)
     
-    // Navigate to channels dashboard
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname)
+    // Navigate to campaign channels dashboard using new route structure
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.campaignDashboard(clientId.toString(), campaign.id.toString()), pathname)
     router.push(localizedRoute)
   }
 
@@ -123,8 +123,8 @@ export function CampaignRow({
     // Set campaign as selected client
     setSelectedClient(campaignResponse)
     
-    // Navigate to channels dashboard for campaign management
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.channels, pathname)
+    // Navigate to campaign channels dashboard using new route structure
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.campaignDashboard(clientId.toString(), campaign.id.toString()), pathname)
     router.push(localizedRoute)
   }
 

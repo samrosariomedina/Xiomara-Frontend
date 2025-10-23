@@ -50,12 +50,15 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
         if (!confirm('Are you sure you want to delete this output item?')) return
 
         try {
+            console.log('Deleting output item:', { outputId, itemId })
             await deleteOutputItemAction(outputId, itemId)
+            console.log('Output item deleted successfully')
             toast.success('Output item deleted successfully!')
             onOutputsChange?.()
         } catch (error) {
             console.error('Error deleting output item:', error)
-            toast.error('Failed to delete output item')
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete output item'
+            toast.error(errorMessage)
         }
     }
 
@@ -63,12 +66,15 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
         if (!confirm('Are you sure you want to delete this entire output batch?')) return
 
         try {
+            console.log('Deleting entire output batch:', { outputId })
             await deleteOutputAction(outputId)
+            console.log('Output batch deleted successfully')
             toast.success('Output batch deleted successfully!')
             onOutputsChange?.()
         } catch (error) {
             console.error('Error deleting output:', error)
-            toast.error('Failed to delete output batch')
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete output batch'
+            toast.error(errorMessage)
         }
     }
 

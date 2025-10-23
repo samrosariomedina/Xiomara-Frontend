@@ -21,12 +21,14 @@ interface ChatCardProps {
   selectedSourceIds: string[]
   onOutputGenerated?: () => void
   onClearSelectedSources?: () => void
+  clearSummary?: boolean // Add prop to trigger summary clearing
 }
 
 export default function ChatCard({
   selectedSourceIds,
   onOutputGenerated,
-  onClearSelectedSources
+  onClearSelectedSources,
+  clearSummary
 }: ChatCardProps) {
     const { templates } = useTemplates()
     const { user } = useAuth()
@@ -58,18 +60,27 @@ export default function ChatCard({
         staleTime: 30 * 1000, // 30 seconds
     })
 
-    // Load summary from localStorage on mount
+    // Load summary from localStorage on mount - but clear if client changes
     useEffect(() => {
         const savedSummary = localStorage.getItem('contentEngine_summary')
         if (savedSummary) {
             try {
-                setGeneratedSummary(JSON.parse(savedSummary))
+                // Clear localStorage summary when client changes
+                localStorage.removeItem('contentEngine_summary')
+                setGeneratedSummary(null)
             } catch (error) {
                 console.error('Error parsing saved summary:', error)
                 localStorage.removeItem('contentEngine_summary')
+                setGeneratedSummary(null)
             }
         }
-    }, [])
+    }, [selectedClient?._id]) // Clear when client changes
+
+    // Clear generated summary when client changes or clearSummary prop is true
+    useEffect(() => {
+        setGeneratedSummary(null)
+        localStorage.removeItem('contentEngine_summary')
+    }, [selectedClient?._id, clearSummary])
 
     // Save summary to localStorage when it changes
     useEffect(() => {
