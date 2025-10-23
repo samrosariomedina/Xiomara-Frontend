@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import React from "react"
 import { createPortal } from 'react-dom'
 import { Edit, Trash2 } from "lucide-react"
@@ -31,6 +31,31 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [adjustedPosition, setAdjustedPosition] = useState({ left, top })
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    // Add event listeners with capture to ensure they fire
+    document.addEventListener('mousedown', handleClickOutside, true)
+    document.addEventListener('keydown', handleEscape, true)
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true)
+      document.removeEventListener('keydown', handleEscape, true)
+    }
+  }, [onClose])
 
   // Adjust position to keep menu within viewport
   React.useEffect(() => {
@@ -83,8 +108,13 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
   const menu = (
     <div
       ref={ref}
-      style={{ position: 'fixed', left: adjustedPosition.left, top: adjustedPosition.top }}
-      className="z-50 w-52 rounded-lg bg-white shadow-lg p-3 border border-gray-200"
+      style={{ 
+        position: 'fixed', 
+        left: adjustedPosition.left, 
+        top: adjustedPosition.top,
+        zIndex: 9999
+      }}
+      className="w-52 rounded-lg bg-white shadow-lg p-3 border border-gray-200"
     >
       {actions.includes('edit') && (
         <button
@@ -136,7 +166,15 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
   }
 
   const overlay = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div 
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex: 10000 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setConfirmOpen(false)
+        }
+      }}
+    >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       <div className="relative z-10 max-w-lg w-full mx-4 bg-white rounded-2xl shadow-2xl p-6 text-center">
@@ -189,8 +227,18 @@ export const DashboardRowActions: FC<DashboardRowActionsProps> = ({
     </div>
   )
 
+  // Add backdrop overlay for click-outside functionality
+  const backdrop = (
+    <div 
+      className="fixed inset-0"
+      style={{ zIndex: 9998 }}
+      onClick={onClose}
+    />
+  )
+
   return createPortal(
     <>
+      {backdrop}
       {menu}
       {confirmOpen && overlay}
     </>,

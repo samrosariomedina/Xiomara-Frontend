@@ -41,7 +41,7 @@ interface ConnectCorrespondentsFormProps {
 interface CorrespondentFormData {
   id?: string; // For existing corresponsables
   clientName: string;
-  email: string;
+  email?: string;
   whatsapp: string;
   accountType: "premium" | "standard" | "basic";
   telegramToken?: string; // Store the telegram bot token
@@ -271,7 +271,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           title: correspondent.clientName,
           origin: correspondent.whatsapp,
           enabled: true,
-          email: correspondent.email
+          email: correspondent.email || ""
         });
 
         // Execute sharing for existing corresponsables if methods are selected (regardless of update success)
@@ -287,7 +287,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
               {
                 shareUrl,
                 message,
-                email: correspondent.email,
+                email: correspondent.email || "",
                 clientName: correspondent.clientName
               },
               correspondent.invitationMethods
@@ -317,7 +317,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       
       const result = await createCorresponsableWithSharingAction(folderId, {
         clientName: correspondent.clientName,
-        email: correspondent.email,
+        email: correspondent.email || "",
         whatsapp: correspondent.whatsapp,
         accountType: correspondent.accountType,
         telegramToken: correspondent.telegramToken,
@@ -338,7 +338,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
               {
                 shareUrl,
                 message,
-                email: correspondent.email,
+                email: correspondent.email || "",
                 clientName: correspondent.clientName
               },
               invitationMethods

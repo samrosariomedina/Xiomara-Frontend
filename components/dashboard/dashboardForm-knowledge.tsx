@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
-import { Plus, Eye, Brain, ChevronDown } from "lucide-react"
+import { Plus, Eye, Brain } from "lucide-react"
 import { FileUpload } from "@/components/ui/file-upload"
 import { UrlInput } from "@/components/ui/url-input"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -16,12 +16,6 @@ import { useKnowledge, useCreateReference, useEditReference, useRemoveReference 
 import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import HeaderControls from "../ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 
@@ -63,7 +57,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
     resolver: zodResolver(knowledgeBaseSchema),
     defaultValues: {
       name: isEditMode ? (currentEditReference?.title || "") : "",
-      accountType: "kb",
       description: isEditMode && typeof currentEditReference?.content === 'object' && 'description' in currentEditReference.content 
         ? (currentEditReference.content as {description?: string}).description || ""
         : "",
@@ -85,7 +78,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
       setShowForm(true)
       form.reset({
         name: currentEditReference.title || "",
-        accountType: "kb",
         description: typeof currentEditReference.content === 'object' && 'description' in currentEditReference.content 
           ? (currentEditReference.content as {description?: string}).description || ""
           : "",
@@ -101,20 +93,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
   }, [currentEditReference, form])
 
   const t = useTranslations('KNOWLEDGE')
-
-  // Account type options
-  const accountTypeOptions = [
-    { value: "kb", label: "KB Type 1" },
-    { value: "article", label: "Article" },
-    { value: "document", label: "Document" },
-    { value: "reference", label: "Reference" }
-  ];
-
-  const getAccountTypeLabel = () => {
-    const accountType = form.watch('accountType')
-    const found = accountTypeOptions.find(opt => opt.value === accountType)
-    return found ? found.label : t('form.selectPlaceholder')
-  }
 
   // Transform references to SourceItem format for display - no caching
   const sources: SourceItem[] = references.map((ref, index) => {
@@ -270,7 +248,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
       {/* Constrain form width on desktop so it fits the panel */}
       <div className="lg:max-w-full lg:mx-auto flex-1 overflow-y-auto">
 
-        <div className="grid  grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">{t('form.nameLabel')}</Label>
           <Input 
@@ -281,36 +258,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
           />
           {form.formState.errors.name && <p className="text-red-500 text-xs mt-1">{form.formState.errors.name.message}</p>}
         </div>
-
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">{t('form.accountTypeLabel')}</Label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 text-sm justify-between ${
-                  form.formState.errors.accountType ? 'border-red-500' : 'border-gray-200'
-                }`}
-              >
-                {getAccountTypeLabel()}
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-full min-w-[200px]">
-              {accountTypeOptions.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => form.setValue('accountType', option.value as 'kb' | 'article')}
-                  className="cursor-pointer"
-                >
-                  {option.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {form.formState.errors.accountType && <p className="text-red-500 text-xs mt-1">{form.formState.errors.accountType.message}</p>}
-        </div>
-      </div>
 
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-2 block">{t('form.descriptionLabel')}</Label>

@@ -41,7 +41,17 @@ export const clientSchema = z.object({
 		.or(z.literal(""))
 		.refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
 			message: 'WhatsApp number can only contain digits and +()-',
-		}),
+		})
+		.refine(
+			(val) => {
+				if (!val) return true;
+				const sanitized = val.replace(/[\s\-\+]/g, "");
+				return sanitized.length >= 10 && sanitized.length <= 15;
+			},
+			{
+				message: 'WhatsApp number must be 10-15 digits long',
+			}
+		),
 	position: z.string().min(1, 'Position is required'),
 	email: z.string()
 		.optional()
@@ -55,7 +65,17 @@ export const clientSchema = z.object({
 		.or(z.literal(""))
 		.refine(val => !val || /^[0-9+\s()-]+$/.test(val), {
 			message: 'WhatsApp number can only contain digits and +()-',
-		}),
+		})
+		.refine(
+			(val) => {
+				if (!val) return true;
+				const sanitized = val.replace(/[\s\-\+]/g, "");
+				return sanitized.length >= 10 && sanitized.length <= 15;
+			},
+			{
+				message: 'WhatsApp number must be 10-15 digits long',
+			}
+		),
 	corresponsalClientName2: z.string().optional(),
 	accountType: z.enum(['premium', 'standard', 'basic']).optional(),
 	invitationMethods: z.object({
@@ -101,11 +121,26 @@ export const generalInformationSchema = z.object({
 const correspondentSchema = z.object({
   clientName: z.string().min(1, 'Client name is required'),
   email: z.string()
-    .min(1, 'Email is required')
-    .email('Invalid email format'),
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || z.string().email().safeParse(val).success,
+      {
+        message: 'Invalid email format',
+      }
+    ),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
-    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
+    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-')
+    .refine(
+      (val) => {
+        const sanitized = val.replace(/[\s\-\+]/g, "");
+        return sanitized.length >= 10 && sanitized.length <= 15;
+      },
+      {
+        message: 'WhatsApp number must be 10-15 digits long',
+      }
+    ),
   accountType: z.enum(['premium', 'standard', 'basic']),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
@@ -126,10 +161,27 @@ export const brandGuidesSchema = z.object({});
 // Corresponsables Form Schema
 export const corresponsablesSchema = z.object({
   clientName: z.string().min(1, 'Client name is required').max(100, 'Client name must be less than 100 characters'),
-  email: z.string().email('Invalid email format').optional().or(z.literal("")),
+  email: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || z.string().email().safeParse(val).success,
+      {
+        message: 'Invalid email format',
+      }
+    ),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
-    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
+    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-')
+    .refine(
+      (val) => {
+        const sanitized = val.replace(/[\s\-\+]/g, "");
+        return sanitized.length >= 10 && sanitized.length <= 15;
+      },
+      {
+        message: 'WhatsApp number must be 10-15 digits long',
+      }
+    ),
   accountType: z.enum(['premium', 'standard', 'basic'], {
     message: 'Please select a valid account type',
   }),
@@ -189,9 +241,6 @@ const SUPPORTED_FILE_EXTENSIONS = ['.txt', '.md', '.pdf', '.html', '.htm'];
 // Knowledge Base Form Schema
 export const knowledgeBaseSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
-  accountType: z.enum(['kb', 'article'], {
-    message: 'Please select a valid account type',
-  }),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   file: z.instanceof(File)
     .optional()
