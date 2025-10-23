@@ -8,7 +8,7 @@ type ParamsLike = { params: MaybePromise<{ locale: string; clientId: string }> }
 
 export async function generateMetadata(props: ParamsLike): Promise<Metadata> {
   const { params } = await props;
-  const { locale, clientId } = params;
+  const { clientId } = await params;
   
   const title = `Client Dashboard - ${clientId}`;
   const description = `Dashboard for client ${clientId}`;
@@ -35,7 +35,7 @@ export default async function ClientDashboardPage(props: ParamsLike) {
   }
 
   const { params } = await props;
-  const { clientId } = params;
+  const { clientId } = await params;
 
   return (
     <div>

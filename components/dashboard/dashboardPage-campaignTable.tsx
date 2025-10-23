@@ -1,13 +1,7 @@
 "use client"
 
 import {
-  Ear,
-  Globe,
-  Users,
   MoreVertical,
-  Settings,
-  Brain,
-  ArrowRight,
   FileText,
   BarChart3
 } from "lucide-react"
@@ -65,7 +59,7 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
     }
     
     // Set campaign as selected client
-    setSelectedClient(campaign)
+    setSelectedClient(parentClientData as ClientResponse)
     
     // Navigate to dashboard with campaign filter
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname)
@@ -84,7 +78,7 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
     }
     
     // Set campaign as selected client
-    setSelectedClient(campaign)
+    setSelectedClient(parentClientData as ClientResponse)
     
     // Navigate to content engine
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.contentEngine, pathname)
@@ -103,7 +97,7 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
     }
     
     // Set campaign as selected client
-    setSelectedClient(campaign)
+    setSelectedClient(parentClientData as ClientResponse)
     
     // Navigate to campaign dashboard using simplified route structure
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.campaignDashboard(clientId, campaign._id), pathname)
@@ -118,7 +112,7 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
             <BarChart3 className="h-8 w-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Campaigns Found</h3>
-          <p className="text-gray-500">This client doesn't have any campaigns yet.</p>
+            <p className="text-gray-500">This client doesn&apos;t have any campaigns yet.</p>
         </div>
       </div>
     )

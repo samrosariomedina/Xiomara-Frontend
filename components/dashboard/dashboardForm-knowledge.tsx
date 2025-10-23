@@ -44,7 +44,7 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
   )
   
   const { selectedClient } = useClient()
-  const { createReference, isCreating } = useKnowledge()
+  const {  isCreating } = useKnowledge()
   const router = useRouter()
   
   // Get the mutations directly to have full control

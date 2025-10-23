@@ -50,7 +50,11 @@ export function useCorresponsables(folderId?: string) {
       folderId: string
       correspondents: ConnectCorrespondentsInput['correspondents']
     }) => {
-      const result = await createCorresponsablesAction(folderId, correspondents)
+      const correspondentsWithEmail = correspondents.map(correspondent => ({
+        ...correspondent,
+        email: correspondent.email || ''
+      }))
+      const result = await createCorresponsablesAction(folderId, correspondentsWithEmail)
       if (result.success) {
         return result.data
       } else {
