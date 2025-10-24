@@ -17,6 +17,7 @@ import type { ReferenceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
 import HeaderControls from "../ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
+import { formatDateSafe } from '@/lib/utils'
 
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
@@ -103,7 +104,7 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
       name: displayName,
       type: ref.type === 'text' ? 'text' : ref.type === 'webpage' ? 'url' : 'image',
       category: "Knowledge",
-      timestamp: new Date(ref.timestamp).toLocaleDateString(),
+      timestamp: formatDateSafe(ref.timestamp),
     }
   })
 

@@ -2,6 +2,7 @@
 
 import { useClient } from '@/context/ClientContext'
 import { Building2, User, Briefcase, Mail, Phone, MapPin, Target, Calendar } from 'lucide-react'
+import { formatDateSafe } from '@/lib/utils'
 
 interface ClientMetadata {
   contactName?: string
@@ -64,7 +65,7 @@ export function ClientInfoDisplay() {
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className="font-medium">Start Date:</span>
-                    <span>{new Date(campaignMetadata.startDate).toLocaleDateString()}</span>
+                    <span>{formatDateSafe(campaignMetadata.startDate)}</span>
                   </div>
                 )}
                 {campaignMetadata?.description && (

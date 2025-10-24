@@ -16,10 +16,10 @@ import { createSourceAction } from '@/actions/sources'
 interface SourcesDrawerFormProps {
   onClose: () => void
   onSuccess?: () => void
-  clientId?: string
+  folderId: string
 }
 
-export function SourcesDrawerForm({ onClose, onSuccess, clientId }: SourcesDrawerFormProps) {
+export function SourcesDrawerForm({ onClose, onSuccess, folderId }: SourcesDrawerFormProps) {
   const t = useTranslations('FUENTES')
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">("file")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -55,7 +55,7 @@ export function SourcesDrawerForm({ onClose, onSuccess, clientId }: SourcesDrawe
         url: data.url || undefined,
         text: data.text || undefined,
       }, {
-        folderId: clientId
+        folderId
       })
       
       // Reset form
@@ -85,7 +85,7 @@ export function SourcesDrawerForm({ onClose, onSuccess, clientId }: SourcesDrawe
       {/* Name input */}
       <div>
         <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
-          {t('form.nameLabel')}
+          {t('form.nameLabel')} <span className="text-gray-400 font-normal">(optional)</span>
         </Label>
         <Input
           id="name"

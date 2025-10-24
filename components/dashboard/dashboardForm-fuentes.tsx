@@ -126,7 +126,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Transform sources to SourceItem format for display - no caching
   const sourcesList: Source[] = sources.map((source, index) => ({
     id: index + 1,
-    name: source.title || 'Sin título',
+    name: source.title || 'Untitled',
     type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
     category: "General",
     timestamp: formatDateSafe(source.timestamp),
@@ -300,7 +300,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       {/* Name input */}
       <div>
         <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
-          {t('form.nameLabel')}
+          {t('form.nameLabel')} <span className="text-gray-400 font-normal">(optional)</span>
         </Label>
         <Input
           id="name"

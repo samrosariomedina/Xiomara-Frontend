@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner'
 import { deleteSummaryAction } from '@/actions/summaries'
 import type { SummaryResponse } from '@/actions/summaries'
+import { formatDateSafe } from '@/lib/utils'
 
 interface SummariesViewDialogProps {
   summaries: SummaryResponse[]
@@ -82,13 +83,7 @@ export default function SummariesViewDialog({ summaries, isLoadingSummaries, onS
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatDateSafe(dateString)
     } catch {
       return 'Invalid date'
     }

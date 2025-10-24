@@ -202,7 +202,7 @@ export const corresponsablesSchema = z.object({
 
 // Fuentes Generales Form Schema
 export const fuentesGeneralesSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  name: z.string().max(100, 'Name must be less than 100 characters').optional().or(z.literal("")),
   file: z.instanceof(File).optional().nullable(),
   url: z.string()
     .optional()

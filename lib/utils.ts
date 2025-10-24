@@ -66,3 +66,44 @@ export function formatDateWithLocale(dateString: string, locale: string = 'en-US
     return formatDateSafe(dateString);
   }
 }
+
+/**
+ * Format date and time safely for SSR/hydration compatibility
+ * Returns consistent format to avoid hydration mismatches
+ */
+export function formatDateTimeSafe(dateString: string | undefined | null): string {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    // Use consistent format: YYYY-MM-DD HH:MM
+    return date.toISOString().replace('T', ' ').substring(0, 16);
+  } catch {
+    return 'N/A';
+  }
+}
+
+/**
+ * Format date for batch display (consistent across server/client)
+ */
+export function formatBatchDate(dateString: string | undefined | null): string {
+  if (!dateString) return 'Unknown Date';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Unknown Date';
+    }
+    // Use consistent format: Month DD, YYYY
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  } catch {
+    return 'Unknown Date';
+  }
+}

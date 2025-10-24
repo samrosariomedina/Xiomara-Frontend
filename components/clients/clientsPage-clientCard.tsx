@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ClientCardProps } from "@/utils/types"
 import { CampaignRow } from "./clientPage-campaignRows"
+import { formatDateSafe } from '@/lib/utils'
 import { useRouter, usePathname } from 'next/navigation'
 import { useClient } from '@/context/ClientContext'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
@@ -33,7 +34,7 @@ export function ClientCard({
   const campaignDetails = (campaigns || []).map(campaign => ({
     id: campaign._id,
     name: campaign.title || 'Unnamed Campaign',
-    createdDate: new Date(campaign.timestamp).toLocaleDateString(),
+    createdDate: formatDateSafe(campaign.timestamp),
     connectedSources: { whatsapp: 0, email: 0, other: 0 },
     status: 'Activa',
   }))

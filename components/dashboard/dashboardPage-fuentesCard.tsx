@@ -32,7 +32,7 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete }: FuentesGe
   // Transform sources to fuentesData format - no caching
   const fuentesData = sources.map((source, index) => ({
     id: index + 1,
-    nombre: source.title || 'Sin título',
+    nombre: source.title || 'Untitled',
     tipo: source.type === 'generales' ? 'General' : source.type,
     contenido: source.content || 'Sin contenido',
     estado: source.edited ? 'Editado' : 'En uso',

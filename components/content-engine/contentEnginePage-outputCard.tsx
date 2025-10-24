@@ -1,10 +1,10 @@
 'use client'
-import { ChevronRight, MoreVertical, Wrench, Copy, Edit, Trash2, Calendar } from 'lucide-react'
-import { useTemplates } from '@/context/TemplatesContext'
+import { MoreVertical, Wrench, Copy, Edit, Trash2, Calendar } from 'lucide-react'
 import type { OutputResponse } from '@/actions/outputs'
 import { deleteOutputAction, deleteOutputItemAction, editOutputAction } from '@/actions/outputs'
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { formatBatchDate, formatDateTimeSafe } from '@/lib/utils'
 
 interface OutputCardProps {
   allOutputs: OutputResponse[]
@@ -14,7 +14,6 @@ interface OutputCardProps {
 }
 
 export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange, folderId }: OutputCardProps) {
-    const { templates } = useTemplates()
     const [editingItem, setEditingItem] = useState<{ outputId: string; itemId: string; content: string } | null>(null)
     const [editContent, setEditContent] = useState('')
     
@@ -95,7 +94,7 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                 </button>
             </header>
 
-            <section className="mb-3 md:mb-4">
+            {/* <section className="mb-3 md:mb-4">
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                     <h4 className="text-xs md:text-sm font-medium">Templates Rápidos</h4>
                 </div>
@@ -119,7 +118,7 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                         </li>
                     )}
                 </ul>
-            </section>
+            </section> */}
 
             <div className="border-t border-gray-100" />
 
@@ -157,7 +156,7 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-gray-400" />
                                             <span className="text-sm font-medium text-gray-700">
-                                                Batch - {new Date(output.timestamp).toLocaleDateString()}
+                                                Batch - {formatBatchDate(output.timestamp)}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1">
@@ -251,7 +250,7 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                                                         </div>
                                                         
                                                         <div className="text-xs text-gray-400">
-                                                            Generated: {new Date(item.timestamp).toLocaleString()}
+                                                            Generated: {formatDateTimeSafe(item.timestamp)}
                                                         </div>
                                                     </div>
                                                 )}

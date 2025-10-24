@@ -15,6 +15,7 @@ import { generateOutputAction, getLatestOutputAction } from '@/actions/outputs'
 import { toast } from 'sonner'
 import SummariesViewDialog from '../dialogs/SummariesViewDialog'
 import SummarySelectionDialog from '../dialogs/SummarySelectionDialog'
+import { formatDateSafe } from '@/lib/utils'
 
 interface ChatCardProps {
   selectedSourceIds: string[]
@@ -425,7 +426,7 @@ export default function ChatCard({
                                 <div className="mt-4 pt-3 border-t border-gray-200">
                                     <p className="text-xs text-gray-500 mb-2">Generated from {generatedSummary.sources.length} source{generatedSummary.sources.length !== 1 ? 's' : ''}</p>
                                     <p className="text-xs text-gray-400">
-                                        Created: {new Date(generatedSummary.timestamp).toLocaleDateString()}
+                                        Created: {formatDateSafe(generatedSummary.timestamp)}
                                     </p>
                                 </div>
                             )}

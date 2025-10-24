@@ -14,6 +14,7 @@ import { Drawer } from "@/components/ui/drawer"
 import { SourcesDrawerForm } from "@/components/SourcesDrawerForm"
 import { useTranslations } from 'next-intl'
 import type { SourceResponse } from '@/lib/schemas'
+import { formatDateSafe } from '@/lib/utils'
 // custom inline list rendering — keep component-specific imports above
 
 interface FuentesCardProps {
@@ -198,9 +199,9 @@ export default function FuentesCard({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1.5 md:mb-2">
-                        <h4 className="text-xs md:text-sm font-medium text-gray-900 truncate pr-1 md:pr-2">{source.title || 'Sin título'}</h4>
+                        <h4 className="text-xs md:text-sm font-medium text-gray-900 truncate pr-1 md:pr-2">{source.title || 'Untitled'}</h4>
                         <span className="text-xs text-gray-500 flex-shrink-0">
-                          {source.timestamp ? new Date(source.timestamp).toLocaleDateString() : 'Sin fecha'}
+                          {source.timestamp ? formatDateSafe(source.timestamp) : 'Sin fecha'}
                         </span>
                       </div>
 

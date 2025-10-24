@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge"
 import { useRouter, usePathname } from "next/navigation"
 import { getLocalizedRouteFromPathname } from '@/lib/routes'
 import { useQuery } from "@tanstack/react-query"
-import { getClientsAction } from "@/actions/clients"
 import { getAllCampaignsAction } from "@/actions/campaigns"
-import type { ClientResponse, CampaignResponse } from "@/lib/schemas"
+import type { CampaignResponse } from "@/lib/schemas"
+import { formatDateSafe } from '@/lib/utils'
 
 interface CampaignTableProps {
   clientId: string
@@ -22,15 +22,6 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Fetch client data
-  const { data: clientsData } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const result = await getClientsAction()
-      return result.success ? result.data : []
-    },
-    staleTime: 5 * 60 * 1000,
-  })
 
   // Fetch campaigns data
   const { data: campaignsData } = useQuery({
@@ -139,8 +130,8 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
                 <div className="text-xs text-gray-400 mb-1">Fecha de Inicio</div>
                 <div className="text-sm text-gray-900">
                   {campaign.metadata?.startDate 
-                    ? new Date(campaign.metadata.startDate).toLocaleDateString()
-                    : new Date(campaign.timestamp).toLocaleDateString()
+                    ? formatDateSafe(campaign.metadata.startDate)
+                    : formatDateSafe(campaign.timestamp)
                   }
                 </div>
               </div>
@@ -205,8 +196,8 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
                   <div className="text-xs text-gray-400 mb-1">Fecha de Inicio</div>
                   <div className="text-sm text-gray-900">
                     {campaign.metadata?.startDate 
-                      ? new Date(campaign.metadata.startDate).toLocaleDateString()
-                      : new Date(campaign.timestamp).toLocaleDateString()
+                      ? formatDateSafe(campaign.metadata.startDate)
+                      : formatDateSafe(campaign.timestamp)
                     }
                   </div>
                 </div>
