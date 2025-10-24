@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label"
 import { useTranslations } from 'next-intl'
 import { knowledgeBaseSchema, type KnowledgeBaseInput } from '@/lib/schemas'
 import { useKnowledge, useCreateReference, useEditReference, useRemoveReference } from '@/hooks/useKnowledge'
-import { useClient } from '@/context/ClientContext'
 import type { ReferenceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
 import HeaderControls from "../ui/formsHeader-dashboard"
@@ -22,10 +21,11 @@ import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 interface KnowledgeBaseFormProps {
   onSubmit?: (data: unknown) => void
   references: ReferenceResponse[]
+  folderId: string
   editReference?: ReferenceResponse | null
 }
 
-export function KnowledgeBaseForm({ onSubmit, references, editReference = null }: KnowledgeBaseFormProps) {
+export function KnowledgeBaseForm({ onSubmit, references, folderId, editReference = null }: KnowledgeBaseFormProps) {
   // Debug logging
   console.log('🔵 KnowledgeBaseForm rendered with editReference:', editReference);
   
@@ -43,7 +43,6 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
     isEditMode && currentEditReference?.type === 'file' ? 'file' : 'text'
   )
   
-  const { selectedClient } = useClient()
   const {  isCreating } = useKnowledge()
   const router = useRouter()
   
@@ -121,8 +120,8 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
   }
 
   const handleSubmit = form.handleSubmit((data) => {
-    if (!selectedClient) {
-      console.error('No client selected')
+    if (!folderId) {
+      console.error('No folder selected')
       return
     }
 
@@ -154,7 +153,7 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
     } else {
       // Create new reference
       createReferenceMutation.mutate(
-        { data, folderId: selectedClient._id },
+        { data, folderId },
         {
           onSuccess: () => {
             form.reset()
@@ -182,8 +181,8 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
   const handleDeleteFromList = async (id: number | string) => {
     console.log('🔵 handleDeleteFromList called with id:', id);
     
-    if (!selectedClient?._id) {
-      console.error('🔵 No client selected');
+    if (!folderId) {
+      console.error('🔵 No folder selected');
       return;
     }
     
@@ -196,7 +195,7 @@ export function KnowledgeBaseForm({ onSubmit, references, editReference = null }
         console.log('🔵 Deleting reference:', reference._id);
         await removeReferenceMutation.mutateAsync({
           referenceId: reference._id,
-          folderId: selectedClient._id
+          folderId
         });
         console.log('🔵 Reference deleted successfully');
         // React Query will automatically refetch and update the list

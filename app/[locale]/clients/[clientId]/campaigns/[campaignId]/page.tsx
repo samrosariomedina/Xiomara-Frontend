@@ -37,9 +37,14 @@ export default async function CampaignDashboardPage(props: ParamsLike) {
   const { params } = await props;
   const { clientId, campaignId } = await params;
 
+  // Ensure we have valid IDs before rendering
+  if (!clientId || !campaignId) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
-      <DashBoard clientId={clientId} campaignId={campaignId} />
+      <DashBoard key={`${clientId}-${campaignId}`} clientId={clientId} campaignId={campaignId} />
     </div>
   )
 }

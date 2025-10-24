@@ -10,7 +10,6 @@ import { KnowledgeBaseSection } from "@/components/dashboard/dashboardPage-knowl
 import { MediaListeningSection } from "@/components/dashboard/dashboardPage-mediaCard";
 import { ClientInfoDisplay } from "@/components/dashboard/ClientInfoDisplay";
 import { CampaignTable } from "@/components/dashboard/dashboardPage-campaignTable";
-import { useClient } from "@/context/ClientContext";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReferences, removeReferenceAction } from "@/actions/knowledge";
 import { getSources, removeSourceAction } from "@/actions/sources";
@@ -22,12 +21,11 @@ import type { CorresponsableData } from "@/components/dashboard/dashboardPage-co
 import SourcesAdministrator from "./dashboardPage-Forms";
 
 interface DashBoardProps {
-  clientId?: string;
-  campaignId?: string;
+  clientId: string;        // Required - always from route params
+  campaignId?: string;     // Optional - only for campaign dashboards
 }
 
-function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
-  const { selectedClient } = useClient();
+function DashBoard({ clientId, campaignId }: DashBoardProps) {
   const queryClient = useQueryClient();
 
   // State for SourcesAdministrator
@@ -37,15 +35,17 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
   const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null);
   const [editingCorresponsable, setEditingCorresponsable] = useState<CorresponsableData | null>(null);
 
-  // Debug logging for selected client
-  console.log('=== DASHBOARD DEBUG ===')
-  console.log('Selected Client:', selectedClient)
-  console.log('Selected Client ID:', selectedClient?._id)
-  console.log('Folder ID being used for fetching:', selectedClient?._id)
-  console.log('================================')
+  // Determine the folder ID - campaignId takes priority over clientId
+  const folderId = campaignId || clientId;
 
-  // Determine the folder ID to use - prioritize route params over context
-  const folderId = campaignId || clientId || selectedClient?._id;
+  console.log('╔══════════════════════════════════════════════════╗')
+  console.log('║  DASHBOARD DEBUG (Route-Based)                   ║')
+  console.log('╠══════════════════════════════════════════════════╣')
+  console.log('║  Client ID from route:   ', (clientId || 'UNDEFINED').padEnd(20), '║')
+  console.log('║  Campaign ID from route: ', (campaignId || 'N/A').padEnd(20), '║')
+  console.log('║  Folder ID being used:   ', (folderId || 'UNDEFINED').padEnd(20), '║')
+  console.log('║  Priority: campaignId || clientId                ║')
+  console.log('╚══════════════════════════════════════════════════╝');
 
   // Fetch references for selected client/campaign
   const {
@@ -83,7 +83,7 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
   const deleteSourceMutation = useMutation({
     mutationFn: removeSourceAction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      queryClient.invalidateQueries({ queryKey: ['sources', folderId] });
       toast.success('Source deleted successfully');
     },
     onError: (error: unknown) => {
@@ -94,9 +94,9 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
 
   const deleteReferenceMutation = useMutation({
     mutationFn: (referenceId: string) => 
-      removeReferenceAction(referenceId, { folderId: selectedClient?._id || '' }),
+      removeReferenceAction(referenceId, { folderId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['references'] });
+      queryClient.invalidateQueries({ queryKey: ['references', folderId] });
       toast.success('Knowledge base deleted successfully');
     },
     onError: (error: unknown) => {
@@ -110,10 +110,8 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
       removeCorresponsableAction(listenerId, folderId),
     onSuccess: () => {
       console.log('✅ Corresponsable delete successful, invalidating queries...');
-      // Invalidate all corresponsables queries to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['corresponsables'] });
-      // Also refetch the specific query for this folder
-      queryClient.refetchQueries({ queryKey: ['corresponsables', selectedClient?._id] });
+      // Invalidate queries for this specific folder
+      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] });
       toast.success('Corresponsable deleted successfully');
     },
     onError: (error: unknown) => {
@@ -163,13 +161,9 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
   };
 
   const handleDeleteCorresponsable = async (corresponsableId: string) => {
-    if (!selectedClient?._id) {
-      toast.error('No client selected');
-      return;
-    }
     await deleteCorresponsableMutation.mutateAsync({
       listenerId: corresponsableId,
-      folderId: selectedClient._id
+      folderId
     });
   };
 
@@ -181,15 +175,15 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
     setEditingCorresponsable(null);
   };
 
-  // Show loading state if no client selected and no route params or data is loading
-  if (!selectedClient && !folderId) {
+  // folderId is always required from route params now, so this check is simpler
+  if (!folderId) {
     return (
       <>
         <Navbar />
         <div className="min-h-screen bg-gray-50">
           <div className="max-w-[90rem] mx-auto p-3 pt-5">
             <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Please select a client to view the dashboard</p>
+              <p className="text-gray-500">Invalid route: missing client or campaign ID</p>
             </div>
           </div>
         </div>
@@ -234,7 +228,13 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
       <Navbar />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-[90rem] mx-auto p-3 pt-5   ">
-         <DashboardHeader references={references} sources={sources} />
+         <DashboardHeader 
+           references={references} 
+           sources={sources} 
+           folderId={folderId}
+           clientId={clientId}
+           campaignId={campaignId}
+         />
          <ClientInfoDisplay />
          
          {/* Campaign Table - Only show if client has campaigns and is not a campaign itself */}
@@ -244,12 +244,13 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
            </div>
          )}
 
-          <MetricsCards references={references} sources={sources} />
+          <MetricsCards references={references} sources={sources} folderId={folderId} />
 
         {/* Desktop: Side by side cards, Mobile: Stacked accordion */}
         <div className="mt-6 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
           <div className="lg:col-span-1">
              <CorresponsablesSection 
+               folderId={folderId}
                onEdit={handleEditCorresponsable}
                onDelete={handleDeleteCorresponsable}
              />
@@ -276,17 +277,22 @@ function DashBoard({ clientId, campaignId }: DashBoardProps = {}) {
       </div>
     </div>
 
-    {/* SourcesAdministrator for editing */}
-    <SourcesAdministrator
-      isOpen={isSourcesAdminOpen}
-      onClose={handleCloseSourcesAdmin}
-      references={references}
-      sources={sources}
-      defaultTab={defaultTab}
-      editSource={editingSource}
-      editReference={editingReference}
-      editCorresponsable={editingCorresponsable}
-    />
+    {/* SourcesAdministrator for editing - Only render when folderId is available */}
+    {folderId && (
+      <SourcesAdministrator
+        isOpen={isSourcesAdminOpen}
+        onClose={handleCloseSourcesAdmin}
+        references={references}
+        sources={sources}
+        defaultTab={defaultTab}
+        folderId={folderId}
+        clientId={clientId}
+        campaignId={campaignId}
+        editSource={editingSource}
+        editReference={editingReference}
+        editCorresponsable={editingCorresponsable}
+      />
+    )}
     </>
   )
 }

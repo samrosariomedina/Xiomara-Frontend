@@ -13,7 +13,6 @@ import { useTranslations } from 'next-intl'
 import SourcesList from "../ui/formsLists-dashboard"
 import { fuentesGeneralesSchema, validateForm } from '@/lib/schemas'
 import { useSourcesMutations } from '@/hooks/useSources'
-import { useClient } from '@/context/ClientContext'
 import { formatDateSafe } from '@/lib/utils'
 import type { SourceResponse } from '@/lib/schemas'
 import { useRouter } from 'next/navigation'
@@ -28,6 +27,7 @@ interface FormData {
 interface FuentesGeneralesFormProps {
   onSubmit: (data: FormData) => void
   sources: SourceResponse[]
+  folderId: string
   editSource?: SourceResponse | null
 }
 
@@ -40,7 +40,7 @@ interface Source {
 }
 
 export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
-  { onSubmit, sources, editSource = null }: FuentesGeneralesFormProps,
+  { onSubmit, sources, folderId, editSource = null }: FuentesGeneralesFormProps,
   ref
 ) {
   // Debug logging
@@ -67,8 +67,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     text: isEditMode && currentEditSource?.type === 'text' ? (currentEditSource?.content || "") : "",
   })
 
-  const { selectedClient } = useClient()
-  const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(selectedClient?._id)
+  const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(folderId)
   const router = useRouter()
   
   // Reset form when editSource or localEditSource changes
@@ -95,12 +94,12 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     }
   }, [currentEditSource])
 
-  // Debug logging for selected client
-  console.log('=== FUENTES FORM DEBUG ===')
-  console.log('Selected Client:', selectedClient)
-  console.log('Selected Client ID:', selectedClient?._id)
-  console.log('Folder ID being used for mutations:', selectedClient?._id)
-  console.log('================================')
+  // Debug logging for folderId
+  console.log('╔═══════════════════════════════════════════════════╗')
+  console.log('║        FUENTES FORM DEBUG                         ║')
+  console.log('╠═══════════════════════════════════════════════════╣')
+  console.log('║  Folder ID for mutations: ', (folderId || 'N/A').padEnd(20), '║')
+  console.log('╚═══════════════════════════════════════════════════╝')
 
   // Utility function to strip HTML and clean text content
   const stripHtmlAndCleanText = (htmlText: string): string => {
@@ -176,7 +175,12 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         await editSourceMutation({ sourceId: currentEditSource._id, data: sourceData })
       } else {
         // Create new source
-        console.log('Creating source with data:', sourceData)
+        console.log('╔═══════════════════════════════════════════════════╗')
+        console.log('║  CREATING NEW SOURCE                              ║')
+        console.log('╠═══════════════════════════════════════════════════╣')
+        console.log('║  Source Data:', JSON.stringify(sourceData).substring(0, 40).padEnd(20), '║')
+        console.log('║  Folder ID:     ', (folderId || 'N/A').padEnd(27), '║')
+        console.log('╚═══════════════════════════════════════════════════╝')
         await createSource(sourceData)
       }
       

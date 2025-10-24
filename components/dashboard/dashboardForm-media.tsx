@@ -9,9 +9,11 @@ interface MediaListeningData {
 
 interface MediaListeningFormProps {
   onSubmit: (data: MediaListeningData) => void
+  folderId: string
 }
 
-export function MediaListeningForm({  }: MediaListeningFormProps) {
+export function MediaListeningForm({ folderId }: MediaListeningFormProps) {
+  console.log('📻 MediaListeningForm - folderId:', folderId);
   return (
     <>
       <div className="mb-6">

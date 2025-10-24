@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import ChatCard from "@/components/content-engine/contentEnginePage-chatCard"
 import FuentesCard from "@/components/content-engine/contentEnginePage-fuentesCard"
 import OutputCard from "@/components/content-engine/contentEnginePage-outputCard"
-import { Navbar } from "@/components/Navbar"
 import { useTemplates } from "@/context/TemplatesContext"
-import { useClient } from "@/context/ClientContext"
 import { getContentEngineSources } from '@/actions/sources'
 import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
@@ -14,13 +12,28 @@ import type { OutputResponse } from '@/actions/outputs'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
 
-export default function ContentEnginePage(){
+interface ContentEnginePageProps {
+    clientId: string
+    campaignId?: string
+}
+
+export default function ContentEnginePage({ clientId, campaignId }: ContentEnginePageProps){
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
     const { templates } = useTemplates()
-    const { selectedClient, isInitialized } = useClient()
     const router = useRouter()
     const queryClient = useQueryClient()
-    console.log('Templates available:', templates.length)
+    
+    // Determine folderId - campaignId takes priority
+    const folderId = campaignId || clientId
+    
+    console.log('╔══════════════════════════════════════════════════════╗')
+    console.log('║  CONTENT ENGINE DEBUG                                ║')
+    console.log('╠══════════════════════════════════════════════════════╣')
+    console.log('║  Client ID:      ', (clientId || 'N/A').padEnd(29), '║')
+    console.log('║  Campaign ID:    ', (campaignId || 'N/A').padEnd(29), '║')
+    console.log('║  Folder ID:      ', folderId.padEnd(29), '║')
+    console.log('║  Templates:      ', String(templates.length).padEnd(29), '║')
+    console.log('╚══════════════════════════════════════════════════════╝')
     
     // Lifted state from FuentesCard
     const [sources, setSources] = useState<SourceResponse[]>([])
@@ -31,23 +44,21 @@ export default function ContentEnginePage(){
 
     // Server-side data fetching for all outputs with template names (folder-scoped)
     const { data: allOutputs = [], isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
-        queryKey: ['outputs-with-templates', selectedClient?._id],
+        queryKey: ['outputs-with-templates', folderId],
         queryFn: async () => {
-            if (!selectedClient?._id) return [];
-            return await getOutputsWithTemplateNamesAction({ folderId: selectedClient._id });
+            return await getOutputsWithTemplateNamesAction({ folderId });
         },
-        enabled: !!selectedClient?._id,
+        enabled: !!folderId,
         staleTime: 30 * 1000, // 30 seconds
     })
 
     // Function to refresh sources
     const refreshSources = useCallback(async () => {
-        if (!selectedClient?._id) return
         try {
             setIsLoadingSources(true)
-            // Use selected client ID for filtering sources
+            // Use folderId (campaignId || clientId) for filtering sources
             const fetchedSources = await getContentEngineSources({ 
-                folderId: selectedClient._id 
+                folderId 
             })
             setSources(fetchedSources)
             setFilteredSources(fetchedSources)
@@ -56,13 +67,13 @@ export default function ContentEnginePage(){
         } finally {
             setIsLoadingSources(false)
         }
-    }, [selectedClient?._id])
+    }, [folderId])
 
 
-    // Clear all queries and state when client changes
+    // Clear all queries and state when folderId changes
     useEffect(() => {
-        if (selectedClient) {
-            // Invalidate all queries for the new client
+        if (folderId) {
+            // Invalidate all queries for the new folder
             queryClient.invalidateQueries({ queryKey: ['outputs-with-templates'] })
             queryClient.invalidateQueries({ queryKey: ['user-summaries-for-dialog'] })
             queryClient.invalidateQueries({ queryKey: ['latest-output'] })
@@ -76,14 +87,14 @@ export default function ContentEnginePage(){
             setClearSummary(true)
             setTimeout(() => setClearSummary(false), 100) // Reset after triggering
         }
-    }, [selectedClient, queryClient])
+    }, [folderId, queryClient])
 
-    // Fetch sources when client is selected and initialized
+    // Fetch sources when folderId is available
     useEffect(() => {
-        if (selectedClient && isInitialized) {
+        if (folderId) {
             refreshSources()
         }
-    }, [selectedClient, isInitialized, refreshSources])
+    }, [folderId, refreshSources])
 
     // Handle search
     useEffect(() => {
@@ -107,10 +118,8 @@ export default function ContentEnginePage(){
     }
 
     const handleSourceAdded = async () => {
-        if (selectedClient) {
-            await refreshSources()
-            console.log('Source added successfully - sources refreshed for client:', selectedClient._id)
-        }
+        await refreshSources()
+        console.log('Source added successfully - sources refreshed for folder:', folderId)
     }
 
     const handleClearSelectedSources = () => {
@@ -118,60 +127,10 @@ export default function ContentEnginePage(){
     }
 
     // State to trigger summary clearing
-    const [clearSummary, setClearSummary] = useState(false) 
-
-    // Show loading state while client context is initializing
-    if (!isInitialized) {
-        return (
-            <div className="min-h-screen flex flex-col">
-                <Navbar/>
-                <main className="flex-1 bg-gray-50">
-                    <div className="flex items-center justify-center h-64">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-500">Loading content engine...</p>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        )
-    }
-
-    // Show alert dialog if no client is selected after initialization
-    if (!selectedClient) {
-        return (
-            <div className="min-h-screen flex flex-col">
-                <Navbar/>
-                <main className="flex-1 bg-gray-50">
-                    <div className="flex items-center justify-center h-64">
-                        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4">
-                            <div className="text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">No Client Selected</h3>
-                                <p className="text-gray-600 mb-6">
-                                    Please select a client from the clients page to access the content engine.
-                                </p>
-                                <button
-                                    onClick={() => router.push('/clients')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    Go to Clients
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        )
-    }
+    const [clearSummary, setClearSummary] = useState(false)
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Navbar/>
             <main className="flex-1 bg-gray-50">
                 {/* Breadcrumb Navigation */}
                 <div className="lg:ml-17 lg:pt-2  p-2">
@@ -259,7 +218,7 @@ export default function ContentEnginePage(){
                                         onSearchChange={setSearchQuery}
                                         onSourceSelection={handleSourceSelection}
                                         onSourceAdded={handleSourceAdded}
-                                        clientId={selectedClient?._id}
+                                        folderId={folderId}
                                     />
                                 </div>
                             </aside>
@@ -272,6 +231,7 @@ export default function ContentEnginePage(){
                                         onOutputGenerated={refetchOutput}
                                         onClearSelectedSources={handleClearSelectedSources}
                                         clearSummary={clearSummary}
+                                        folderId={folderId}
                                     />
                                 </div>
                             </section>
@@ -283,6 +243,7 @@ export default function ContentEnginePage(){
                                         allOutputs={allOutputs as OutputResponse[]}
                                         isLoadingOutput={isLoadingOutput}
                                         onOutputsChange={refetchOutput}
+                                        folderId={folderId}
                                     />
                                 </div>
                             </aside>
@@ -304,7 +265,7 @@ export default function ContentEnginePage(){
                                     onSearchChange={setSearchQuery}
                                     onSourceSelection={handleSourceSelection}
                                     onSourceAdded={handleSourceAdded}
-                                    clientId={selectedClient?._id}
+                                    folderId={folderId}
                                 />
                             </div>
                         )}
@@ -315,6 +276,7 @@ export default function ContentEnginePage(){
                                     onOutputGenerated={refetchOutput}
                                     onClearSelectedSources={handleClearSelectedSources}
                                     clearSummary={clearSummary}
+                                    folderId={folderId}
                                 />
                             </div>
                         )}
@@ -324,6 +286,7 @@ export default function ContentEnginePage(){
                                     allOutputs={allOutputs as OutputResponse[]}
                                     isLoadingOutput={isLoadingOutput}
                                     onOutputsChange={refetchOutput}
+                                    folderId={folderId}
                                 />
                             </div>
                         )}

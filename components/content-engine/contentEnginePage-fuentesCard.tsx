@@ -25,7 +25,7 @@ interface FuentesCardProps {
   onSearchChange: (query: string) => void
   onSourceSelection: (sourceId: string, isSelected: boolean) => void
   onSourceAdded: () => void
-  clientId?: string
+  folderId: string
 }
 
 export default function FuentesCard({
@@ -37,7 +37,7 @@ export default function FuentesCard({
   onSearchChange,
   onSourceSelection,
   onSourceAdded,
-  clientId
+  folderId
 }: FuentesCardProps) {
   const t = useTranslations('FUENTES')
   const [selectedGroup, setSelectedGroup] = useState("topic")
@@ -245,7 +245,7 @@ export default function FuentesCard({
       <SourcesDrawerForm
         onClose={handleDrawerClose}
         onSuccess={handleSourceAdded}
-        clientId={clientId}
+        folderId={folderId}
       />
     </Drawer>
   </>

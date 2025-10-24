@@ -37,9 +37,14 @@ export default async function ClientDashboardPage(props: ParamsLike) {
   const { params } = await props;
   const { clientId } = await params;
 
+  // Ensure we have valid ID before rendering
+  if (!clientId) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
-      <DashBoard clientId={clientId} />
+      <DashBoard key={clientId} clientId={clientId} />
     </div>
   )
 }

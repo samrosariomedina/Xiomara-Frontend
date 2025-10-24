@@ -3,7 +3,6 @@ import withAuth from "@/lib/withAuth"
 import { useState } from "react"
 import { DashboardLayout } from   "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
-import { useClient } from "@/context/ClientContext"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
@@ -63,7 +62,12 @@ const fuentesData: Array<{
   ultimaActualizacion: string;
 }> = []
 
- function CorresponsalesPage() {
+interface CorresponsalesPageProps {
+  clientId: string;
+  campaignId?: string;
+}
+
+function CorresponsalesPage({ clientId, campaignId }: CorresponsalesPageProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isCorresponsablesAdminOpen, setIsCorresponsablesAdminOpen] = useState(false)
   const [editingCorresponsable, setEditingCorresponsable] = useState<{
@@ -76,33 +80,22 @@ const fuentesData: Array<{
       email?: string;
     };
   } | null>(null)
-  const { selectedClient, isClientSelected, isCampaignType, parentClient } = useClient()
   
-  // Dynamic breadcrumbs based on folder type
-  const getBreadcrumbs = () => {
-    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
-    
-    if (isCampaignType && parentClient) {
-      return [
-        ...baseCrumbs,
-        { label: parentClient.title || "Client", href: "/clients/channels" },
-        { label: selectedClient?.title || "Campaign" },
-        { label: "Listado Corresponsables" }
-      ]
-    }
-    
-    return [...baseCrumbs, { label: "Listado Corresponsables" }]
-  }
+  // Determine folderId from route params
+  const folderId = campaignId || clientId;
   
-  const breadcrumbs = getBreadcrumbs()
+  // Simple breadcrumbs - can be enhanced later
+  const breadcrumbs = campaignId
+    ? [{ label: "Dashboard" }, { label: "Clients" }, { label: "Campaign" }, { label: "Corresponsables" }]
+    : [{ label: "Dashboard" }, { label: "Clients" }, { label: "Corresponsables" }];
   
-  // Fetch corresponsables data using React Query
+  // Fetch corresponsables data using React Query with folderId from route
   const { 
     corresponsables = [], 
     isLoading, 
     error,
     removeCorresponsable
-  } = useCorresponsables(selectedClient?._id)
+  } = useCorresponsables(folderId)
 
   // Transform data based on active tab
   const currentColumns = activeTab === "usuarios" ? usuariosColumns : fuentesColumns

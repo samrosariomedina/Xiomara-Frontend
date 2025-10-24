@@ -92,13 +92,27 @@ export function useRemoveSource() {
 
 // Combined hook for sources mutations only (data fetching is now server-side)
 export function useSourcesMutations(folderId?: string) {
+  console.log('╔══════════════════════════════════════════════════════╗')
+  console.log('║  useSourcesMutations HOOK                            ║')
+  console.log('╠══════════════════════════════════════════════════════╣')
+  console.log('║  Folder ID:           ', (folderId || 'UNDEFINED').padEnd(27), '║')
+  console.log('╚══════════════════════════════════════════════════════╝')
+  
   const createSource = useCreateSource()
   const editSource = useEditSource()
   const removeSource = useRemoveSource()
 
   return {
     // Mutations
-    createSource: (data: SourceInputData) => createSource.mutate({ data, folderId }),
+    createSource: (data: SourceInputData) => {
+      console.log('╔══════════════════════════════════════════════════════╗')
+      console.log('║  createSource WRAPPER CALLED                         ║')
+      console.log('╠══════════════════════════════════════════════════════╣')
+      console.log('║  Folder ID being sent: ', (folderId || 'UNDEFINED').padEnd(25), '║')
+      console.log('║  Data name:            ', (data.name || 'N/A').padEnd(25), '║')
+      console.log('╚══════════════════════════════════════════════════════╝')
+      return createSource.mutate({ data, folderId })
+    },
     editSource: editSource.mutate,
     removeSource: removeSource.mutate,
     

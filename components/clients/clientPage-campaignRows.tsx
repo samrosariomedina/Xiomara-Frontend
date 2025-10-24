@@ -130,7 +130,11 @@ export function CampaignRow({
 
   const handleContentEngine = (e: React.MouseEvent) => {
     e.stopPropagation() // Prevent row click
-    router.push(`/clients/content-engine?clientId=${clientId}&campaignId=${campaign.id}`)
+    
+    // Navigate to campaign-specific content engine using route params
+    const contentEngineRoute = `/clients/${clientId}/campaigns/${campaign.id}/content-engine`
+    const localizedRoute = getLocalizedRouteFromPathname(contentEngineRoute, pathname)
+    router.push(localizedRoute)
   }
   return (
     <div 

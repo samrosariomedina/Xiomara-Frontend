@@ -12,7 +12,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyCorresponsable } from "@/components/icons/icons"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
-import { useClient } from "@/context/ClientContext"
 import { formatDateSafe } from "@/lib/utils"
 import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
 
@@ -28,11 +27,12 @@ export interface CorresponsableData {
 }
 
 interface CorresponsablesSectionProps {
+  folderId: string
   onEdit: (corresponsable: CorresponsableData) => void
   onDelete: (corresponsableId: string) => Promise<void>
 }
 
-export function CorresponsablesSection({ onEdit, onDelete }: CorresponsablesSectionProps) {
+export function CorresponsablesSection({ folderId, onEdit, onDelete }: CorresponsablesSectionProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState<{corresponsableId: string, left: number, top: number} | null>(null)
@@ -41,15 +41,12 @@ export function CorresponsablesSection({ onEdit, onDelete }: CorresponsablesSect
   const router = useRouter()
   const pathname = usePathname()
   
-  // Get selected client from context
-  const { selectedClient } = useClient()
-  
-  // Fetch corresponsables for the selected client
+  // Fetch corresponsables for the folder (client or campaign)
   const { 
     corresponsables = [], 
     isLoading, 
     error 
-  } = useCorresponsables(selectedClient?._id)
+  } = useCorresponsables(folderId)
 
   const goToCorresponsalesList = () => {
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.corresponsales, pathname || '/')

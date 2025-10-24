@@ -13,9 +13,12 @@ import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 interface DashboardHeaderProps {
   references: ReferenceResponse[]
   sources: SourceResponse[]
+  folderId: string
+  clientId: string
+  campaignId?: string
 }
 
-export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
+export function DashboardHeader({ references, sources, folderId, clientId, campaignId }: DashboardHeaderProps) {
   const t = useTranslations('DASHBOARD')
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
   const pathname = usePathname()
@@ -28,7 +31,12 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
   }
 
   const goToContentEngine = () => {
-    const localizedRoute = getLocalizedRouteFromPathname('/clients/content-engine', pathname || '/')
+    // Navigate to campaign-specific or client-specific content engine
+    const contentEngineRoute = campaignId 
+      ? `/clients/${clientId}/campaigns/${campaignId}/content-engine`
+      : `/clients/${clientId}/content-engine`
+    
+    const localizedRoute = getLocalizedRouteFromPathname(contentEngineRoute, pathname || '/')
     router.push(localizedRoute)
   }
 
@@ -140,6 +148,9 @@ export function DashboardHeader({ references, sources }: DashboardHeaderProps) {
           onClose={() => setIsSourcesAdminOpen(false)} 
           references={references}
           sources={sources}
+          folderId={folderId}
+          clientId={clientId}
+          campaignId={campaignId}
         />
     </div>
   )

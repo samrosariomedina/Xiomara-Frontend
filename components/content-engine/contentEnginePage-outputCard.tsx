@@ -10,12 +10,20 @@ interface OutputCardProps {
   allOutputs: OutputResponse[]
   isLoadingOutput: boolean
   onOutputsChange?: () => void
+  folderId: string
 }
 
-export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange }: OutputCardProps) {
+export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange, folderId }: OutputCardProps) {
     const { templates } = useTemplates()
     const [editingItem, setEditingItem] = useState<{ outputId: string; itemId: string; content: string } | null>(null)
     const [editContent, setEditContent] = useState('')
+    
+    console.log('╔══════════════════════════════════════════════════════╗')
+    console.log('║  OUTPUT CARD DEBUG                                   ║')
+    console.log('╠══════════════════════════════════════════════════════╣')
+    console.log('║  Folder ID:  ', folderId.padEnd(35), '║')
+    console.log('║  Outputs:    ', String(allOutputs.length).padEnd(35), '║')
+    console.log('╚══════════════════════════════════════════════════════╝')
 
     const handleCopyContent = (content: string) => {
         // Strip HTML tags for plain text copy

@@ -8,8 +8,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useRouter, usePathname } from "next/navigation"
-import { useClient } from "@/context/ClientContext"
-import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
+import { getLocalizedRouteFromPathname } from '@/lib/routes'
 import { useQuery } from "@tanstack/react-query"
 import { getClientsAction } from "@/actions/clients"
 import { getAllCampaignsAction } from "@/actions/campaigns"
@@ -22,7 +21,6 @@ interface CampaignTableProps {
 export function CampaignTable({ clientId }: CampaignTableProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { setSelectedClient, setParentClient, selectedClient } = useClient()
 
   // Fetch client data
   const { data: clientsData } = useQuery({
@@ -50,57 +48,33 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
   ) || []
 
   const handleCampaignClick = (campaign: CampaignResponse) => {
-    // Find the parent client
-    const parentClientData = clientsData?.find((c: ClientResponse) => c._id === clientId)
-    
-    // Set parent client if found
-    if (parentClientData) {
-      setParentClient(parentClientData)
-    }
-    
-    // Set campaign as selected client
-    setSelectedClient(parentClientData as ClientResponse)
-    
-    // Navigate to dashboard with campaign filter
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname)
+    // Navigate to campaign fuentes using route params (NO CONTEXT NEEDED)
+    const localizedRoute = getLocalizedRouteFromPathname(
+      `/clients/${clientId}/campaigns/${campaign._id}/fuentes`, 
+      pathname
+    )
     router.push(localizedRoute)
   }
 
   const handleContentEngine = (campaign: CampaignResponse, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent row click
     
-    // Find the parent client
-    const parentClientData = clientsData?.find((c: ClientResponse) => c._id === clientId)
-    
-    // Set parent client if found
-    if (parentClientData) {
-      setParentClient(parentClientData)
-    }
-    
-    // Set campaign as selected client
-    setSelectedClient(parentClientData as ClientResponse)
-    
-    // Navigate to content engine
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.contentEngine, pathname)
+    // Navigate to campaign content engine using route params (NO CONTEXT NEEDED)
+    const localizedRoute = getLocalizedRouteFromPathname(
+      `/clients/${clientId}/campaigns/${campaign._id}/content-engine`, 
+      pathname
+    )
     router.push(localizedRoute)
   }
 
   const handleDashboard = (campaign: CampaignResponse, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent row click
     
-    // Find the parent client
-    const parentClientData = clientsData?.find((c: ClientResponse) => c._id === clientId)
-    
-    // Set parent client if found
-    if (parentClientData) {
-      setParentClient(parentClientData)
-    }
-    
-    // Set campaign as selected client
-    setSelectedClient(parentClientData as ClientResponse)
-    
-    // Navigate to campaign dashboard using simplified route structure
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.campaignDashboard(clientId, campaign._id), pathname)
+    // Navigate to campaign dashboard using route params (NO CONTEXT NEEDED)
+    const localizedRoute = getLocalizedRouteFromPathname(
+      `/clients/${clientId}/campaigns/${campaign._id}`, 
+      pathname
+    )
     router.push(localizedRoute)
   }
 

@@ -3,37 +3,26 @@
 import { MetricCard } from "@/components/ui/metric-card"
 import { Users,  FileText, Ear,  Globe } from "lucide-react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
-import { useClient } from "@/context/ClientContext"
-import { useDataWithCache } from '@/hooks/useDataWithCache'
 import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 
 interface MetricsCardsProps {
   references: ReferenceResponse[]
   sources: SourceResponse[]
+  folderId: string
 }
 
-export function MetricsCards({ references, sources }: MetricsCardsProps) {
-  // Use caching for references
-  const {
-    data: cachedReferences
-  } = useDataWithCache(references, { cacheKey: 'references' })
-
-  // Use caching for sources
-  const {
-    data: cachedSources
-  } = useDataWithCache(sources, { cacheKey: 'sources' })
+export function MetricsCards({ references, sources, folderId }: MetricsCardsProps) {
+  // Use data directly from props - React Query already handles caching with folderId
+  // No need for additional localStorage caching layer
   
-  // Get selected client from context
-  const { selectedClient } = useClient()
-  
-  // Fetch corresponsables for the selected client
+  // Fetch corresponsables for the folder (client or campaign)
   const { 
     corresponsables = [], 
     isLoading: isLoadingCorresponsables 
-  } = useCorresponsables(selectedClient?._id)
+  } = useCorresponsables(folderId)
 
   // Calculate media listeners count (sources with listener types)
-  const mediaListenersCount = cachedSources.filter(source => 
+  const mediaListenersCount = sources.filter(source => 
     source.type === 'telegram' || 
     source.type === 'whatsapp' || 
     source.type === 'youtube' || 
@@ -56,13 +45,13 @@ export function MetricsCards({ references, sources }: MetricsCardsProps) {
     },
     {
       title: "Knowledge base",
-      value: cachedReferences.length.toString(),
+      value: references.length.toString(),
       icon: Globe,
       iconColor: "text-gray-600",
     },
     {
       title: "Generales",
-      value: cachedSources.length.toString(),
+      value: sources.length.toString(),
       icon: FileText,
       iconColor: "text-gray-600",
     },

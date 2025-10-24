@@ -243,6 +243,15 @@ export async function createSourceAction(data: {
   url?: string;
   text?: string;
 }, options?: { folderId?: string }): Promise<SourceResponse & { linked?: boolean; linkError?: string }> {
+  
+  console.log('╔══════════════════════════════════════════════════════╗')
+  console.log('║  CREATE SOURCE ACTION CALLED                         ║')
+  console.log('╠══════════════════════════════════════════════════════╣')
+  console.log('║  Folder ID received:   ', (options?.folderId || 'NONE').padEnd(26), '║')
+  console.log('║  Folder ID undefined?  ', (options?.folderId === undefined ? 'YES' : 'NO').padEnd(26), '║')
+  console.log('║  Options object:       ', (options ? 'EXISTS' : 'NULL').padEnd(26), '║')
+  console.log('╚══════════════════════════════════════════════════════╝')
+  
   try {
     const token = await getAuthToken();
     if (!token) {

@@ -15,7 +15,6 @@ import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
 import { corresponsablesSchema, type CorresponsablesInput } from '@/lib/schemas'
 import { useCorresponsables } from "@/hooks/useCorresponsables"
-import { useClient } from "@/context/ClientContext"
 import { formatDateSafe } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
 import { useSharing } from "@/hooks/useSharing"
@@ -40,6 +39,7 @@ type CorresponsableFormData = CorresponsablesInput
 
 interface CorresponsalesFormProps {
   onSubmit?: (data: CorresponsableFormData) => void
+  folderId: string
   editCorresponsable?: {
     _id: string;
     title?: string;
@@ -52,7 +52,7 @@ interface CorresponsalesFormProps {
   } | null
 }
 
-export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: CorresponsalesFormProps) {
+export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = null }: CorresponsalesFormProps) {
   // Debug logging
   console.log('🟣 CorresponsalesForm rendered with editCorresponsable:', editCorresponsable);
   
@@ -98,10 +98,7 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
     }
   }, [showForm, clearErrors])
   
-  // Get selected client from context
-  const { selectedClient } = useClient()
-  
-  // Fetch corresponsables for the selected client
+  // Fetch corresponsables for the folder (client or campaign)
   const { 
     corresponsables = [], 
     isLoading, 
@@ -109,7 +106,7 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
     updateCorresponsable,
     isUpdating,
     removeCorresponsable
-  } = useCorresponsables(selectedClient?._id)
+  } = useCorresponsables(folderId)
   
   // Reset form when editCorresponsable or localEditCorresponsable changes
   useEffect(() => {
@@ -201,8 +198,8 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
 
   // Form submission handler that matches the client form
   const handleCorrespondentSubmission = async (data: CorresponsableFormData) => {
-    if (!selectedClient?._id) {
-      toast.error('No client selected')
+    if (!folderId) {
+      toast.error('No folder selected')
       return
     }
 
@@ -256,7 +253,7 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
           invitationMethods: data.invitationMethods
         });
         
-        const result = await createCorresponsableWithSharingAction(selectedClient._id, {
+        const result = await createCorresponsableWithSharingAction(folderId, {
           clientName: data.clientName,
           email: data.email || "",
           whatsapp: data.whatsapp,
@@ -391,8 +388,8 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
   const handleDeleteFromList = async (id: number | string) => {
     console.log('🟣 handleDeleteFromList called with id:', id);
     
-    if (!selectedClient?._id) {
-      toast.error('No client selected');
+    if (!folderId) {
+      toast.error('No folder selected');
       return;
     }
     
@@ -400,7 +397,7 @@ export function CorresponsalesForm({ onSubmit, editCorresponsable = null }: Corr
       // The id is the listener _id
       await removeCorresponsable({
         listenerId: String(id),
-        folderId: selectedClient._id
+        folderId
       });
       
       console.log('🟣 Corresponsable deleted successfully');
