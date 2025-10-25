@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useTranslations } from 'next-intl'
-import RowActionsMenu from "./cards-rowActions"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import { Client, MenuOpenData } from "@/utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
 import { useMutation } from "@tanstack/react-query"
@@ -23,7 +23,7 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
   
   const t = useTranslations('CLIENTS');
   const [expandedClients, setExpandedClients] = useState<(number | string)[]>([])
-  const [openMenuFor, setOpenMenuFor] = useState<MenuOpenData | null>(null)
+  const [openMenuFor, setOpenMenuFor] = useState<string | number | null>(null)
   const [editingCampaign, setEditingCampaign] = useState<{
     id: string;
     name: string;
@@ -103,10 +103,11 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
     return deleteCampaignMutation.mutateAsync(campaignId)
   }, [deleteCampaignMutation]); 
 
-  const handleMenuOpen = (menuData: MenuOpenData) => {
-    console.log('[ClientsList] handleMenuOpen called with:', menuData)
-    setOpenMenuFor(menuData)
-  }
+  // Handle menu open for client actions
+  const handleMenuOpen = useCallback((menuData: MenuOpenData) => {
+    console.log('[ClientsList] Menu opened for:', menuData)
+    setOpenMenuFor(menuData.clientId)
+  }, []);
 
   // Top-level wrapper: proper margins from Figma
   return (
@@ -132,8 +133,8 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
                 isExpanded={isExpanded}
                 onToggle={toggleClient}
                 onDeleteClient={handleDeleteClient}
+                onDeleteCampaign={(campaignId: string) => handleDeleteCampaign(campaignId).then(() => {})}
                 onEditClient={handleEditClient}
-                onMenuOpen={handleMenuOpen}
                 t={t}
               />
             )
@@ -141,70 +142,7 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
         )}
       </div>
 
-      {/* Row Actions Menu for Campaigns */}
-      {openMenuFor && openMenuFor.campaignId && (
-        <RowActionsMenu
-          left={openMenuFor.left}
-          top={openMenuFor.top}
-          onEdit={() => {
-            const campaign = campaigns.find(c => c._id === openMenuFor.campaignId)
-            if (campaign) {
-              setEditingCampaign({
-                id: campaign._id,
-                name: campaign.title || '',
-                type: campaign.metadata?.campaignType || 'Comunicado',
-                startDate: campaign.metadata?.startDate || new Date().toISOString().split('T')[0],
-                description: campaign.metadata?.description || '',
-              })
-              setIsEditCampaignDialogOpen(true)
-            }
-            setOpenMenuFor(null)
-          }}
-          onAddSource={() => console.log('add source', openMenuFor.clientId, openMenuFor.campaignId)}
-          onDelete={async () => {
-            await handleDeleteCampaign(openMenuFor.campaignId as string)
-          }}
-          onClose={() => setOpenMenuFor(null)}
-          itemName={campaigns.find(c => c._id === openMenuFor.campaignId)?.title || `Campaign ${openMenuFor.campaignId}`}
-          context="campaign"
-        />
-      )}
       
-      {/* Row Actions Menu for Clients (no campaignId) */}
-      {(() => {
-        const shouldShowMenu = openMenuFor && openMenuFor.clientId && !openMenuFor.campaignId
-        console.log('[ClientsList] Should show client menu?', shouldShowMenu)
-        console.log('[ClientsList] openMenuFor:', openMenuFor)
-        
-        if (!shouldShowMenu) return null
-        
-        return (
-          <RowActionsMenu
-            left={openMenuFor.left}
-            top={openMenuFor.top}
-            onEdit={() => {
-              if (openMenuFor.clientId) {
-                const client = clients.find(c => c.id === openMenuFor.clientId)
-                if (client) {
-                  handleEditClient(client)
-                }
-              }
-              setOpenMenuFor(null)
-            }}
-            onDelete={async () => {
-              console.log('[ClientsList] onDelete prop called')
-              await handleDeleteClient(openMenuFor.clientId)
-            }}
-            onClose={() => {
-              console.log('[ClientsList] onClose called')
-              setOpenMenuFor(null)
-            }}
-            itemName={clients.find(c => c.id === openMenuFor.clientId)?.name || `Client ${openMenuFor.clientId}`}
-            actions={["edit", "delete"]}
-            context="client"
-          />
-        )
-      })()}
 
       {/* Edit Campaign Dialog */}
       {editingCampaign && (

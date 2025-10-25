@@ -33,8 +33,8 @@ export interface ClientCardProps {
   isExpanded: boolean
   onToggle: (clientId: number | string) => void
   onDeleteClient: (clientId: string | number) => Promise<void>
+  onDeleteCampaign?: (campaignId: string) => Promise<void>
   onEditClient?: (client: Client) => void
-  onMenuOpen: (menuData: MenuOpenData) => void
   t: (key: string) => string
 }
 
@@ -42,7 +42,7 @@ export interface CampaignRowProps {
   campaign: Campaign
   campaignIndex: number
   clientId: string | number
-  onMenuOpen: (menuData: MenuOpenData) => void
+  onDeleteCampaign?: (campaignId: string) => Promise<void>
   t: (key: string) => string
 }
 

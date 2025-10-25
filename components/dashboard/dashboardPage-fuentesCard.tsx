@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Search, ChevronDown, MoreVertical } from "lucide-react"
-import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
@@ -47,7 +47,6 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete, clientId, c
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [menuOpen, setMenuOpen] = useState<{sourceId: string, left: number, top: number} | null>(null)
   const t = useTranslations('FUENTES')
   const router = useRouter()
   const pathname = usePathname()
@@ -288,22 +287,22 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete, clientId, c
                     {fuente.ultimaActualizacion}
                   </td>
                   <td className="px-6 py-3">
-                    <button 
-                      className="text-gray-400 hover:text-gray-600"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect()
+                    <ShadcnRowActions
+                      onEdit={() => {
                         const source = sources[fuente.id - 1]
                         if (source) {
-                          setMenuOpen({
-                            sourceId: source._id,
-                            left: rect.left,
-                            top: rect.bottom + 8
-                          })
+                          onEdit(source)
                         }
                       }}
-                    >
-                      <MoreVertical className="h-4 w-4 text-black" />
-                    </button>
+                      onDelete={async () => {
+                        const source = sources[fuente.id - 1]
+                        if (source) {
+                          await onDelete(source._id)
+                        }
+                      }}
+                      itemName={fuente.nombre}
+                      itemType="Source"
+                    />
                   </td>
                 </tr>
               ))}
@@ -340,22 +339,22 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete, clientId, c
                     <Badge variant="outline" className="text-[#192038] border-[#F7F9FF] bg-[#F7F9FF] text-xs">
                       {fuente.estado}
                     </Badge>
-                    <button 
-                      className="text-gray-400"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect()
+                    <ShadcnRowActions
+                      onEdit={() => {
                         const source = sources[fuente.id - 1]
                         if (source) {
-                          setMenuOpen({
-                            sourceId: source._id,
-                            left: rect.left,
-                            top: rect.bottom + 8
-                          })
+                          onEdit(source)
                         }
                       }}
-                    >
-                      <MoreVertical className="h-4 w-4 text-black" />
-                    </button>
+                      onDelete={async () => {
+                        const source = sources[fuente.id - 1]
+                        if (source) {
+                          await onDelete(source._id)
+                        }
+                      }}
+                      itemName={fuente.nombre}
+                      itemType="Source"
+                    />
                   </div>
                 </div>
               </div>
@@ -376,26 +375,6 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete, clientId, c
     </div>
   </div>
 
-  {/* Three-dot menu */}
-  {menuOpen && (
-    <DashboardRowActions
-      onEdit={() => {
-        const source = sources.find(s => s._id === menuOpen.sourceId)
-        if (source) {
-          onEdit(source)
-        }
-      }}
-      onDelete={async () => {
-        await onDelete(menuOpen.sourceId)
-        setMenuOpen(null)
-      }}
-      onClose={() => setMenuOpen(null)}
-      left={menuOpen.left}
-      top={menuOpen.top}
-      itemName={sources.find(s => s._id === menuOpen.sourceId)?.title || 'Source'}
-      pageType="fuentes"
-    />
-  )}
 </Card>
   )
 }

@@ -14,19 +14,57 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReferences, removeReferenceAction } from "@/actions/knowledge";
 import { getSources, removeSourceAction } from "@/actions/sources";
 import { removeCorresponsableAction } from "@/actions/corresponsables";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { SourceResponse, ReferenceResponse } from "@/lib/schemas";
 import type { CorresponsableData } from "@/components/dashboard/dashboardPage-corresspondableCard";
 import SourcesAdministrator from "./dashboardPage-Forms";
+import { useClient } from "@/context/ClientContext";
+import type { CampaignResponse, ClientResponse } from "@/lib/schemas";
 
 interface DashBoardProps {
   clientId: string;        // Required - always from route params
   campaignId?: string;     // Optional - only for campaign dashboards
+  campaignData?: CampaignResponse | null;      // Optional - campaign data from server
+  clientData?: ClientResponse | null;        // Optional - client data from server
 }
 
-function DashBoard({ clientId, campaignId }: DashBoardProps) {
+function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoardProps) {
   const queryClient = useQueryClient();
+  const { setSelectedClient, setParentClient } = useClient();
+
+  // Set client context when we have data
+  useEffect(() => {
+    if (campaignData && clientData) {
+      // Convert CampaignResponse to ClientResponse format for the context
+      const campaignAsClient: ClientResponse = {
+        _id: campaignData._id,
+        title: campaignData.title,
+        parent: campaignData.parent,
+        items: campaignData.items,
+        metadata: {
+          type: campaignData.metadata?.type || 'campaign',
+          industry: 'Campaign', // Default value for campaigns
+          description: campaignData.metadata?.description,
+          contactName: 'Campaign', // Default value
+          whatsapp: '', // Default value
+          position: '', // Default value
+          email: '', // Default value
+        },
+        timestamp: campaignData.timestamp
+      };
+      
+      // Set the campaign as the selected client
+      setSelectedClient(campaignAsClient);
+      // Set the parent client
+      setParentClient(clientData);
+    } else if (clientData && !campaignData) {
+      // Set the client as the selected client (for client pages)
+      setSelectedClient(clientData);
+      // Clear parent client since this is a client page, not a campaign page
+      setParentClient(null);
+    }
+  }, [campaignData, clientData, setSelectedClient, setParentClient]);
 
   // State for SourcesAdministrator
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false);

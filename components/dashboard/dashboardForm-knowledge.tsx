@@ -32,6 +32,20 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   console.log('🔵 References array:', references);
   console.log('🔵 References length:', references.length);
   
+  // Helper function to clean HTML content
+  const cleanHtmlContent = (text: string): string => {
+    if (!text) return '';
+    
+    // Remove empty paragraphs and line breaks
+    const cleaned = text
+      .replace(/<p><br><\/p>/g, '')
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>\s*<\/p>/g, '')
+      .trim();
+    
+    return cleaned;
+  };
+  
   // Local edit state for list-based editing
   const [localEditReference, setLocalEditReference] = useState<ReferenceResponse | null>(null);
   
@@ -162,8 +176,17 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
       return
     }
 
+    // Clean up the data - remove empty HTML content and normalize
+    const cleanedData = {
+      ...data,
+      text: cleanHtmlContent(data.text || ''),
+      url: data.url ? data.url.trim() : '',
+    }
+
+    console.log('🔵 Cleaned data:', cleanedData)
+
     // Validate that at least one content type is provided (only in create mode)
-    if (!isEditMode && !data.file && !data.url && !data.text) {
+    if (!isEditMode && !cleanedData.file && !cleanedData.url && !cleanedData.text) {
       form.setError('file', { 
         type: 'manual', 
         message: 'At least one source (file, URL, or text) must be provided' 
@@ -172,7 +195,7 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     }
 
     // In edit mode, require text content
-    if (isEditMode && !data.text) {
+    if (isEditMode && !cleanedData.text) {
       form.setError('text', { 
         type: 'manual', 
         message: 'Text content is required for editing' 
@@ -183,13 +206,13 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     if (isEditMode && currentEditReference) {
       // Edit existing reference - send text content (HTML stripping handled in backend)
       const editData = {
-        name: data.name,
-        text: data.text || '', // Send text content directly
+        name: cleanedData.name,
+        text: cleanedData.text || '', // Send cleaned text content
       }
       
       console.log('🔵 Edit data prepared:', {
         name: editData.name,
-        text: data.text
+        text: editData.text
       });
       
       editReferenceMutation.mutate(
@@ -199,7 +222,7 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
             form.reset()
             setLocalEditReference(null) // Clear local edit state
             setShowForm(false)
-            onSubmit?.(data)
+            onSubmit?.(cleanedData)
           },
           onError: (error) => {
             console.error('Error updating knowledge base:', error)
@@ -207,16 +230,16 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
         }
       )
     } else {
-      // Create new reference - send data directly (HTML stripping handled in backend)
-      console.log('🔵 Creating new reference with data:', { data, folderId })
+      // Create new reference - send cleaned data (HTML stripping handled in backend)
+      console.log('🔵 Creating new reference with cleaned data:', { data: cleanedData, folderId })
       createReferenceMutation.mutate(
-        { data, folderId },
+        { data: cleanedData, folderId },
         {
           onSuccess: (result) => {
             console.log('🔵 Create reference success:', result)
             form.reset()
             setShowForm(false)
-            onSubmit?.(data)
+            onSubmit?.(cleanedData)
           },
           onError: (error) => {
             console.error('🔵 Create reference error:', error)

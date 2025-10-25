@@ -136,10 +136,6 @@ export function useCorresponsables(folderId?: string) {
       toast.success(`Corresponsable created successfully with ${listenerText}`)
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
-      // Force an immediate refetch for real-time updates
-      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
-      // Also invalidate any folder-specific queries
-      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
       console.error('Create corresponsable with sharing error:', error)
@@ -172,10 +168,6 @@ export function useCorresponsables(folderId?: string) {
       toast.success('Corresponsable updated successfully')
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
-      // Force an immediate refetch for real-time updates
-      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
-      // Also invalidate any folder-specific queries
-      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
       console.error('Update corresponsable error:', error)
@@ -207,9 +199,7 @@ export function useCorresponsables(folderId?: string) {
       // Invalidate and refetch all corresponsables queries
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
       // Force an immediate refetch
-      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
-      // Also invalidate any folder-specific queries
-      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
+      queryClient.refetchQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
       console.error('❌ Mutation: Remove corresponsable error:', error)

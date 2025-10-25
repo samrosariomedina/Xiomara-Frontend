@@ -1,8 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
-import { MoreVertical } from "lucide-react"
-import DashboardRowActions from "./dashboard-rowActions"
+import React from "react"
+import { ShadcnRowActions } from "./ShadcnRowActions"
 
 export type SourceItem = {
   id: number | string
@@ -28,30 +27,24 @@ function getInitials(name: string) {
 }
 
 export default function SourcesList({ sources, className = "", pageType = "fuentes", onEdit, onDelete }: SourcesListProps) {
-  const [openMenuFor, setOpenMenuFor] = useState<{ id: number | string; left: number; top: number } | null>(null)
-
-  const handleKebabClick = (source: SourceItem, event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    
-    const rect = event.currentTarget.getBoundingClientRect()
-    setOpenMenuFor({
-      id: source.id,
-      left: rect.right - 200, // Position menu to the left of the button
-      top: rect.bottom + 4
-    })
-  }
-
   const handleEdit = (sourceId: number | string) => {
     console.log('📝 SourcesList handleEdit called with sourceId:', sourceId)
     onEdit?.(sourceId)
-    setOpenMenuFor(null)
   }
 
   const handleDelete = (sourceId: number | string) => {
     console.log('🗑️ SourcesList handleDelete called with sourceId:', sourceId)
     onDelete?.(sourceId)
-    setOpenMenuFor(null)
+  }
+
+  // Map pageType to itemType for ShadcnRowActions
+  const getItemType = (pageType: string) => {
+    switch (pageType) {
+      case "fuentes": return "Source"
+      case "knowledge": return "Knowledge"
+      case "corresponsables": return "Corresponsable"
+      default: return "Source"
+    }
   }
 
   return (
@@ -72,13 +65,12 @@ export default function SourcesList({ sources, className = "", pageType = "fuent
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
                   {source.category}
                 </span>
-                <button
-                  className="p-1 hover:bg-gray-100 rounded-full"
-                  onClick={(e) => handleKebabClick(source, e)}
-                  aria-label={`Más acciones para ${source.name}`}
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-400" />
-                </button>
+                <ShadcnRowActions
+                  onEdit={() => handleEdit(source.id)}
+                  onDelete={() => handleDelete(source.id)}
+                  itemName={source.name}
+                  itemType={getItemType(pageType)}
+                />
               </div>
             </div>
 
@@ -117,31 +109,17 @@ export default function SourcesList({ sources, className = "", pageType = "fuent
                   <div className="text-xs text-gray-500 mb-0.5">Última actualización</div>
                   <div className="text-sm font-medium text-gray-900">{source.timestamp}</div>
                 </div>
-                <button
-                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                  onClick={(e) => handleKebabClick(source, e)}
-                  aria-label={`Más acciones para ${source.name}`}
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-400" />
-                </button>
+                <ShadcnRowActions
+                  onEdit={() => handleEdit(source.id)}
+                  onDelete={() => handleDelete(source.id)}
+                  itemName={source.name}
+                  itemType={getItemType(pageType)}
+                />
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Row Actions Menu */}
-      {openMenuFor && (
-        <DashboardRowActions
-          left={openMenuFor.left}
-          top={openMenuFor.top}
-          onEdit={() => handleEdit(openMenuFor.id)}
-          onDelete={() => handleDelete(openMenuFor.id)}
-          onClose={() => setOpenMenuFor(null)}
-          itemName={`Item ${openMenuFor.id}`}
-          pageType={pageType}
-        />
-      )}
     </div>
   )
 }

@@ -218,21 +218,31 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
       content = stripHtmlAndCleanText(data.text)
     } else if (data.url) {
       referenceType = 'webpage'  // Backend uses 'webpage' type for URLs
-      content = data.url // Send URL as plain string
+      content = data.url.trim() // Send URL as plain string, trimmed like sources
+      
+      // Validate URL format before sending (same as sources)
+      try {
+        new URL(content);
+      } catch {
+        throw new Error('Invalid URL format. Please enter a valid URL starting with http:// or https://');
+      }
     }
 
     // Add required fields according to backend API
     formData.append('type', referenceType)
     formData.append('content', content)
 
-    // Debug logging
+    // Debug logging (similar to sources)
     console.log('=== CREATE REFERENCE DEBUG ===')
-    console.log('Reference Type:', referenceType)
-    console.log('Content Length:', content.length)
-    console.log('Has File:', !!data.file)
-    console.log('File Name:', data.file?.name)
-    console.log('File Size:', data.file?.size)
-    console.log('Title:', data.name)
+    console.log('Sending reference data:', {
+      type: referenceType,
+      content: content,
+      contentLength: content.length,
+      hasFile: !!data.file,
+      url: data.url,
+      text: data.text ? `Text length: ${data.text.length}` : 'No text',
+      title: data.name
+    })
     console.log('==============================')
     
     // Check file size
@@ -305,9 +315,13 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
       console.log('===================')
     }
 
+    // Revalidate all relevant paths to ensure real-time updates
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
     revalidatePath('/clients/dashboards/knowledge')
+    revalidatePath('/[locale]/clients', 'page')
+    revalidatePath('/[locale]/clients/[clientId]', 'page')
+    revalidatePath('/[locale]/clients/[clientId]/campaigns/[campaignId]', 'page')
     return { ...created, linked, linkError }
   } catch (error) {
     console.error('=== CREATE REFERENCE ERROR ===')
@@ -361,9 +375,13 @@ export async function editReferenceAction(
       }
     })
 
+    // Revalidate all relevant paths to ensure real-time updates
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
     revalidatePath('/clients/dashboards/knowledge')
+    revalidatePath('/[locale]/clients', 'page')
+    revalidatePath('/[locale]/clients/[clientId]', 'page')
+    revalidatePath('/[locale]/clients/[clientId]/campaigns/[campaignId]', 'page')
     return response.data
   } catch (error) {
     console.error('Edit reference error:', error)
@@ -433,9 +451,13 @@ export async function removeReferenceAction(referenceId: string, options: { fold
       console.log('===================')
     }
     
+    // Revalidate all relevant paths to ensure real-time updates
     revalidatePath('/clients')
     revalidatePath('/clients/knowledge')
     revalidatePath('/clients/dashboards/knowledge')
+    revalidatePath('/[locale]/clients', 'page')
+    revalidatePath('/[locale]/clients/[clientId]', 'page')
+    revalidatePath('/[locale]/clients/[clientId]/campaigns/[campaignId]', 'page')
   } catch (error) {
     console.error('Remove reference error:', error)
     if (axios.isAxiosError(error)) {

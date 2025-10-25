@@ -1,18 +1,22 @@
 "use client"
 
 import {
-  MoreVertical,
   FileText,
   BarChart3
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import { useRouter, usePathname } from "next/navigation"
 import { getLocalizedRouteFromPathname } from '@/lib/routes'
-import { useQuery } from "@tanstack/react-query"
-import { getAllCampaignsAction } from "@/actions/campaigns"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getAllCampaignsAction, deleteCampaignAction } from "@/actions/campaigns"
 import type { CampaignResponse } from "@/lib/schemas"
 import { formatDateSafe } from '@/lib/utils'
+import { toast } from "sonner"
+import { CreateCampaignDialog } from "@/components/clients/CreateCampaignDialog"
+import { useState } from "react"
+import { useClient } from '@/context/ClientContext'
 
 interface CampaignTableProps {
   clientId: string
@@ -21,6 +25,18 @@ interface CampaignTableProps {
 export function CampaignTable({ clientId }: CampaignTableProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { selectedClient } = useClient()
+  const queryClient = useQueryClient()
+  
+  // State for edit dialog
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingCampaign, setEditingCampaign] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    startDate: string;
+    description?: string;
+  } | null>(null)
 
 
   // Fetch campaigns data
@@ -67,6 +83,50 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
       pathname
     )
     router.push(localizedRoute)
+  }
+
+  // Delete campaign mutation
+  const deleteCampaignMutation = useMutation({
+    mutationFn: deleteCampaignAction,
+    onSuccess: () => {
+      // Invalidate and refetch campaigns data
+      queryClient.invalidateQueries({ queryKey: ['all-campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      toast.success('Campaign deleted successfully')
+      router.refresh()
+    },
+    onError: (error: unknown) => {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete campaign')
+    }
+  })
+
+  const handleDeleteCampaign = async (campaignId: string) => {
+    await deleteCampaignMutation.mutateAsync(campaignId)
+  }
+
+  const handleEditCampaign = (campaign: CampaignResponse) => {
+    // Set the campaign data for editing
+    setEditingCampaign({
+      id: campaign._id,
+      name: campaign.title || '',
+      type: campaign.metadata?.campaignType || 'Comunicado',
+      startDate: campaign.metadata?.startDate || campaign.timestamp.split('T')[0],
+      description: campaign.metadata?.description || ''
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false)
+    setEditingCampaign(null)
+  }
+
+  const handleEditSuccess = () => {
+    // Invalidate and refetch campaigns data when edit is successful
+    queryClient.invalidateQueries({ queryKey: ['all-campaigns'] })
+    queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+    handleCloseEditDialog()
   }
 
   if (clientCampaigns.length === 0) {
@@ -156,13 +216,13 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
                   <BarChart3 className="h-3 w-3 mr-1" />
                   Dashboard
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <ShadcnRowActions
+                  onEdit={() => handleEditCampaign(campaign)}
+                  onDelete={() => handleDeleteCampaign(campaign._id)}
+                  itemName={campaign.title || 'Unnamed Campaign'}
+                  itemType="Campaign"
                   className="h-8 w-8 p-0"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                />
               </div>
             </div>
 
@@ -176,13 +236,13 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
                   </div>
                   <div className="text-sm font-medium text-gray-900 truncate">{campaign.title}</div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <ShadcnRowActions
+                  onEdit={() => handleEditCampaign(campaign)}
+                  onDelete={() => handleDeleteCampaign(campaign._id)}
+                  itemName={campaign.title || 'Unnamed Campaign'}
+                  itemType="Campaign"
                   className="h-8 w-8 p-0"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-3">
@@ -227,6 +287,18 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
           </div>
         ))}
       </div>
+
+      {/* Edit Campaign Dialog */}
+      {editingCampaign && (
+        <CreateCampaignDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          clientId={clientId}
+          clientName={selectedClient?.title || 'Client'}
+          editCampaign={editingCampaign}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </div>
   )
 }

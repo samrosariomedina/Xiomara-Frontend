@@ -39,7 +39,7 @@ export default async function ClientMediaPage(props: ParamsLike) {
   return (
     <>
       <Navbar />
-      <MediaPage clientId={clientId} />
+      <MediaPage clientId={clientId} campaignId={"" as string} />
     </>
   );
 }

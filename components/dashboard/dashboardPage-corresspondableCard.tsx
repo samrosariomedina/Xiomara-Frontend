@@ -1,7 +1,7 @@
 "use client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, MoreVertical, Globe, ChevronDown } from "lucide-react"
+import { Plus, Globe, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { useTranslations } from 'next-intl'
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +13,7 @@ import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyCorresponsable } from "@/components/icons/icons"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
-import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 
 export interface CorresponsableData {
   _id: string;
@@ -37,7 +37,6 @@ interface CorresponsablesSectionProps {
 export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, campaignId }: CorresponsablesSectionProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
-  const [menuOpen, setMenuOpen] = useState<{corresponsableId: string, left: number, top: number} | null>(null)
   // translations scoped to messages/CORRESPONSABLES
   const t = useTranslations('CORRESPONSABLES')
   const router = useRouter()
@@ -212,19 +211,16 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
                     </div>
 
                     {/* Actions menu button */}
-                    <button 
-                      className="text-gray-500"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        setMenuOpen({
-                          corresponsableId: corresponsable._id,
-                          left: rect.left,
-                          top: rect.bottom + 8
-                        })
+                    <ShadcnRowActions
+                      onEdit={() => {
+                        onEdit(corresponsable)
                       }}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                      onDelete={async () => {
+                        await onDelete(corresponsable._id)
+                      }}
+                      itemName={corresponsable.title || 'Corresponsable'}
+                      itemType="Corresponsable"
+                    />
                   </div>
                 </div>
               ))}
@@ -263,26 +259,6 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
     </div>
   )}
 
-  {/* Three-dot menu */}
-  {menuOpen && (
-    <DashboardRowActions
-      onEdit={() => {
-        const corresponsable = corresponsables.find((c: CorresponsableData) => c._id === menuOpen.corresponsableId)
-        if (corresponsable) {
-          onEdit(corresponsable)
-        }
-      }}
-      onDelete={async () => {
-        await onDelete(menuOpen.corresponsableId)
-        setMenuOpen(null)
-      }}
-      onClose={() => setMenuOpen(null)}
-      left={menuOpen.left}
-      top={menuOpen.top}
-      itemName={corresponsables.find((c: CorresponsableData) => c._id === menuOpen.corresponsableId)?.title || 'Corresponsable'}
-      pageType="corresponsables"
-    />
-  )}
     </Card>
   )
 }

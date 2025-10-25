@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, MoreVertical, Plus, SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react"
+import { Search, Plus, SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "@/components/ui/pagination"
 import { usePagination } from "@/hooks/usePagination"
-import RowActionsMenu from "@/components/clients/cards-rowActions"
-import { ListRowActions } from "@/components/ui/list-rowActions"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,12 +98,6 @@ export function DataTable({
   const [rowStates, setRowStates] = useState<Record<number, boolean>>({})
   const itemsPerPage = 10
 
-  // Row actions menu state (shared between mobile cards and desktop rows)
-  const [menuFor, setMenuFor] = useState<number | null>(null)
-  const [menuAnchor, setMenuAnchor] = useState<{ left: number; top: number } | null>(null)
-  const [menuItemName, setMenuItemName] = useState<string>("")
-  const [menuActions, setMenuActions] = useState<Array<"edit" | "addSource" | "delete"> | undefined>(undefined)
-  const [menuAlign, setMenuAlign] = useState<"left" | "right" | undefined>(undefined)
   // filter UI state
   const [stateFilter, setStateFilter] = useState<string>("todos")
   const [sortFilter, setSortFilter] = useState<string>("recientes")
@@ -213,7 +206,6 @@ export function DataTable({
     )
   }
 
-  const startIndex = (currentPage - 1) * itemsPerPage
 
   // Filter options
   const stateOptions = [
@@ -238,22 +230,16 @@ export function DataTable({
   const getStateLabel = () => stateOptions.find(opt => opt.value === stateFilter)?.label || "Todos"  
   const getSortLabel = () => sortOptions.find(opt => opt.value === sortFilter)?.label || "Más recientes"
 
-  const openRowMenu = (index: number, row: TableRow, e: React.MouseEvent, actions?: Array<"edit" | "addSource" | "delete">, align?: "left" | "right") => {
-    const target = e.currentTarget as HTMLElement
-    const rect = target.getBoundingClientRect()
-    setMenuFor(index)
-    setMenuAnchor({ left: rect.left, top: rect.bottom })
-    setMenuItemName(row?.nombre || row?.name || "")
-    setMenuActions(actions)
-    setMenuAlign(align)
+  const handleEdit = (rowId: string) => {
+    if (onEditRow) {
+      onEditRow(rowId)
+    }
   }
 
-  const closeRowMenu = () => {
-    setMenuFor(null)
-    setMenuAnchor(null)
-    setMenuItemName("")
-    setMenuActions(undefined)
-    setMenuAlign(undefined)
+  const handleDelete = async (rowId: string) => {
+    if (onDeleteRow) {
+      await onDeleteRow(rowId)
+    }
   }
 
   const toggleRowSelection = (index: number) => {
@@ -361,9 +347,12 @@ export function DataTable({
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="p-1" onClick={(e) => openRowMenu(index, row, e)}>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            <ShadcnRowActions
+              onEdit={() => handleEdit(String(row.id))}
+              onDelete={() => handleDelete(String(row.id))}
+              itemName={row.nombre || row.name || ""}
+              itemType={getItemTypeLabel(cardType)}
+            />
           </div>
         </div>
       )
@@ -398,9 +387,12 @@ export function DataTable({
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="p-1" onClick={(e) => openRowMenu(index, row, e)}>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            <ShadcnRowActions
+              onEdit={() => handleEdit(String(row.id))}
+              onDelete={() => handleDelete(String(row.id))}
+              itemName={row.nombre || row.name || ""}
+              itemType={getItemTypeLabel(cardType)}
+            />
           </div>
         </div>
       )
@@ -433,9 +425,12 @@ export function DataTable({
               </div>
             </div>
           </div>
-            <Button variant="ghost" size="sm" className="p-1 flex-shrink-0" onClick={(e) => openRowMenu(startIndex + index, row, e, ["edit","delete"], "right")}>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            <ShadcnRowActions
+              onEdit={() => handleEdit(String(row.id))}
+              onDelete={() => handleDelete(String(row.id))}
+              itemName={row.nombre || row.name || ""}
+              itemType={getItemTypeLabel(cardType)}
+            />
         </div>
       </div>
     )
@@ -602,9 +597,12 @@ export function DataTable({
                     <TableCell key={column.key} className="py-4 border-0">{renderCellContent(column, row[column.key], row)}</TableCell>
                   ))}
                 <TableCell className="py-4 border-0">
-                  <Button variant="ghost" size="sm" className="p-1" onClick={(e) => openRowMenu(startIndex + index, row, e, ["edit", "delete"], "right")}>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  <ShadcnRowActions
+                    onEdit={() => handleEdit(String(row.id))}
+                    onDelete={() => handleDelete(String(row.id))}
+                    itemName={row.nombre || row.name || ""}
+                    itemType={getItemTypeLabel(cardType)}
+                  />
                 </TableCell>
               </TableRow>
               )
@@ -623,33 +621,6 @@ export function DataTable({
       </div>
     </div>
 
-    {/* Row actions menu portal */}
-    {menuAnchor && menuFor !== null && (
-      <ListRowActions
-        left={Math.round(menuAnchor!.left)}
-        top={Math.round(menuAnchor!.top)}
-        itemName={menuItemName}
-        itemType={getItemTypeLabel(cardType)}
-        onClose={closeRowMenu}
-        onEdit={() => {
-          if (onEditRow && menuFor !== null) {
-            const row = filteredData[menuFor]
-            if (row?.id) {
-              onEditRow(String(row.id))
-            }
-          }
-          return Promise.resolve()
-        }}
-        onDelete={async () => {
-          if (onDeleteRow && menuFor !== null) {
-            const row = filteredData[menuFor]
-            if (row?.id) {
-              await onDeleteRow(String(row.id))
-            }
-          }
-        }}
-      />
-    )}
     </>
   )
 }

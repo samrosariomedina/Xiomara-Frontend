@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import DashBoard from "@/components/pages/dashboardPage";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { getClientsAction } from "@/actions/clients";
+import type { ClientResponse } from "@/lib/schemas";
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsLike = { params: MaybePromise<{ locale: string; clientId: string }> };
@@ -42,9 +44,26 @@ export default async function ClientDashboardPage(props: ParamsLike) {
     return <div>Loading...</div>;
   }
 
+  // Fetch client data to pass to the dashboard
+  let clientData: ClientResponse | null = null;
+
+  try {
+    // Fetch client data
+    const clientsResult = await getClientsAction();
+    if (clientsResult.success) {
+      clientData = clientsResult.data.find((client: ClientResponse) => client._id === clientId) || null;
+    }
+  } catch (error) {
+    console.error('Error fetching client data:', error);
+  }
+
   return (
     <div>
-      <DashBoard key={clientId} clientId={clientId} />
+      <DashBoard 
+        key={clientId} 
+        clientId={clientId}
+        clientData={clientData}
+      />
     </div>
   )
 }

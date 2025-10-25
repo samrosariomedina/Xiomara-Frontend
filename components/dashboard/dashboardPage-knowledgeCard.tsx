@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MoreVertical, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { useState } from "react"
 import { SectionHeader } from "@/components/ui/dashboardCards-header"
 import { useTranslations } from 'next-intl'
@@ -11,7 +11,7 @@ import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 import { EmptyKnowledgeBase } from "@/components/icons/icons"
 import { formatDateSafe } from '@/lib/utils'
 import type { ReferenceResponse } from '@/lib/schemas'
-import { DashboardRowActions } from "@/components/ui/dashboard-rowActions"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 
 // Define types for knowledge base data
 interface KnowledgeItem {
@@ -32,7 +32,6 @@ interface KnowledgeBaseSectionProps {
 
 export function KnowledgeBaseSection({ references, onEdit, onDelete, clientId, campaignId }: KnowledgeBaseSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [menuOpen, setMenuOpen] = useState<{referenceId: string, left: number, top: number} | null>(null)
   const t = useTranslations('KNOWLEDGE')
   const router = useRouter()
   const pathname = usePathname()
@@ -129,19 +128,19 @@ export function KnowledgeBaseSection({ references, onEdit, onDelete, clientId, c
                     <p className="text-sm font-medium text-start text-gray-900">{item.time}</p>
                   </div>
 
-                  <button
-                    className="text-gray-400 hover:text-gray-600"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      setMenuOpen({
-                        referenceId: item.id,
-                        left: rect.left,
-                        top: rect.bottom + 8
-                      })
+                  <ShadcnRowActions
+                    onEdit={() => {
+                      const reference = references.find(r => r._id === item.id)
+                      if (reference) {
+                        onEdit(reference)
+                      }
                     }}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
+                    onDelete={async () => {
+                      await onDelete(item.id)
+                    }}
+                    itemName={item.name}
+                    itemType="Knowledge"
+                  />
                 </div>
               </div>
             ))}
@@ -158,26 +157,6 @@ export function KnowledgeBaseSection({ references, onEdit, onDelete, clientId, c
         </div>
       </div>
 
-      {/* Three-dot menu */}
-      {menuOpen && (
-        <DashboardRowActions
-          onEdit={() => {
-            const reference = references.find(r => r._id === menuOpen.referenceId)
-            if (reference) {
-              onEdit(reference)
-            }
-          }}
-          onDelete={async () => {
-            await onDelete(menuOpen.referenceId)
-            setMenuOpen(null)
-          }}
-          onClose={() => setMenuOpen(null)}
-          left={menuOpen.left}
-          top={menuOpen.top}
-          itemName={references.find(r => r._id === menuOpen.referenceId)?.title || 'Knowledge Base'}
-          pageType="knowledge"
-        />
-      )}
     </Card>
   )
 }

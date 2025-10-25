@@ -7,10 +7,10 @@ import {
   Edit,
   LineChart,
   Plus,
-  MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import { ClientCardProps } from "@/utils/types"
 import { CampaignRow } from "./clientPage-campaignRows"
 import { formatDateSafe } from '@/lib/utils'
@@ -25,7 +25,8 @@ export function ClientCard({
   isExpanded,
   onToggle,
   onEditClient,
-  onMenuOpen,
+  onDeleteClient,
+  onDeleteCampaign,
   t
 }: ClientCardProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -161,24 +162,13 @@ export function ClientCard({
             </Button>
 
             {/* Client Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
+            <ShadcnRowActions
+              onEdit={() => onEditClient?.(client)}
+              onDelete={() => onDeleteClient?.(client.id)}
+              itemName={client.name}
+              itemType="Client"
               className="h-9 w-9 rounded-full p-0 bg-[#f7f9ff] hover:bg-gray-100"
-              onClick={(e) => {
-                e.stopPropagation()
-                console.log('[ClientCard] Three-dot menu clicked for client:', client.id, client.name)
-                const rect = e.currentTarget.getBoundingClientRect()
-                console.log('[ClientCard] Menu position:', { left: rect.left, top: rect.bottom + 8 })
-                onMenuOpen({
-                  clientId: client.id,
-                  left: rect.left,
-                  top: rect.bottom + 8
-                })
-              }}
-            >
-              <MoreVertical className="h-4 w-4 text-[#31499F]" />
-            </Button>
+            />
             
           </div>
         </div>
@@ -238,7 +228,7 @@ export function ClientCard({
                 campaign={campaign}
                 campaignIndex={index}
                 clientId={client.id}
-                onMenuOpen={onMenuOpen}
+                onDeleteCampaign={onDeleteCampaign}
                 t={t}
               />
             ))}

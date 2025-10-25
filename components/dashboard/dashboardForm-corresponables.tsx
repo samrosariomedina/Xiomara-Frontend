@@ -107,8 +107,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     isUpdating,
     removeCorresponsable,
     createCorresponsableWithSharing,
-    isCreatingWithSharing,
-    refetch
+    isCreatingWithSharing
   } = useCorresponsables(folderId)
   
   // Reset form when editCorresponsable or localEditCorresponsable changes
@@ -146,8 +145,20 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     timestamp: formatDateSafe(corresponsable.timestamp),
   }))
 
-  // No need for local sources state - we use the sources directly from the hook
-  // This ensures real-time updates are reflected immediately
+  // Local state for managing sources list
+  const [localSources, setLocalSources] = useState<SourceItem[]>(sources)
+  
+  // Sync localSources with fetched corresponsables data
+  useEffect(() => {
+    const updatedSources = corresponsables.map((corresponsable: CorresponsableData) => ({
+      id: corresponsable._id,
+      name: corresponsable.title || 'Unnamed',
+      type: "corresponsable" as const,
+      category: "Corresponsable",
+      timestamp: formatDateSafe(corresponsable.timestamp),
+    }));
+    setLocalSources(updatedSources);
+  }, [corresponsables]);
 
   // Account type options
   const accountTypeOptions = [
@@ -217,9 +228,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         // Success toast is handled by the mutation
         onSubmit?.(data);
         
-        // Force refetch to ensure real-time updates
-        await refetch();
-        
         // Clear form and close
         form.reset({
           clientName: "",
@@ -287,9 +295,15 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
           toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
           
-          // Force refetch to ensure real-time updates
-          await refetch();
-          
+          // Add to local sources for immediate UI update
+          const newItem: SourceItem = {
+            id: Date.now(), // Temporary ID for UI
+            name: data.clientName,
+            type: "text",
+            category: "Corresponsable",
+            timestamp: "Just now",
+          }
+          setLocalSources([...localSources, newItem])
           onSubmit?.(data)
           // Clear form and errors
           form.reset({
@@ -390,8 +404,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       });
       
       console.log('🟣 Corresponsable deleted successfully');
-      // Force refetch to ensure real-time updates
-      await refetch();
+      // Update local sources to reflect the deletion immediately
+      setLocalSources(prevSources => prevSources.filter(source => source.id !== id));
     } catch (error) {
       console.error('🟣 Error deleting corresponsable:', error);
       // Error toast is already shown by the mutation
@@ -399,19 +413,19 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   };
 
   // list view
-  if (sources.length > 0 && !showForm) {
+  if (localSources.length > 0 && !showForm) {
     return (
       <div className="h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={sources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
+          <SourcesList sources={localSources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
         </div>
       </div>
     )
   }
 
   // empty state
-  if (!showForm && sources.length === 0) {
+  if (!showForm && localSources.length === 0) {
     return (
       <>
   <HeaderControls title={tMain('title')} actions={headerActionsPlain} />

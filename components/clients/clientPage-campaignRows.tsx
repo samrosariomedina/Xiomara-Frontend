@@ -4,12 +4,12 @@ import {
   Ear,
   Globe,
   Users,
-  MoreVertical,
   Settings,
   Brain,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 import { useRouter, usePathname } from "next/navigation"
 import { CampaignRowProps } from "@/utils/types"
 import { useClient } from "@/context/ClientContext"
@@ -23,7 +23,7 @@ export function CampaignRow({
   campaign, 
   campaignIndex, 
   clientId, 
-  onMenuOpen, 
+  onDeleteCampaign,
   t 
 }: CampaignRowProps) {
   const router = useRouter()
@@ -198,23 +198,16 @@ export function CampaignRow({
               <Settings className="h-3.5 w-3.5" />
               <span className="ml-1.5 hidden xl:inline">Gestionar</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (typeof window === 'undefined') return;
-                
-                const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
-                const left = rect ? rect.right - 208 : window.innerWidth - 208
-                const top = rect ? rect.bottom + 8 : 100
-                onMenuOpen({ clientId, campaignId: campaign.id, left, top })
+            <ShadcnRowActions
+              onEdit={() => {
+                // Handle campaign edit - you might want to implement this
+                console.log('Edit campaign:', campaign.id)
               }}
-              title="Más opciones"
-            >
-              <MoreVertical className="h-4 w-4 text-gray-600" />
-            </Button>
+              onDelete={() => onDeleteCampaign?.(campaign.id.toString())}
+              itemName={campaign.name}
+              itemType="Campaign"
+              className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
+            />
           </div>
         </div>
       </div>
@@ -233,22 +226,16 @@ export function CampaignRow({
                 <div className="text-xs text-gray-400">{t('creationDate')}</div>
                 <div className="text-sm text-gray-900">{campaign.createdDate}</div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent row click
-                  if (typeof window === 'undefined') return; // Skip on server-side
-                  
-                  const rect = (e.target as HTMLElement).closest('button')?.getBoundingClientRect()
-                  const left = rect ? rect.right - 208 : window.innerWidth - 208
-                  const top = rect ? rect.bottom + 8 : 100
-                  onMenuOpen({ clientId, campaignId: campaign.id, left, top })
+              <ShadcnRowActions
+                onEdit={() => {
+                  // Handle campaign edit - you might want to implement this
+                  console.log('Edit campaign:', campaign.id)
                 }}
-              >
-                <MoreVertical className="h-4 w-4 text-[#000000]" />
-              </Button>
+                onDelete={() => onDeleteCampaign?.(campaign.id.toString())}
+                itemName={campaign.name}
+                itemType="Campaign"
+                className="h-8 w-8 p-0 rounded-full"
+              />
             </div>
           </div>
 

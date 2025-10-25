@@ -23,7 +23,7 @@ const data = Array.from({ length: 25 }, () => ({
   ultimaActualizacion: "16/06/2025",
 }))
 
-function MediaListeningPage() {
+function MediaListeningPage({ clientId, campaignId }: { clientId: string, campaignId: string }) {
   const { selectedClient, isCampaignType, parentClient } = useClient()
   
   // Dynamic breadcrumbs based on folder type

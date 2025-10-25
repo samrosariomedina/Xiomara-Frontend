@@ -39,6 +39,7 @@ interface CreateCampaignDialogProps {
     startDate: string;
     description?: string;
   } | null;
+  onSuccess?: () => void;
 }
 
 export function CreateCampaignDialog({
@@ -47,6 +48,7 @@ export function CreateCampaignDialog({
   clientId,
   clientName,
   editCampaign = null,
+  onSuccess,
 }: CreateCampaignDialogProps) {
   const isEditMode = !!editCampaign;
 
@@ -99,6 +101,8 @@ export function CreateCampaignDialog({
         // Close dialog and reset form on success
         onClose();
         reset();
+        // Call onSuccess callback if provided
+        onSuccess?.();
         // The page will automatically refresh due to revalidatePath in the action
       } else {
         toast.error(result.error || (isEditMode ? 'Failed to update campaign' : 'Failed to create campaign'));

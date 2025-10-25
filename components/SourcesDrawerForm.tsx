@@ -50,7 +50,7 @@ export function SourcesDrawerForm({ onClose, onSuccess, folderId }: SourcesDrawe
     
     try {
       await createSourceAction({
-        name: data.name,
+        name: data.name || "Unnamed Source",
         file: data.file || undefined,
         url: data.url || undefined,
         text: data.text || undefined,
