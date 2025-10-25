@@ -29,6 +29,8 @@ interface KnowledgeBaseFormProps {
 export function KnowledgeBaseForm({ onSubmit, references, folderId, editReference = null }: KnowledgeBaseFormProps) {
   // Debug logging
   console.log('🔵 KnowledgeBaseForm rendered with editReference:', editReference);
+  console.log('🔵 References array:', references);
+  console.log('🔵 References length:', references.length);
   
   // Local edit state for list-based editing
   const [localEditReference, setLocalEditReference] = useState<ReferenceResponse | null>(null);
@@ -53,16 +55,38 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   const removeReferenceMutation = useRemoveReference()
   const isEditing = editReferenceMutation.isPending
   
+
+  // Helper function to extract content from reference
+  const extractContentFromReference = (reference: ReferenceResponse | null) => {
+    if (!reference) return { text: "" };
+    
+    console.log('🔵 Extracting content from reference:', {
+      title: reference.title,
+      type: reference.type,
+      content: reference.content,
+      contentType: typeof reference.content
+    });
+    
+    let textContent = "";
+    
+    // Content is always a string from the backend
+    if (typeof reference.content === 'string') {
+      textContent = reference.content;
+      console.log('🔵 Extracted text content:', textContent);
+    } else {
+      console.log('🔵 Content is not a string:', reference.content);
+    }
+    
+    return { text: textContent };
+  };
+
   const form = useForm<KnowledgeBaseInput>({
     resolver: zodResolver(knowledgeBaseSchema),
     defaultValues: {
       name: isEditMode ? (currentEditReference?.title || "") : "",
-      description: isEditMode && typeof currentEditReference?.content === 'object' && 'description' in currentEditReference.content 
-        ? (currentEditReference.content as {description?: string}).description || ""
-        : "",
       file: null,
-      url: isEditMode && currentEditReference?.type === 'webpage' ? (currentEditReference?.content as string || "") : "",
-      text: isEditMode && currentEditReference?.type === 'text' ? (currentEditReference?.content as string || "") : "",
+      url: "", // Don't show URL in edit mode
+      text: isEditMode ? extractContentFromReference(currentEditReference).text : "",
     }
   })
   
@@ -73,26 +97,35 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
       console.log('🔵 Setting form to edit mode with data:', {
         name: currentEditReference.title,
         type: currentEditReference.type,
-        content: typeof currentEditReference.content
+        content: currentEditReference.content,
+        contentType: typeof currentEditReference.content
       });
       setShowForm(true)
-      form.reset({
+      
+      // Extract content using helper function - for ALL types, show content in text editor
+      const { text: textContent } = extractContentFromReference(currentEditReference);
+      
+      const formData = {
         name: currentEditReference.title || "",
-        description: typeof currentEditReference.content === 'object' && 'description' in currentEditReference.content 
-          ? (currentEditReference.content as {description?: string}).description || ""
-          : "",
         file: null,
-        url: currentEditReference.type === 'webpage' ? (currentEditReference.content as string || "") : "",
-        text: currentEditReference.type === 'text' ? (currentEditReference.content as string || "") : "",
-      })
-      setActiveTab(
-        currentEditReference.type === 'text' ? 'text' : 
-        currentEditReference.type === 'webpage' ? 'url' : 'file'
-      )
+        url: "", // Don't show URL in edit mode
+        text: textContent, // Show content in text editor for ALL types
+      };
+      
+      console.log('🔵 Resetting form with data:', formData);
+      console.log('🔵 Text content length:', textContent.length);
+      console.log('🔵 Text content preview:', textContent.substring(0, 100));
+      console.log('🔵 Form reset called with text:', formData.text);
+      form.reset(formData);
+      setActiveTab('text') // Always use text tab in edit mode
     }
   }, [currentEditReference, form])
 
   const t = useTranslations('KNOWLEDGE')
+
+  // Watch form values for debugging
+  const formValues = form.watch();
+  console.log('🔵 Current form values:', formValues);
 
   // Transform references to SourceItem format for display - no caching
   const sources: SourceItem[] = references.map((ref, index) => {
@@ -121,13 +154,16 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   }
 
   const handleSubmit = form.handleSubmit((data) => {
+    console.log('🔵 Knowledge form submit called with data:', data)
+    console.log('🔵 Folder ID:', folderId)
+    
     if (!folderId) {
       console.error('No folder selected')
       return
     }
 
-    // Validate that at least one content type is provided
-    if (!data.file && !data.url && !data.text) {
+    // Validate that at least one content type is provided (only in create mode)
+    if (!isEditMode && !data.file && !data.url && !data.text) {
       form.setError('file', { 
         type: 'manual', 
         message: 'At least one source (file, URL, or text) must be provided' 
@@ -135,10 +171,29 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
       return
     }
 
+    // In edit mode, require text content
+    if (isEditMode && !data.text) {
+      form.setError('text', { 
+        type: 'manual', 
+        message: 'Text content is required for editing' 
+      })
+      return
+    }
+
     if (isEditMode && currentEditReference) {
-      // Edit existing reference
+      // Edit existing reference - send text content (HTML stripping handled in backend)
+      const editData = {
+        name: data.name,
+        text: data.text || '', // Send text content directly
+      }
+      
+      console.log('🔵 Edit data prepared:', {
+        name: editData.name,
+        text: data.text
+      });
+      
       editReferenceMutation.mutate(
-        { referenceId: currentEditReference._id, data },
+        { referenceId: currentEditReference._id, data: editData },
         {
           onSuccess: () => {
             form.reset()
@@ -152,14 +207,19 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
         }
       )
     } else {
-      // Create new reference
+      // Create new reference - send data directly (HTML stripping handled in backend)
+      console.log('🔵 Creating new reference with data:', { data, folderId })
       createReferenceMutation.mutate(
         { data, folderId },
         {
-          onSuccess: () => {
+          onSuccess: (result) => {
+            console.log('🔵 Create reference success:', result)
             form.reset()
             setShowForm(false)
             onSubmit?.(data)
+          },
+          onError: (error) => {
+            console.error('🔵 Create reference error:', error)
           }
         }
       )
@@ -245,10 +305,10 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   return (
     <div className="space-y-6 h-full flex flex-col">
       <HeaderControls title={t('title')} actions={headerActionsPlain} />
-      {/* Constrain form width on desktop so it fits the panel */}
-      <div className="lg:max-w-full lg:mx-auto flex-1 overflow-y-auto">
+      {/* Form container with consistent width */}
+      <div className="w-full flex-1 overflow-y-auto min-h-0">
 
-        <div>
+        <div className="w-full">
           <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">{t('form.nameLabel')}</Label>
           <Input 
             id="name" 
@@ -259,42 +319,38 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
           {form.formState.errors.name && <p className="text-red-500 text-xs mt-1">{form.formState.errors.name.message}</p>}
         </div>
 
-      <div>
-        <Label className="text-sm font-medium text-gray-700 mb-2 block">{t('form.descriptionLabel')}</Label>
-        <textarea 
-          className={`w-full focus:outline-none bg-[#f7f9ff] border rounded px-3 py-2 min-h-[120px] ${form.formState.errors.description ? 'border-red-500' : 'border-gray-200'}`} 
-          {...form.register('description')}
-        />
-        {form.formState.errors.description && <p className="text-red-500 text-xs mt-1">{form.formState.errors.description.message}</p>}
-      </div>
 
-      {/* Horizontal tabs */}
-      <div>
-        <div className="mb-2">
-          <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
-            <button type="button" onClick={() => {
-              setActiveTab("file")
-              form.clearErrors(['file', 'url', 'text'])
-            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "file" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
-              {t('form.uploadTab')}
-            </button>
-            <button type="button" onClick={() => {
-              setActiveTab("url")
-              form.clearErrors(['file', 'url', 'text'])
-            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "url" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
-              {t('form.urlTab')}
-            </button>
-            <button type="button" onClick={() => {
-              setActiveTab("text")
-              form.clearErrors(['file', 'url', 'text'])
-            }} className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${activeTab === "text" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
-              {t('form.textTab')}
-            </button>
+      {/* Horizontal tabs - only show in create mode, not edit mode */}
+      {!isEditMode && (
+        <div className="w-full">
+          <div className="mb-4">
+            <div className="flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
+              <button type="button" onClick={() => {
+                setActiveTab("file")
+                form.clearErrors(['file', 'url', 'text'])
+              }} className={`flex-1 px-4 py-3 text-sm font-medium text-center transition-colors min-w-0 ${activeTab === "file" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+                {t('form.uploadTab')}
+              </button>
+              <button type="button" onClick={() => {
+                setActiveTab("url")
+                form.clearErrors(['file', 'url', 'text'])
+              }} className={`flex-1 px-4 py-3 text-sm font-medium text-center transition-colors min-w-0 ${activeTab === "url" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+                {t('form.urlTab')}
+              </button>
+              <button type="button" onClick={() => {
+                setActiveTab("text")
+                form.clearErrors(['file', 'url', 'text'])
+              }} className={`flex-1 px-4 py-3 text-sm font-medium text-center transition-colors min-w-0 ${activeTab === "text" ? "bg-[#f7f9ff] text-[#31499f]" : "text-gray-500 hover:text-gray-700"}`}>
+                {t('form.textTab')}
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {activeTab === "file" && (
-          <div>
+        {/* Tab content - only show file/url tabs in create mode */}
+        {!isEditMode && activeTab === "file" && (
+          <div className="w-full min-h-[200px] flex flex-col">
             <FileUpload
               selectedFile={form.watch('file') || undefined}
               onFileSelect={(file) => form.setValue('file', file)}
@@ -306,8 +362,8 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
           </div>
         )}
 
-        {activeTab === "url" && (
-          <div>
+        {!isEditMode && activeTab === "url" && (
+          <div className="w-full min-h-[200px] flex flex-col">
             <UrlInput 
               value={form.watch('url') || ''} 
               onChange={(url) => form.setValue('url', url)} 
@@ -317,8 +373,9 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
           </div>
         )}
 
-        {activeTab === "text" && (
-          <div>
+        {/* Always show text editor in edit mode, or when text tab is active in create mode */}
+        {(isEditMode || activeTab === "text") && (
+          <div className="w-full min-h-[200px] flex flex-col">
             <RichTextEditor 
               value={form.watch('text') || ''} 
               onChange={(text) => form.setValue('text', text)} 
@@ -326,7 +383,6 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
             {form.formState.errors.text && <p className="text-red-500 text-xs mt-1">{form.formState.errors.text.message}</p>}
           </div>
         )}
-      </div>
       </div>
 
       {/* General validation error */}

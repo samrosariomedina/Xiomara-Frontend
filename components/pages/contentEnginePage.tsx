@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import ChatCard from "@/components/content-engine/contentEnginePage-chatCard"
 import FuentesCard from "@/components/content-engine/contentEnginePage-fuentesCard"
 import OutputCard from "@/components/content-engine/contentEnginePage-outputCard"
+import ContentEngineContextSelector from "@/components/content-engine/ContentEngineContextSelector"
 import { useTemplates } from "@/context/TemplatesContext"
 import { getContentEngineSources } from '@/actions/sources'
 import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
@@ -164,6 +165,14 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                         <span>Campaña</span>
                         </button>
                     </div>
+                </div>
+
+                {/* Context Selector */}
+                <div className="px-6 py-4">
+                    <ContentEngineContextSelector 
+                        clientId={clientId} 
+                        campaignId={campaignId} 
+                    />
                 </div>
 
                 {/* Mobile Tabs - Only visible on mobile */}

@@ -24,6 +24,38 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Strip HTML tags and clean text content (server-side compatible)
+ */
+function stripHtmlAndCleanText(htmlText: string): string {
+  if (!htmlText) return '';
+  
+  // Server-side compatible HTML stripping using regex
+  const textContent = htmlText
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&hellip;/g, '...')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    // Clean up whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return textContent;
+}
+
 // Get all references/knowledge base items (server-side)
 export async function getReferencesAction(options: { folderId: string }): Promise<ReferenceResponse[]> {
   try {
@@ -66,9 +98,10 @@ export async function getReferencesAction(options: { folderId: string }): Promis
       throw new Error('Failed to get user ID for filtering');
     }
     
+    // Updated request structure to match backend API documentation
     const requestData = {
-      references: ids,
-      user: userIdResult.userId
+      references: ids, // Array of ObjectId strings for specific references
+      user: userIdResult.userId // Filter by user (admin only)
     }
     console.log('Request data for references:', JSON.stringify(requestData, null, 2))
     console.log('=====================================')
@@ -159,17 +192,14 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
     // Prepare form data for multipart/form-data
     const formData = new FormData()
 
-    // Add basic fields
-    formData.append('title', data.name)
+    // Add basic fields - title is optional and overrides auto-generated display title
+    if (data.name) {
+      formData.append('title', data.name)
+    }
 
     // Determine type and handle content based on what's provided
-    const contentObject = {
-      description: data.description || '',
-      text: '',
-      webUrl: '',
-      fileContent: ''
-    }
     let referenceType = 'text' // Default type
+    let content = ''
 
     if (data.file) {
       // Handle file upload - send as file type with proper file structure
@@ -180,19 +210,30 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
         filename: data.file.name,
         contentType: data.file.type
       })
-      // For file uploads, the backend will process the file and populate fileContent
+      // For file uploads, the backend will process the file and populate content
+      content = '' // Backend will populate this from the file
     } else if (data.text) {
       referenceType = 'text'
-      contentObject.text = data.text
+      // Strip HTML tags and send as plain string (same as edit)
+      content = stripHtmlAndCleanText(data.text)
     } else if (data.url) {
       referenceType = 'webpage'  // Backend uses 'webpage' type for URLs
-      contentObject.webUrl = data.url
+      content = data.url // Send URL as plain string
     }
 
+    // Add required fields according to backend API
     formData.append('type', referenceType)
-    formData.append('content', JSON.stringify(contentObject))
+    formData.append('content', content)
 
     // Debug logging
+    console.log('=== CREATE REFERENCE DEBUG ===')
+    console.log('Reference Type:', referenceType)
+    console.log('Content Length:', content.length)
+    console.log('Has File:', !!data.file)
+    console.log('File Name:', data.file?.name)
+    console.log('File Size:', data.file?.size)
+    console.log('Title:', data.name)
+    console.log('==============================')
     
     // Check file size
     if (data.file) {
@@ -208,6 +249,11 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
         ...formData.getHeaders()
       },
     })
+    
+    console.log('=== CREATE REFERENCE RESPONSE ===')
+    console.log('Status:', response.status)
+    console.log('Response Data:', response.data)
+    console.log('================================')
     
     const created: ReferenceResponse = response.data
 
@@ -264,12 +310,20 @@ export async function createReferenceAction(data: KnowledgeBaseInput, options: {
     revalidatePath('/clients/dashboards/knowledge')
     return { ...created, linked, linkError }
   } catch (error) {
-    console.error('Create reference error:', error)
+    console.error('=== CREATE REFERENCE ERROR ===')
+    console.error('Error:', error)
     if (axios.isAxiosError(error)) {
       console.error('Error response:', error.response?.data)
       console.error('Error status:', error.response?.status)
+      console.error('Error headers:', error.response?.headers)
+      console.error('Request config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      })
       throw new Error(error.response?.data?.message || error.response?.data || 'Failed to create knowledge base item')
     }
+    console.error('================================')
     throw new Error('Failed to create knowledge base item')
   }
 }
@@ -285,44 +339,25 @@ export async function editReferenceAction(
       throw new Error('Authentication required');
     }
 
-    // Prepare form data for multipart/form-data (in case we're uploading a file)
-    const formData = new FormData()
-
-    // Add basic fields
-    formData.append('reference', referenceId)
-    if (data.name) {
-      formData.append('title', data.name)
+    // Backend expects content as plain text string (per references.md docs)
+    // Updated to match references.md documentation format
+    const cleanText = stripHtmlAndCleanText(data.text || '');
+    
+    const requestData = {
+      reference: referenceId, // ObjectId string: Identifier of the reference to edit
+      content: cleanText, // Send as plain text string (per docs)
+      title: data.name || null // New display title (string or null, optional)
     }
 
-    // Determine content based on what's provided
-    const contentObject = {
-      description: data.description || '',
-      text: '',
-      webUrl: '',
-      fileContent: ''
-    }
+    console.log('=== EDIT REFERENCE DEBUG ===')
+    console.log('Reference ID:', referenceId)
+    console.log('Request Data:', requestData)
+    console.log('============================')
 
-    if (data.file) {
-      // Handle file upload - send as file type with proper file structure
-      const buffer = Buffer.from(await data.file.arrayBuffer())
-      // Send file with consistent field name 'file' (this creates con.files.file)
-      formData.append('file', buffer, {
-        filename: data.file.name,
-        contentType: data.file.type
-      })
-      // For file uploads, the backend will process the file and populate fileContent
-    } else if (data.text) {
-      contentObject.text = data.text
-    } else if (data.url) {
-      contentObject.webUrl = data.url
-    }
-
-    formData.append('content', JSON.stringify(contentObject))
-
-    const response = await axios.post(`${API_BASE_URL}/references/edit`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/references/edit`, requestData, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        ...formData.getHeaders()
+        'Content-Type': 'application/json'
       }
     })
 
@@ -347,8 +382,9 @@ export async function removeReferenceAction(referenceId: string, options: { fold
       throw new Error('Authentication required');
     }
 
+    // Updated to match backend API documentation structure
     await axios.post(`${API_BASE_URL}/references/remove`, {
-      reference: referenceId,
+      reference: referenceId, // ObjectId string: Identifier of the reference to delete
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,

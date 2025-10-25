@@ -105,7 +105,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     error,
     updateCorresponsable,
     isUpdating,
-    removeCorresponsable
+    removeCorresponsable,
+    createCorresponsableWithSharing,
+    isCreatingWithSharing,
+    refetch
   } = useCorresponsables(folderId)
   
   // Reset form when editCorresponsable or localEditCorresponsable changes
@@ -143,20 +146,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     timestamp: formatDateSafe(corresponsable.timestamp),
   }))
 
-  // Local state for managing sources list
-  const [localSources, setLocalSources] = useState<SourceItem[]>(sources)
-  
-  // Sync localSources with fetched corresponsables data
-  useEffect(() => {
-    const updatedSources = corresponsables.map((corresponsable: CorresponsableData) => ({
-      id: corresponsable._id,
-      name: corresponsable.title || 'Unnamed',
-      type: "corresponsable" as const,
-      category: "Corresponsable",
-      timestamp: formatDateSafe(corresponsable.timestamp),
-    }));
-    setLocalSources(updatedSources);
-  }, [corresponsables]);
+  // No need for local sources state - we use the sources directly from the hook
+  // This ensures real-time updates are reflected immediately
 
   // Account type options
   const accountTypeOptions = [
@@ -226,6 +217,9 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         // Success toast is handled by the mutation
         onSubmit?.(data);
         
+        // Force refetch to ensure real-time updates
+        await refetch();
+        
         // Clear form and close
         form.reset({
           clientName: "",
@@ -253,17 +247,20 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           invitationMethods: data.invitationMethods
         });
         
-        const result = await createCorresponsableWithSharingAction(folderId, {
-          clientName: data.clientName,
-          email: data.email || "",
-          whatsapp: data.whatsapp,
-          accountType: data.accountType,
-          telegramToken: data.telegramToken,
-          invitationMethods: data.invitationMethods
+        const result = await createCorresponsableWithSharing({
+          folderId,
+          data: {
+            clientName: data.clientName,
+            email: data.email || "",
+            whatsapp: data.whatsapp,
+            accountType: data.accountType,
+            telegramToken: data.telegramToken,
+            invitationMethods: data.invitationMethods
+          }
         });
 
-        if (result.success && result.data) {
-          const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
+        if (result) {
+          const { shareUrl, message, invitationMethods, sharingError, listeners } = result;
           
           if (sharingError) {
             toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
@@ -290,15 +287,9 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
           toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
           
-          // Add to local sources for immediate UI update
-          const newItem: SourceItem = {
-            id: Date.now(), // Temporary ID for UI
-            name: data.clientName,
-            type: "text",
-            category: "Corresponsable",
-            timestamp: "Just now",
-          }
-          setLocalSources([...localSources, newItem])
+          // Force refetch to ensure real-time updates
+          await refetch();
+          
           onSubmit?.(data)
           // Clear form and errors
           form.reset({
@@ -315,8 +306,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             },
           })
           setShowForm(false)
-        } else {
-          toast.error(result.error || 'Failed to create corresponsable');
         }
       }
     } catch (error) {
@@ -401,8 +390,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       });
       
       console.log('🟣 Corresponsable deleted successfully');
-      // Update local sources to reflect the deletion immediately
-      setLocalSources(prevSources => prevSources.filter(source => source.id !== id));
+      // Force refetch to ensure real-time updates
+      await refetch();
     } catch (error) {
       console.error('🟣 Error deleting corresponsable:', error);
       // Error toast is already shown by the mutation
@@ -410,19 +399,19 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   };
 
   // list view
-  if (localSources.length > 0 && !showForm) {
+  if (sources.length > 0 && !showForm) {
     return (
       <div className="h-full flex flex-col">
   <HeaderControls title={tMain('title')} actions={headerActions} />
         <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={localSources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
+          <SourcesList sources={sources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
         </div>
       </div>
     )
   }
 
   // empty state
-  if (!showForm && localSources.length === 0) {
+  if (!showForm && sources.length === 0) {
     return (
       <>
   <HeaderControls title={tMain('title')} actions={headerActionsPlain} />
@@ -665,9 +654,9 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       </div>
       <div className="fixed bottom-0 left-0 right-0 m-1 lg:m-3 bg-white sm:bg-transparent rounded-lg  shadow-md sm:shadow-none">
                            <div className="pt-2 flex justify-end gap-3 mb-2 mr-2">
-                             <Button onClick={handleCancel} disabled={isUpdating} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{tForm('form.cancel')}</Button>
-                             <Button onClick={handleAdd} disabled={isUpdating} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
-                               {isUpdating ? 'Updating...' : (isEditMode ? 'Update Corresponsable' : tForm('form.addButton'))}
+                             <Button onClick={handleCancel} disabled={isUpdating || isCreatingWithSharing} className="px-4 bg-[#f7f9ff] text-[#31499f] rounded-full hover:bg-[#e0e7ff]">{tForm('form.cancel')}</Button>
+                             <Button onClick={handleAdd} disabled={isUpdating || isCreatingWithSharing} className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4">
+                               {isUpdating ? 'Updating...' : isCreatingWithSharing ? 'Creating...' : (isEditMode ? 'Update Corresponsable' : tForm('form.addButton'))}
                              </Button>
                            </div>
                          </div>

@@ -30,9 +30,11 @@ interface CorresponsablesSectionProps {
   folderId: string
   onEdit: (corresponsable: CorresponsableData) => void
   onDelete: (corresponsableId: string) => Promise<void>
+  clientId: string
+  campaignId?: string
 }
 
-export function CorresponsablesSection({ folderId, onEdit, onDelete }: CorresponsablesSectionProps) {
+export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, campaignId }: CorresponsablesSectionProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState<{corresponsableId: string, left: number, top: number} | null>(null)
@@ -49,7 +51,8 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete }: Correspon
   } = useCorresponsables(folderId)
 
   const goToCorresponsalesList = () => {
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.corresponsales, pathname || '/')
+    const route = routes.clients.getDashboardRoute(clientId, campaignId, 'corresponsales')
+    const localizedRoute = getLocalizedRouteFromPathname(route, pathname || '/')
     router.push(localizedRoute)
   }
 

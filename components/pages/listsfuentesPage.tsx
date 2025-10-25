@@ -5,7 +5,6 @@ import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
-import { useClient } from "@/context/ClientContext"
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSources, removeSourceAction } from "@/actions/sources"
 import { ClientOnly } from "@/components/providers/ClientOnly"
@@ -21,21 +20,28 @@ const columns: Column[] = [
   { key: "ultimaActualizacion", label: "Última actualización", width: "150px" },
 ]
 
-function FuentesGeneralesPage() {
+interface FuentesGeneralesPageProps {
+  clientId: string
+  campaignId?: string
+}
+
+function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProps) {
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<SourceResponse | null>(null)
-  const { selectedClient, isCampaignType, parentClient } = useClient()
   const queryClient = useQueryClient()
+
+  // Determine folder ID - campaignId takes priority over clientId
+  const folderId = campaignId || clientId
 
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
     const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
     
-    if (isCampaignType && parentClient) {
+    if (campaignId) {
       return [
         ...baseCrumbs,
-        { label: parentClient.title || "Client", href: "/clients/channels" },
-        { label: selectedClient?.title || "Campaign" },
+        { label: "Client", href: `/clients/${clientId}` },
+        { label: "Campaign" },
         { label: "Listado Fuentes" }
       ]
     }
@@ -51,12 +57,12 @@ function FuentesGeneralesPage() {
     isLoading: sourcesLoading,
     error: sourcesError
   } = useQuery({
-    queryKey: ['sources', selectedClient?._id],
+    queryKey: ['sources', folderId],
     queryFn: async () => {
-      if (!selectedClient?._id) return [];
-      return await getSources({ folderId: selectedClient._id });
+      if (!folderId) return [];
+      return await getSources({ folderId });
     },
-    enabled: !!selectedClient?._id,
+    enabled: !!folderId,
     staleTime: 30 * 1000,
     retry: 2,
   })
@@ -107,21 +113,6 @@ function FuentesGeneralesPage() {
     setEditingSource(null)
   }
 
-  // Show loading state if no client selected or data is loading
-  if (!selectedClient) {
-    return (
-      <DashboardLayout
-        title="Listado Fuentes Generales"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Fuentes"
-      >
-        <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">Please select a client to view sources</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   // Show loading state while data is being fetched
   if (sourcesLoading) {
@@ -131,6 +122,8 @@ function FuentesGeneralesPage() {
         breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
+        clientId={clientId}
+        campaignId={campaignId}
       >
         <div className="flex items-center justify-center h-64">
           <p className="text-gray-500">Loading sources...</p>
@@ -147,6 +140,8 @@ function FuentesGeneralesPage() {
         breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
+        clientId={clientId}
+        campaignId={campaignId}
       >
         <div className="flex items-center justify-center h-64">
           <p className="text-red-500">Error loading sources. Please try again.</p>
@@ -162,6 +157,8 @@ function FuentesGeneralesPage() {
         breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
+        clientId={clientId}
+        campaignId={campaignId}
       >
         <div className="flex items-center justify-center h-64">
           <p className="text-gray-500">Loading...</p>
@@ -173,6 +170,8 @@ function FuentesGeneralesPage() {
         breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Fuentes"
+        clientId={clientId}
+        campaignId={campaignId}
       >
         <DataTable
           columns={columns}
@@ -193,6 +192,9 @@ function FuentesGeneralesPage() {
         sources={sources}
         defaultTab="fuentes-generales"
         editSource={editingSource}
+        folderId={folderId}
+        clientId={clientId}
+        campaignId={campaignId}
       />
     </ClientOnly>
   )

@@ -6,7 +6,6 @@ import { DataTable, type Column } from "../lists-tableData"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
-import { toast } from "sonner"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -117,15 +116,10 @@ function CorresponsalesPage({ clientId, campaignId }: CorresponsalesPageProps) {
   }
 
   const handleDeleteRow = async (rowId: string) => {
-    if (!selectedClient?._id) {
-      toast.error('No client selected')
-      return
-    }
-    
     try {
       await removeCorresponsable({
         listenerId: rowId,
-        folderId: selectedClient._id
+        folderId: folderId
       })
       // Success toast is handled by the mutation
     } catch (error) {
@@ -142,10 +136,12 @@ function CorresponsalesPage({ clientId, campaignId }: CorresponsalesPageProps) {
   return (
     <>
       <DashboardLayout
-        title={`Listado Corresponsales${isClientSelected ? ` - ${selectedClient?.title || 'Cliente'}` : ''}`}
+        title={`Listado Corresponsales${campaignId ? ' - Campaign' : ' - Client'}`}
         breadcrumbs={breadcrumbs}
         onAddClick={handleAddClick}
         addButtonText="Agregar Corresponsable"
+        clientId={clientId}
+        campaignId={campaignId}
       >
       <DataTable
         columns={currentColumns}
@@ -174,6 +170,9 @@ function CorresponsalesPage({ clientId, campaignId }: CorresponsalesPageProps) {
         references={[]}
         sources={[]}
         defaultTab="corresponsales"
+        folderId={folderId}
+        clientId={clientId}
+        campaignId={campaignId}
         editCorresponsable={editingCorresponsable}
       />
     </>

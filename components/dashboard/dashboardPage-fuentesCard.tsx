@@ -26,9 +26,11 @@ interface FuentesGeneralesSectionProps {
   sources: SourceResponse[]
   onEdit: (source: SourceResponse) => void
   onDelete: (sourceId: string) => Promise<void>
+  clientId: string
+  campaignId?: string
 }
 
-export function FuentesGeneralesSection({ sources, onEdit, onDelete }: FuentesGeneralesSectionProps) {
+export function FuentesGeneralesSection({ sources, onEdit, onDelete, clientId, campaignId }: FuentesGeneralesSectionProps) {
   // Transform sources to fuentesData format - no caching
   const fuentesData = sources.map((source, index) => ({
     id: index + 1,
@@ -68,7 +70,8 @@ export function FuentesGeneralesSection({ sources, onEdit, onDelete }: FuentesGe
   ];
 
   const goToFuentesList = () => {
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.fuentes, pathname || '/')
+    const route = routes.clients.getDashboardRoute(clientId, campaignId, 'fuentes')
+    const localizedRoute = getLocalizedRouteFromPathname(route, pathname || '/')
     router.push(localizedRoute)
   }
 

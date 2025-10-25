@@ -8,24 +8,30 @@ import { formatDateSafe } from "@/lib/utils"
 import { getReferencesAction, removeReferenceAction } from "@/actions/knowledge"
 import type { ReferenceResponse } from "@/lib/schemas"
 import SourcesAdministrator from "./dashboardPage-Forms"
-import { useClient } from "@/context/ClientContext"
 import { toast } from "sonner"
 
-function KnowledgeBasePage() {
+interface KnowledgeBasePageProps {
+  clientId: string
+  campaignId?: string
+}
+
+function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   const [isKnowledgeAdminOpen, setIsKnowledgeAdminOpen] = useState(false)
   const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null)
-  const { selectedClient, isInitialized, isCampaignType, parentClient } = useClient()
   const queryClient = useQueryClient()
+  
+  // Determine folder ID - campaignId takes priority over clientId
+  const folderId = campaignId || clientId
   
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
     const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
     
-    if (isCampaignType && parentClient) {
+    if (campaignId) {
       return [
         ...baseCrumbs,
-        { label: parentClient.title || "Client", href: "/clients/channels" },
-        { label: selectedClient?.title || "Campaign" },
+        { label: "Client", href: `/clients/${clientId}` },
+        { label: "Campaign" },
         { label: "Listado Knowledge Base" }
       ]
     }
@@ -41,19 +47,19 @@ function KnowledgeBasePage() {
     isLoading: isLoadingReferences,
     error: referencesError
   } = useQuery({
-    queryKey: ['references', selectedClient?._id],
+    queryKey: ['references', folderId],
     queryFn: async () => {
-      if (!selectedClient?._id) return [];
-      return await getReferencesAction({ folderId: selectedClient._id });
+      if (!folderId) return [];
+      return await getReferencesAction({ folderId });
     },
-    enabled: !!selectedClient?._id && isInitialized,
+    enabled: !!folderId,
     staleTime: 30 * 1000,
     retry: 2,
   });
 
   // Delete mutation
   const deleteReferenceMutation = useMutation({
-    mutationFn: (referenceId: string) => removeReferenceAction(referenceId, { folderId: selectedClient?._id || '' }),
+    mutationFn: (referenceId: string) => removeReferenceAction(referenceId, { folderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['references'] })
       toast.success('Knowledge base deleted successfully')
@@ -158,34 +164,17 @@ function KnowledgeBasePage() {
     setEditingReference(null)
   }
 
-  // Show loading state while client context is initializing
-  if (!isInitialized) {
+  // Show loading state while data is being fetched
+  if (isLoadingReferences) {
     return (
-      <DashboardLayout
-        title="Listado Knowledge Base"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Knowledge Base"
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Initializing...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  // Show message if no client is selected
-  if (!selectedClient) {
-    return (
-      <DashboardLayout
-        title="Listado Knowledge Base"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Knowledge Base"
-      >
+        <DashboardLayout
+          title="Listado Knowledge Base"
+          breadcrumbs={breadcrumbs}
+          onAddClick={handleAddClick}
+          addButtonText="Agregar Knowledge Base"
+          clientId={clientId}
+          campaignId={campaignId}
+        >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -206,12 +195,14 @@ function KnowledgeBasePage() {
   // Show loading state while data is loading
   if (isLoadingReferences) {
     return (
-      <DashboardLayout
-        title="Listado Knowledge Base"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Knowledge Base"
-      >
+        <DashboardLayout
+          title="Listado Knowledge Base"
+          breadcrumbs={breadcrumbs}
+          onAddClick={handleAddClick}
+          addButtonText="Agregar Knowledge Base"
+          clientId={clientId}
+          campaignId={campaignId}
+        >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -225,12 +216,14 @@ function KnowledgeBasePage() {
   // Show error state if there's an error
   if (referencesError) {
     return (
-      <DashboardLayout
-        title="Listado Knowledge Base"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Knowledge Base"
-      >
+        <DashboardLayout
+          title="Listado Knowledge Base"
+          breadcrumbs={breadcrumbs}
+          onAddClick={handleAddClick}
+          addButtonText="Agregar Knowledge Base"
+          clientId={clientId}
+          campaignId={campaignId}
+        >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <p className="text-red-500">Error loading knowledge base data</p>
@@ -242,12 +235,14 @@ function KnowledgeBasePage() {
 
   return (
     <>
-      <DashboardLayout
-        title="Listado Knowledge Base"
-        breadcrumbs={breadcrumbs}
-        onAddClick={handleAddClick}
-        addButtonText="Agregar Knowledge Base"
-      >
+        <DashboardLayout
+          title="Listado Knowledge Base"
+          breadcrumbs={breadcrumbs}
+          onAddClick={handleAddClick}
+          addButtonText="Agregar Knowledge Base"
+          clientId={clientId}
+          campaignId={campaignId}
+        >
         
         <DataTable
           columns={columns}
@@ -268,7 +263,9 @@ function KnowledgeBasePage() {
         references={cachedReferences}
         sources={[]}
         defaultTab="knowledge-base"
-        clientId={selectedClient?._id}
+        folderId={folderId}
+        clientId={clientId}
+        campaignId={campaignId}
         editReference={editingReference}
       />
     </>

@@ -35,6 +35,19 @@ export const routes = {
     clientDashboard: (clientId: string) => `/clients/${clientId}`,
     campaignDashboard: (clientId: string, campaignId: string) => `/clients/${clientId}/campaigns/${campaignId}`,
     contentEngine: '/clients/content-engine',
+    
+    // Dynamic dashboard routes based on client/campaign context
+    getDashboardRoute: (clientId: string, campaignId?: string, dashboardName?: string) => {
+      if (campaignId && dashboardName) {
+        return `/clients/${clientId}/campaigns/${campaignId}/${dashboardName}`;
+      } else if (dashboardName) {
+        return `/clients/${clientId}/${dashboardName}`;
+      } else if (campaignId) {
+        return `/clients/${clientId}/campaigns/${campaignId}`;
+      } else {
+        return `/clients/${clientId}`;
+      }
+    },
   },
 } as const
 

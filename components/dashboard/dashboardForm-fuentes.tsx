@@ -56,15 +56,14 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Initialize form state based on edit mode
   const [showForm, setShowForm] = useState(isEditMode) // Auto-show form in edit mode
   const [activeTab, setActiveTab] = useState<"file" | "url" | "text">(
-    isEditMode && currentEditSource?.type === 'text' ? 'text' : 
-    isEditMode && currentEditSource?.type === 'url' ? 'url' : 'file'
+    isEditMode ? 'text' : 'file' // Always use text tab in edit mode, file tab in create mode
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: isEditMode ? (currentEditSource?.title || "") : "",
     file: null as File | null,
-    url: isEditMode && currentEditSource?.type === 'url' ? (currentEditSource?.content || "") : "",
-    text: isEditMode && currentEditSource?.type === 'text' ? (currentEditSource?.content || "") : "",
+    url: "", // Don't show URL in edit mode
+    text: isEditMode ? (currentEditSource?.content || "") : "", // Show content for ALL types in edit mode
   })
 
   const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(folderId)
@@ -83,13 +82,10 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       setFormData({
         name: currentEditSource.title || "",
         file: null,
-        url: currentEditSource.type === 'url' ? (currentEditSource.content || "") : "",
-        text: currentEditSource.type === 'text' ? (currentEditSource.content || "") : "",
+        url: "", // Don't show URL in edit mode
+        text: currentEditSource.content || "", // Show content for ALL types in edit mode
       })
-      setActiveTab(
-        currentEditSource.type === 'text' ? 'text' : 
-        currentEditSource.type === 'url' ? 'url' : 'file'
-      )
+      setActiveTab('text') // Always use text tab in edit mode
       setErrors({})
     }
   }, [currentEditSource])
@@ -148,7 +144,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       const processedText = stripHtmlAndCleanText(formData.text);
       
       // Validate that we have content after processing
-      if (activeTab === 'text') {
+      if (isEditMode || activeTab === 'text') {
         if (!processedText) {
           setErrors({ text: 'Please enter some text content' });
           return;
@@ -164,9 +160,14 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       // Prepare source data
       const sourceData = {
         name: formData.name,
-        file: formData.file || undefined,
-        url: formData.url || undefined,
-        text: processedText || undefined,
+        // In edit mode, only allow text content updates
+        ...(isEditMode ? {
+          text: processedText || undefined,
+        } : {
+          file: formData.file || undefined,
+          url: formData.url || undefined,
+          text: processedText || undefined,
+        }),
       }
       
       if (isEditMode && currentEditSource) {
@@ -312,48 +313,51 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
       </div>
 
-      {/* Horizontal tabs */}
-      <div>
-        <div className="my-6">
-          <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setActiveTab("file")}
-              className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
-                activeTab === "file"
-                  ? "bg-[#f7f9ff] text-[#31499f]"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t('form.uploadTab')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("url")}
-              className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
-                activeTab === "url"
-                  ? "bg-[#f7f9ff] text-[#31499f]"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t('form.urlTab')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("text")}
-              className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
-                activeTab === "text"
-                  ? "bg-[#f7f9ff] text-[#31499f]"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t('form.textTab')}
-            </button>
+      {/* Horizontal tabs - only show in create mode, not edit mode */}
+      {!isEditMode && (
+        <div>
+          <div className="my-6">
+            <div className="inline-flex w-full rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setActiveTab("file")}
+                className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
+                  activeTab === "file"
+                    ? "bg-[#f7f9ff] text-[#31499f]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t('form.uploadTab')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("url")}
+                className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
+                  activeTab === "url"
+                    ? "bg-[#f7f9ff] text-[#31499f]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t('form.urlTab')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("text")}
+                className={`flex-1 px-4 py-2 text-sm font-medium text-center transition ${
+                  activeTab === "text"
+                    ? "bg-[#f7f9ff] text-[#31499f]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t('form.textTab')}
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-  {/* Tab content */}
-        {activeTab === "file" && (
+  {/* Tab content - only show file/url tabs in create mode */}
+        {!isEditMode && activeTab === "file" && (
           <div className="space-y-3">
             <FileUpload
               selectedFile={formData.file || undefined}
@@ -368,7 +372,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
           </div>
         )}
 
-        {activeTab === "url" && (
+        {!isEditMode && activeTab === "url" && (
           <div>
             <UrlInput
               value={formData.url}
@@ -378,7 +382,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
           </div>
         )}
 
-        {activeTab === "text" && (
+        {/* Always show text editor in edit mode, or when text tab is active in create mode */}
+        {(isEditMode || activeTab === "text") && (
           <div>
             <RichTextEditor 
               value={formData.text} 
@@ -407,7 +412,6 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
                      </div>
                    </div>
   </div>
-    </div>
   )
 })
 

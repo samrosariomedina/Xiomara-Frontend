@@ -253,6 +253,8 @@ function DashBoard({ clientId, campaignId }: DashBoardProps) {
                folderId={folderId}
                onEdit={handleEditCorresponsable}
                onDelete={handleDeleteCorresponsable}
+               clientId={clientId}
+               campaignId={campaignId}
              />
           </div>
           <div className="lg:col-span-1">
@@ -260,6 +262,8 @@ function DashBoard({ clientId, campaignId }: DashBoardProps) {
              references={references} 
              onEdit={handleEditReference}
              onDelete={handleDeleteReference}
+             clientId={clientId}
+             campaignId={campaignId}
            />
           </div>
           <div className="lg:col-span-1">
@@ -272,6 +276,8 @@ function DashBoard({ clientId, campaignId }: DashBoardProps) {
              sources={sources}
              onEdit={handleEditSource}
              onDelete={handleDeleteSource}
+             clientId={clientId}
+             campaignId={campaignId}
            />
         </div>
       </div>

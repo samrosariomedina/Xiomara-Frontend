@@ -26,9 +26,11 @@ interface KnowledgeBaseSectionProps {
   references: ReferenceResponse[]
   onEdit: (reference: ReferenceResponse) => void
   onDelete: (referenceId: string) => Promise<void>
+  clientId: string
+  campaignId?: string
 }
 
-export function KnowledgeBaseSection({ references, onEdit, onDelete }: KnowledgeBaseSectionProps) {
+export function KnowledgeBaseSection({ references, onEdit, onDelete, clientId, campaignId }: KnowledgeBaseSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState<{referenceId: string, left: number, top: number} | null>(null)
   const t = useTranslations('KNOWLEDGE')
@@ -61,7 +63,8 @@ export function KnowledgeBaseSection({ references, onEdit, onDelete }: Knowledge
   })
 
   const goToKnowledgeList = () => {
-    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.dashboards.knowledge, pathname || '/')
+    const route = routes.clients.getDashboardRoute(clientId, campaignId, 'knowledge')
+    const localizedRoute = getLocalizedRouteFromPathname(route, pathname || '/')
     router.push(localizedRoute)
   }
 

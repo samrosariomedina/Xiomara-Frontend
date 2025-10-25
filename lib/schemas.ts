@@ -191,13 +191,7 @@ export const corresponsablesSchema = z.object({
     telegram: z.boolean(),
     email: z.boolean(),
     copyLink: z.boolean(),
-  }).refine(
-    data => data.whatsapp || data.telegram || data.email || data.copyLink,
-    {
-      message: 'At least one invitation method must be selected',
-      path: ['invitationMethods'],
-    }
-  ),
+  }).optional(),
 });
 
 // Fuentes Generales Form Schema
@@ -241,7 +235,6 @@ const SUPPORTED_FILE_EXTENSIONS = ['.txt', '.md', '.pdf', '.html', '.htm'];
 // Knowledge Base Form Schema
 export const knowledgeBaseSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   file: z.instanceof(File)
     .optional()
     .nullable()

@@ -753,13 +753,27 @@ export async function createCorresponsableWithSharingAction(
       }
     }
 
-    // If no listeners were created, return error instead of creating default
+    // If no listeners were created, create a default WhatsApp listener
     if (createdListeners.length === 0) {
-      console.log('No listeners created - no valid invitation methods selected');
-      return {
-        success: false,
-        error: 'No valid invitation methods selected. Please select WhatsApp or Telegram with a valid token.'
-      };
+      console.log('No invitation methods selected - creating default WhatsApp listener');
+      const defaultResult = await createCorresponsableAction(folderId, {
+        clientName: data.clientName,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        accountType: data.accountType
+      });
+      
+      if (defaultResult.success) {
+        createdListeners.push(defaultResult.data);
+        listenerIds.push(defaultResult.data._id);
+        console.log('Default WhatsApp listener created');
+      } else {
+        console.error('Failed to create default listener:', defaultResult.error);
+        return {
+          success: false,
+          error: 'Failed to create corresponsable: ' + defaultResult.error
+        };
+      }
     }
 
     // Get share URL for the first listener (for sharing operations)

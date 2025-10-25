@@ -6,7 +6,8 @@ import {
   createCorresponsablesFromCSVAction,
   getCorresponsablesAction,
   updateCorresponsableAction,
-  removeCorresponsableAction
+  removeCorresponsableAction,
+  createCorresponsableWithSharingAction
 } from '@/actions/corresponsables'
 import { ConnectCorrespondentsInput } from '@/lib/schemas'
 import { toast } from 'sonner'
@@ -101,6 +102,51 @@ export function useCorresponsables(folderId?: string) {
     }
   })
 
+  // Mutation to create a single corresponsable with sharing
+  const createCorresponsableWithSharingMutation = useMutation({
+    mutationFn: async ({ 
+      folderId, 
+      data 
+    }: { 
+      folderId: string
+      data: {
+        clientName: string;
+        email: string;
+        whatsapp: string;
+        accountType: "premium" | "standard" | "basic";
+        telegramToken?: string;
+        invitationMethods?: {
+          whatsapp: boolean;
+          telegram: boolean;
+          email: boolean;
+          copyLink: boolean;
+        };
+      }
+    }) => {
+      const result = await createCorresponsableWithSharingAction(folderId, data)
+      if (result.success) {
+        return result.data
+      } else {
+        throw new Error(result.error || 'Failed to create corresponsable with sharing')
+      }
+    },
+    onSuccess: (data) => {
+      const listenerCount = data?.listeners ? data.listeners.length : 1;
+      const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
+      toast.success(`Corresponsable created successfully with ${listenerText}`)
+      // Invalidate and refetch corresponsables
+      queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
+      // Force an immediate refetch for real-time updates
+      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
+      // Also invalidate any folder-specific queries
+      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
+    },
+    onError: (error: Error) => {
+      console.error('Create corresponsable with sharing error:', error)
+      toast.error(error.message || 'Failed to create corresponsable with sharing')
+    }
+  })
+
   // Mutation to update a corresponsable
   const updateCorresponsableMutation = useMutation({
     mutationFn: async ({ 
@@ -126,6 +172,10 @@ export function useCorresponsables(folderId?: string) {
       toast.success('Corresponsable updated successfully')
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
+      // Force an immediate refetch for real-time updates
+      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
+      // Also invalidate any folder-specific queries
+      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
       console.error('Update corresponsable error:', error)
@@ -157,7 +207,9 @@ export function useCorresponsables(folderId?: string) {
       // Invalidate and refetch all corresponsables queries
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
       // Force an immediate refetch
-      queryClient.refetchQueries({ queryKey: ['corresponsables', folderId] })
+      queryClient.refetchQueries({ queryKey: ['corresponsables'] })
+      // Also invalidate any folder-specific queries
+      queryClient.invalidateQueries({ queryKey: ['corresponsables', folderId] })
     },
     onError: (error: Error) => {
       console.error('❌ Mutation: Remove corresponsable error:', error)
@@ -175,12 +227,14 @@ export function useCorresponsables(folderId?: string) {
     refetch,
     createCorresponsables: createCorresponsablesMutation.mutateAsync,
     createCorresponsablesFromCSV: createCorresponsablesFromCSVMutation.mutateAsync,
+    createCorresponsableWithSharing: createCorresponsableWithSharingMutation.mutateAsync,
     updateCorresponsable: updateCorresponsableMutation.mutateAsync,
     removeCorresponsable: removeCorresponsableMutation.mutateAsync,
     
     // Loading states
     isCreating: createCorresponsablesMutation.isPending,
     isCreatingFromCSV: createCorresponsablesFromCSVMutation.isPending,
+    isCreatingWithSharing: createCorresponsableWithSharingMutation.isPending,
     isUpdating: updateCorresponsableMutation.isPending,
     isRemoving: removeCorresponsableMutation.isPending
   }
