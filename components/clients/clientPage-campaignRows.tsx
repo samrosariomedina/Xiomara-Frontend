@@ -24,6 +24,7 @@ export function CampaignRow({
   campaignIndex, 
   clientId, 
   onDeleteCampaign,
+  onEditCampaign,
   t 
 }: CampaignRowProps) {
   const router = useRouter()
@@ -200,8 +201,7 @@ export function CampaignRow({
             </Button>
             <ShadcnRowActions
               onEdit={() => {
-                // Handle campaign edit - you might want to implement this
-                console.log('Edit campaign:', campaign.id)
+                onEditCampaign?.(campaign)
               }}
               onDelete={() => onDeleteCampaign?.(campaign.id.toString())}
               itemName={campaign.name}
@@ -228,8 +228,7 @@ export function CampaignRow({
               </div>
               <ShadcnRowActions
                 onEdit={() => {
-                  // Handle campaign edit - you might want to implement this
-                  console.log('Edit campaign:', campaign.id)
+                  onEditCampaign?.(campaign)
                 }}
                 onDelete={() => onDeleteCampaign?.(campaign.id.toString())}
                 itemName={campaign.name}

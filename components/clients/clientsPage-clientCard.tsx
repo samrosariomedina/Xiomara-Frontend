@@ -27,6 +27,7 @@ export function ClientCard({
   onEditClient,
   onDeleteClient,
   onDeleteCampaign,
+  onEditCampaign,
   t
 }: ClientCardProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -229,6 +230,7 @@ export function ClientCard({
                 campaignIndex={index}
                 clientId={client.id}
                 onDeleteCampaign={onDeleteCampaign}
+                onEditCampaign={onEditCampaign}
                 t={t}
               />
             ))}

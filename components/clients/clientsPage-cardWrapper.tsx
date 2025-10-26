@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useTranslations } from 'next-intl'
-import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
-import { Client, MenuOpenData } from "@/utils/types"
+import { Client, Campaign } from "@/utils/types"
 import { ClientCard } from "./clientsPage-clientCard"
 import { useMutation } from "@tanstack/react-query"
 import { deleteClientAction } from "@/actions/clients"
@@ -23,7 +22,6 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
   
   const t = useTranslations('CLIENTS');
   const [expandedClients, setExpandedClients] = useState<(number | string)[]>([])
-  const [openMenuFor, setOpenMenuFor] = useState<string | number | null>(null)
   const [editingCampaign, setEditingCampaign] = useState<{
     id: string;
     name: string;
@@ -53,7 +51,6 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
     mutationFn: deleteCampaignAction,
     onSuccess: () => {
       toast.success('Campaign deleted successfully')
-      setOpenMenuFor(null)
       router.refresh();
     },
     onError: (error: unknown) => {
@@ -89,7 +86,6 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
       try {
         await deleteClientMutation.mutateAsync(clientId)
         console.log('[ClientsList] Delete mutation successful')
-        setOpenMenuFor(null)
       } catch (error) {
         console.error('[ClientsList] Delete mutation error:', error)
         throw error // Re-throw to propagate the error
@@ -103,11 +99,23 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
     return deleteCampaignMutation.mutateAsync(campaignId)
   }, [deleteCampaignMutation]); 
 
-  // Handle menu open for client actions
-  const handleMenuOpen = useCallback((menuData: MenuOpenData) => {
-    console.log('[ClientsList] Menu opened for:', menuData)
-    setOpenMenuFor(menuData.clientId)
-  }, []);
+  // Handle campaign edit
+  const handleEditCampaign = useCallback((campaign: Campaign) => {
+    // Find the campaign in the campaigns array to get full data
+    const fullCampaign = campaigns.find(c => c._id === campaign.id.toString())
+    
+    if (fullCampaign) {
+      setEditingCampaign({
+        id: fullCampaign._id,
+        name: fullCampaign.title || campaign.name,
+        type: fullCampaign.metadata?.campaignType || 'Comunicado',
+        startDate: fullCampaign.metadata?.startDate || fullCampaign.timestamp.split('T')[0],
+        description: fullCampaign.metadata?.description || ''
+      })
+      setIsEditCampaignDialogOpen(true)
+    }
+  }, [campaigns])
+
 
   // Top-level wrapper: proper margins from Figma
   return (
@@ -135,6 +143,7 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
                 onDeleteClient={handleDeleteClient}
                 onDeleteCampaign={(campaignId: string) => handleDeleteCampaign(campaignId).then(() => {})}
                 onEditClient={handleEditClient}
+                onEditCampaign={handleEditCampaign}
                 t={t}
               />
             )
@@ -152,9 +161,13 @@ export function ClientsList({ clients = [], campaigns = [], onEditClient }: Clie
             setIsEditCampaignDialogOpen(false)
             setEditingCampaign(null)
           }}
-          clientId={editingCampaign.id.split('-')[0]} // Temporary - should get from campaign.parent
+          clientId={campaigns.find(cam => cam._id === editingCampaign.id)?.parent || ''}
           clientName={clients.find(c => campaigns.find(cam => cam._id === editingCampaign.id)?.parent === c.id.toString())?.name || 'Client'}
           editCampaign={editingCampaign}
+          onSuccess={() => {
+            setIsEditCampaignDialogOpen(false)
+            setEditingCampaign(null)
+          }}
         />
       )}
     </div>

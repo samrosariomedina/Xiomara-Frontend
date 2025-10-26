@@ -35,6 +35,7 @@ export interface ClientCardProps {
   onDeleteClient: (clientId: string | number) => Promise<void>
   onDeleteCampaign?: (campaignId: string) => Promise<void>
   onEditClient?: (client: Client) => void
+  onEditCampaign?: (campaign: Campaign) => void
   t: (key: string) => string
 }
 
@@ -43,6 +44,7 @@ export interface CampaignRowProps {
   campaignIndex: number
   clientId: string | number
   onDeleteCampaign?: (campaignId: string) => Promise<void>
+  onEditCampaign?: (campaign: Campaign) => void
   t: (key: string) => string
 }
 
