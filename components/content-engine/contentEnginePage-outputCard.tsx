@@ -10,19 +10,28 @@ interface OutputCardProps {
   allOutputs: OutputResponse[]
   isLoadingOutput: boolean
   onOutputsChange?: () => void
+  selectedSummaryId?: string | null // ID of currently selected summary
   folderId: string
 }
 
-export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange, folderId }: OutputCardProps) {
+export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChange, selectedSummaryId, folderId }: OutputCardProps) {
     const [editingItem, setEditingItem] = useState<{ outputId: string; itemId: string; content: string } | null>(null)
     const [editContent, setEditContent] = useState('')
     
     console.log('╔══════════════════════════════════════════════════════╗')
     console.log('║  OUTPUT CARD DEBUG                                   ║')
     console.log('╠══════════════════════════════════════════════════════╣')
-    console.log('║  Folder ID:  ', folderId.padEnd(35), '║')
-    console.log('║  Outputs:    ', String(allOutputs.length).padEnd(35), '║')
+    console.log('║  Folder ID:        ', folderId.padEnd(32), '║')
+    console.log('║  All Outputs:     ', String(allOutputs.length).padEnd(32), '║')
+    console.log('║  Selected Summary: ', (selectedSummaryId || 'None').padEnd(32), '║')
     console.log('╚══════════════════════════════════════════════════════╝')
+
+    // Filter outputs by selected summary
+    const filteredOutputs = selectedSummaryId 
+        ? allOutputs.filter(output => output.summary === selectedSummaryId)
+        : []
+
+    console.log('📊 Filtered outputs:', filteredOutputs.length, 'out of', allOutputs.length)
 
     const handleCopyContent = (content: string) => {
         // Strip HTML tags for plain text copy
@@ -141,15 +150,33 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                 ) : (
                     <div className="flex-1 overflow-y-auto space-y-4">
                         <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-xs md:text-sm font-medium">All Generated Content</h4>
-                            <span className="text-xs text-gray-500">
-                                {allOutputs.length} batch{allOutputs.length !== 1 ? 'es' : ''}
-                            </span>
+                            <h4 className="text-xs md:text-sm font-medium">
+                                {selectedSummaryId ? 'Generated Content' : 'No Summary Selected'}
+                            </h4>
+                            {selectedSummaryId && (
+                                <span className="text-xs text-gray-500">
+                                    {filteredOutputs.length} batch{filteredOutputs.length !== 1 ? 'es' : ''}
+                                </span>
+                            )}
                         </div>
                         
-                        {/* All Output Batches */}
-                        <div className="space-y-4">
-                            {allOutputs.map((output) => (
+                        {/* Show message when no summary is selected */}
+                        {!selectedSummaryId ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <div className="text-sm">
+                                    Select or generate a summary to view its outputs
+                                </div>
+                            </div>
+                        ) : filteredOutputs.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <div className="text-sm">
+                                    No outputs generated for this summary yet
+                                </div>
+                            </div>
+                        ) : (
+                            /* Filtered Output Batches */
+                            <div className="space-y-4">
+                                {filteredOutputs.map((output) => (
                                 <div key={output._id} className="border border-gray-200 rounded-lg p-3">
                                     {/* Output Batch Header */}
                                     <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
@@ -258,8 +285,9 @@ export default function OutputCard({ allOutputs, isLoadingOutput, onOutputsChang
                                         ))}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

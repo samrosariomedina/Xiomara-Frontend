@@ -10,6 +10,7 @@ import { getContentEngineSources } from '@/actions/sources'
 import { getOutputsWithTemplateNamesAction } from '@/actions/outputs'
 import type { SourceResponse } from '@/lib/schemas'
 import type { OutputResponse } from '@/actions/outputs'
+import type { SummaryResponse } from '@/actions/summaries'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
 
@@ -27,12 +28,16 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
     // Determine folderId - campaignId takes priority
     const folderId = campaignId || clientId
     
+    // Check if we're in the specific campaign content-engine route
+    const isCampaignContentEngine = !!campaignId && !!clientId
+    
     console.log('╔══════════════════════════════════════════════════════╗')
     console.log('║  CONTENT ENGINE DEBUG                                ║')
     console.log('╠══════════════════════════════════════════════════════╣')
     console.log('║  Client ID:      ', (clientId || 'N/A').padEnd(29), '║')
     console.log('║  Campaign ID:    ', (campaignId || 'N/A').padEnd(29), '║')
     console.log('║  Folder ID:      ', folderId.padEnd(29), '║')
+    console.log('║  Campaign Mode:  ', String(isCampaignContentEngine).padEnd(29), '║')
     console.log('║  Templates:      ', String(templates.length).padEnd(29), '║')
     console.log('╚══════════════════════════════════════════════════════╝')
     
@@ -42,6 +47,9 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([])
     const [isLoadingSources, setIsLoadingSources] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+    
+    // State to track currently selected summary for output filtering
+    const [selectedSummary, setSelectedSummary] = useState<SummaryResponse | null>(null)
 
     // Server-side data fetching for all outputs with template names (folder-scoped)
     const { data: allOutputs = [], isLoading: isLoadingOutput, refetch: refetchOutput } = useQuery({
@@ -57,18 +65,52 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
     const refreshSources = useCallback(async () => {
         try {
             setIsLoadingSources(true)
-            // Use folderId (campaignId || clientId) for filtering sources
-            const fetchedSources = await getContentEngineSources({ 
-                folderId 
-            })
-            setSources(fetchedSources)
-            setFilteredSources(fetchedSources)
+            
+            if (isCampaignContentEngine) {
+                // Campaign content-engine mode: fetch sources from both client and campaign
+                console.log('🔄 Fetching sources for campaign content-engine mode...')
+                console.log('📁 Client ID (parent):', clientId)
+                console.log('📁 Campaign ID:', campaignId)
+                
+                // Fetch sources from both parent client and campaign
+                const [clientSources, campaignSources] = await Promise.all([
+                    getContentEngineSources({ folderId: clientId }),
+                    getContentEngineSources({ folderId: campaignId })
+                ])
+                
+                console.log('📊 Client sources:', clientSources.length)
+                console.log('📊 Campaign sources:', campaignSources.length)
+                
+                // Merge sources and remove duplicates based on _id
+                const mergedSources = [...clientSources]
+                campaignSources.forEach(campaignSource => {
+                    if (!mergedSources.find(source => source._id === campaignSource._id)) {
+                        mergedSources.push(campaignSource)
+                    }
+                })
+                
+                console.log('📊 Total merged sources:', mergedSources.length)
+                setSources(mergedSources)
+                setFilteredSources(mergedSources)
+            } else {
+                // Regular mode: use folderId (campaignId || clientId) for filtering sources
+                console.log('🔄 Fetching sources for regular mode...')
+                console.log('📁 Folder ID:', folderId)
+                
+                const fetchedSources = await getContentEngineSources({ 
+                    folderId 
+                })
+                
+                console.log('📊 Sources fetched:', fetchedSources.length)
+                setSources(fetchedSources)
+                setFilteredSources(fetchedSources)
+            }
         } catch (error) {
             console.error('Error fetching sources:', error)
         } finally {
             setIsLoadingSources(false)
         }
-    }, [folderId])
+    }, [folderId, isCampaignContentEngine, clientId, campaignId])
 
 
     // Clear all queries and state when folderId changes
@@ -83,6 +125,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
             // Clear local state
             setSelectedSourceIds([])
             setSearchQuery("")
+            setSelectedSummary(null) // Clear selected summary when context changes
             
             // Trigger summary clearing
             setClearSummary(true)
@@ -125,6 +168,12 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
 
     const handleClearSelectedSources = () => {
         setSelectedSourceIds([])
+    }
+
+    // Callback to handle summary changes from ChatCard
+    const handleSummaryChange = (summary: SummaryResponse | null) => {
+        setSelectedSummary(summary)
+        console.log('📝 Summary changed:', summary ? summary._id : 'None')
     }
 
     // State to trigger summary clearing
@@ -240,6 +289,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                                         onOutputGenerated={refetchOutput}
                                         onClearSelectedSources={handleClearSelectedSources}
                                         clearSummary={clearSummary}
+                                        onSummaryChange={handleSummaryChange}
                                         folderId={folderId}
                                     />
                                 </div>
@@ -252,6 +302,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                                         allOutputs={allOutputs as OutputResponse[]}
                                         isLoadingOutput={isLoadingOutput}
                                         onOutputsChange={refetchOutput}
+                                        selectedSummaryId={selectedSummary?._id}
                                         folderId={folderId}
                                     />
                                 </div>
@@ -285,6 +336,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                                     onOutputGenerated={refetchOutput}
                                     onClearSelectedSources={handleClearSelectedSources}
                                     clearSummary={clearSummary}
+                                    onSummaryChange={handleSummaryChange}
                                     folderId={folderId}
                                 />
                             </div>
@@ -295,6 +347,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                                     allOutputs={allOutputs as OutputResponse[]}
                                     isLoadingOutput={isLoadingOutput}
                                     onOutputsChange={refetchOutput}
+                                    selectedSummaryId={selectedSummary?._id}
                                     folderId={folderId}
                                 />
                             </div>

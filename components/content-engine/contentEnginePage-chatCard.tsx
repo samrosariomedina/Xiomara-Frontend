@@ -22,6 +22,7 @@ interface ChatCardProps {
   onOutputGenerated?: () => void
   onClearSelectedSources?: () => void
   clearSummary?: boolean // Add prop to trigger summary clearing
+  onSummaryChange?: (summary: SummaryResponse | null) => void // Callback when summary changes
   folderId: string
 }
 
@@ -30,6 +31,7 @@ export default function ChatCard({
   onOutputGenerated,
   onClearSelectedSources,
   clearSummary,
+  onSummaryChange,
   folderId
 }: ChatCardProps) {
     const { templates } = useTemplates()
@@ -98,6 +100,11 @@ export default function ChatCard({
             localStorage.removeItem('contentEngine_summary')
         }
     }, [generatedSummary])
+
+    // Notify parent when summary changes
+    useEffect(() => {
+        onSummaryChange?.(generatedSummary)
+    }, [generatedSummary, onSummaryChange])
 
     // React Query mutation for initial summary generation
     const generateSummaryMutation = useMutation({
