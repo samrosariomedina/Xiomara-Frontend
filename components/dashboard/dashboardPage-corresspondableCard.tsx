@@ -50,7 +50,7 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
   } = useCorresponsables(folderId)
 
   const goToCorresponsalesList = () => {
-    const route = routes.clients.getDashboardRoute(clientId, campaignId, 'corresponsales')
+    const route = routes.clients.getDashboardRoute(clientId, campaignId, 'corresponsables')
     const localizedRoute = getLocalizedRouteFromPathname(route, pathname || '/')
     router.push(localizedRoute)
   }
