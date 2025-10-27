@@ -12,8 +12,8 @@ import type { SourceResponse } from '@/lib/schemas'
 import type { OutputResponse } from '@/actions/outputs'
 import type { SummaryResponse } from '@/actions/summaries'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from "next/navigation"
-import { routes } from '@/lib/routes'
+import { useRouter, usePathname } from "next/navigation"
+import { routes, getLocalizedRouteFromPathname } from '@/lib/routes'
 
 interface ContentEnginePageProps {
     clientId: string
@@ -24,6 +24,7 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
     const [activeTab, setActiveTab] = useState<'fuentes' | 'chat' | 'output'>('fuentes')
     const { templates } = useTemplates()
     const router = useRouter()
+    const pathname = usePathname()
     const queryClient = useQueryClient()
     
     // Determine folderId - campaignId takes priority
@@ -180,39 +181,107 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
     // State to trigger summary clearing
     const [clearSummary, setClearSummary] = useState(false)
 
+    // Breadcrumb navigation functions
+    const goToClients = () => {
+        const localizedRoute = getLocalizedRouteFromPathname(routes.clients.page, pathname || '/')
+        router.push(localizedRoute)
+    }
+
+    const goToClientDashboard = () => {
+        const localizedRoute = getLocalizedRouteFromPathname(routes.clients.clientDashboard(clientId), pathname || '/')
+        router.push(localizedRoute)
+    }
+
+    const goToCampaignDashboard = () => {
+        if (campaignId) {
+            const localizedRoute = getLocalizedRouteFromPathname(routes.clients.campaignDashboard(clientId, campaignId), pathname || '/')
+            router.push(localizedRoute)
+        }
+    }
+
     return (
         <div className="min-h-screen flex flex-col">
             <main className="flex-1 bg-gray-50">
                 {/* Breadcrumb Navigation */}
-                <div className="lg:ml-17 lg:pt-2  p-2">
+                <div className="lg:ml-17 lg:pt-2 p-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <button 
-                            onClick={() => window.history.back()}
-                            className="flex items-center gap-1 hover:text-[#31499f] transition-colors hover:cursor-pointer"
-                        >
-                            <svg 
-                                className="w-4 h-4" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
+                        {/* Mobile breadcrumbs */}
+                        <div className="lg:hidden flex items-center gap-2">
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClients}
                             >
-                                <path 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                    strokeWidth={2} 
-                                    d="M15 19l-7-7 7-7" 
-                                />
-                            </svg>
-                            <span>Volver</span>
-                        </button>
-                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push(routes.clients.clientDashboard(clientId))}>
-                        <span className="mx-2 h-full w-full">›</span>
-                        <span>Dashboard Cliente</span>
-                        </button>
-                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push(routes.clients.contentEngine(clientId, campaignId))}>
-                        <span className="mx-2 h-12 w-12">›</span>
-                        <span>Campaña</span>
-                        </button>
+                                Clients
+                            </span>
+                            <span className="mx-2">›</span>
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClientDashboard}
+                            >
+                                Dashboard
+                            </span>
+                            <span className="mx-2">›</span>
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClientDashboard}
+                            >
+                                Client
+                            </span>
+                            {campaignId && (
+                                <>
+                                    <span className="mx-2">›</span>
+                                    <span
+                                        className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                        onClick={goToCampaignDashboard}
+                                    >
+                                        Campaign
+                                    </span>
+                                    <span className="mx-2">›</span>
+                                    <span className="text-[#31499f] font-medium">{campaignId}</span>
+                                </>
+                            )}
+                            <span className="mx-2">›</span>
+                            <span className="text-[#31499f] font-medium">Content Engine</span>
+                        </div>
+
+                        {/* Desktop breadcrumbs */}
+                        <div className="hidden lg:flex items-center gap-2">
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClients}
+                            >
+                                Clients
+                            </span>
+                            <span className="mx-2">›</span>
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClientDashboard}
+                            >
+                                Dashboard
+                            </span>
+                            <span className="mx-2">›</span>
+                            <span
+                                className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                onClick={goToClientDashboard}
+                            >
+                                Client
+                            </span>
+                            {campaignId && (
+                                <>
+                                    <span className="mx-2">›</span>
+                                    <span
+                                        className="cursor-pointer hover:text-[#31499f] transition-colors"
+                                        onClick={goToCampaignDashboard}
+                                    >
+                                        Campaign
+                                    </span>
+                                    <span className="mx-2">›</span>
+                                    <span className="text-[#31499f] font-medium">{campaignId}</span>
+                                </>
+                            )}
+                            <span className="mx-2">›</span>
+                            <span className="text-[#31499f] font-medium">Content Engine</span>
+                        </div>
                     </div>
                 </div>
 
