@@ -10,6 +10,7 @@ import { getSources, removeSourceAction } from "@/actions/sources"
 import { ClientOnly } from "@/components/providers/ClientOnly"
 import { toast } from "sonner"
 import type { SourceResponse } from "@/lib/schemas"
+import { routes } from "@/lib/routes"
 
 const columns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -35,13 +36,16 @@ function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProp
 
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
-    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
+    const baseCrumbs = [
+      { label: "Clients list", href: routes.clients.page },
+      { label: "Dashboard", href: routes.clients.clientDashboard(clientId) },
+      { label: "Client", href: routes.clients.clientDashboard(clientId) }
+    ]
     
     if (campaignId) {
       return [
         ...baseCrumbs,
-        { label: "Client", href: `/clients/${clientId}` },
-        { label: "Campaign" },
+        { label: "Campaign", href: routes.clients.campaignDashboard(clientId, campaignId) },
         { label: "Listado Fuentes" }
       ]
     }

@@ -9,6 +9,7 @@ import { getReferencesAction, removeReferenceAction } from "@/actions/knowledge"
 import type { ReferenceResponse } from "@/lib/schemas"
 import SourcesAdministrator from "./dashboardPage-Forms"
 import { toast } from "sonner"
+import { routes } from "@/lib/routes"
 
 interface KnowledgeBasePageProps {
   clientId: string
@@ -25,13 +26,16 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   
   // Dynamic breadcrumbs based on folder type
   const getBreadcrumbs = () => {
-    const baseCrumbs = [{ label: "Dashboard" }, { label: "Clientes", href: "/clients/channels" }]
+    const baseCrumbs = [
+      { label: "Clients list", href: routes.clients.page },
+      { label: "Dashboard", href: routes.clients.clientDashboard(clientId) },
+      { label: "Client", href: routes.clients.clientDashboard(clientId) }
+    ]
     
     if (campaignId) {
       return [
         ...baseCrumbs,
-        { label: "Client", href: `/clients/${clientId}` },
-        { label: "Campaign" },
+        { label: "Campaign", href: routes.clients.campaignDashboard(clientId, campaignId) },
         { label: "Listado Knowledge Base" }
       ]
     }

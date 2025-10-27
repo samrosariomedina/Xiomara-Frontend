@@ -147,7 +147,7 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     const displayName = ref.title || `Knowledge Item ${index + 1}`;
     
     return {
-      id: index + 1, // Convert to number for SourceItem compatibility
+      id: ref._id, // Use actual _id instead of index + 1
       name: displayName,
       type: ref.type === 'text' ? 'text' : ref.type === 'webpage' ? 'url' : 'image',
       category: "Knowledge",
@@ -156,7 +156,7 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   })
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push('/clients/channels/knowledge'), variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push(`/clients/${folderId}/knowledge`), variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: t('empty.addButton'), ariaLabel: t('empty.addButton'), onClick: () => setShowForm(true), variant: "soft" as const },
   ]
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
@@ -252,9 +252,8 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
 
   const handleEditFromList = (id: number | string) => {
     console.log('🔵 handleEditFromList called with id:', id);
-    // sources uses index + 1 as id, so we need to find by index
-    const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
-    const reference = references[index];
+    // Find the reference by _id
+    const reference = references.find(r => r._id === String(id));
     console.log('🔵 Found reference:', reference);
     if (reference) {
       // Set local edit state to trigger edit mode
@@ -271,9 +270,8 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     }
     
     try {
-      // sources uses index + 1 as id, so we need to find the actual reference
-      const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
-      const reference = references[index];
+      // Find the reference by _id
+      const reference = references.find(r => r._id === String(id));
       
       if (reference) {
         console.log('🔵 Deleting reference:', reference._id);

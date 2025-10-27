@@ -13,6 +13,7 @@ import type { OutputResponse } from '@/actions/outputs'
 import type { SummaryResponse } from '@/actions/summaries'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from "next/navigation"
+import { routes } from '@/lib/routes'
 
 interface ContentEnginePageProps {
     clientId: string
@@ -204,12 +205,11 @@ export default function ContentEnginePage({ clientId, campaignId }: ContentEngin
                             </svg>
                             <span>Volver</span>
                         </button>
-                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push('/clients/channels')}>
+                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push(routes.clients.clientDashboard(clientId))}>
                         <span className="mx-2 h-full w-full">›</span>
-                        <span>Listado Clientes</span>
-
+                        <span>Dashboard Cliente</span>
                         </button>
-                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push('/clients/content-engine')}>
+                        <button className="hover:text-[#31499f] transition-colors hover:cursor-pointer" onClick={() => router.push(routes.clients.contentEngine(clientId, campaignId))}>
                         <span className="mx-2 h-12 w-12">›</span>
                         <span>Campaña</span>
                         </button>

@@ -6,7 +6,6 @@
 export const routes = {
   // Root routes
   home: '/',
-  dashboard: '/clients/channels',
 
   // Auth routes
   auth: {
@@ -17,24 +16,23 @@ export const routes = {
     pending: '/auth/pending',
   },
 
-  // Clients routes
+  // Clients routes - all routes are tied to specific client IDs
   clients: {
-    // Main clients page
+    // Main clients list page
     page: '/clients',
-    
-    // Client dashboards (moved from lists)
-    dashboards: {
-      corresponsales: '/clients/corresponsables',
-      fuentes: '/clients/fuentes', 
-      knowledge: '/clients/knowledge',
-      media: '/clients/media',
-    },
-    
     // Client-specific pages with route params
-    channels: '/clients/channels',
     clientDashboard: (clientId: string) => `/clients/${clientId}`,
     campaignDashboard: (clientId: string, campaignId: string) => `/clients/${clientId}/campaigns/${campaignId}`,
-    contentEngine: '/clients/content-engine',
+    contentEngine: (clientId: string, campaignId?: string) => 
+      campaignId ? `/clients/${clientId}/campaigns/${campaignId}/content-engine` : `/clients/${clientId}/content-engine`,
+    fuentes: (clientId: string, campaignId?: string) => 
+      campaignId ? `/clients/${clientId}/campaigns/${campaignId}/fuentes` : `/clients/${clientId}/fuentes`,
+    knowledge: (clientId: string, campaignId?: string) => 
+      campaignId ? `/clients/${clientId}/campaigns/${campaignId}/knowledge` : `/clients/${clientId}/knowledge`,
+    media: (clientId: string, campaignId?: string) => 
+      campaignId ? `/clients/${clientId}/campaigns/${campaignId}/media` : `/clients/${clientId}/media`,
+    corresponsables: (clientId: string, campaignId?: string) => 
+      campaignId ? `/clients/${clientId}/campaigns/${campaignId}/corresponsables` : `/clients/${clientId}/corresponsables`,
     
     // Dynamic dashboard routes based on client/campaign context
     getDashboardRoute: (clientId: string, campaignId?: string, dashboardName?: string) => {
@@ -72,4 +70,3 @@ export function getLocalizedRouteFromPathname(route: string, pathname: string): 
 export type RouteKey = keyof typeof routes
 export type AuthRouteKey = keyof typeof routes.auth
 export type ClientsRouteKey = keyof typeof routes.clients
-export type ClientsDashboardsRouteKey = keyof typeof routes.clients.dashboards

@@ -26,16 +26,20 @@ export function DashboardHeader({ references, sources, folderId, clientId, campa
   const router = useRouter()
 
   const goToClients = () => {
+    // Navigate to the clients list page
     const localizedRoute = getLocalizedRouteFromPathname(routes.clients.page, pathname || '/')
     router.push(localizedRoute)
   }
 
+  const goToClientDashboard = () => {
+    // Navigate to the client dashboard
+    const localizedRoute = getLocalizedRouteFromPathname(routes.clients.clientDashboard(clientId), pathname || '/')
+    router.push(localizedRoute)
+  }
+
   const goToContentEngine = () => {
-    // Navigate to campaign-specific or client-specific content engine
-    const contentEngineRoute = campaignId 
-      ? `/clients/${clientId}/campaigns/${campaignId}/content-engine`
-      : `/clients/${clientId}/content-engine`
-    
+    // Navigate to campaign-specific or client-specific content engine using routes
+    const contentEngineRoute = routes.clients.contentEngine(clientId, campaignId)
     const localizedRoute = getLocalizedRouteFromPathname(contentEngineRoute, pathname || '/')
     router.push(localizedRoute)
   }
@@ -57,9 +61,33 @@ export function DashboardHeader({ references, sources, folderId, clientId, campa
                 {t('breadcrumb.clientsList')}
               </span>
               <span className="mx-2">›</span>
-              <span className="whitespace-nowrap">{t('breadcrumb.dashboard')}</span>
+              <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClientDashboard}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClientDashboard() }}
+              >
+                {t('breadcrumb.dashboard')}
+              </span>
               <span className="mx-2">›</span>
-              <span className="text-[#31499F] font-medium whitespace-nowrap">{t('breadcrumb.client')}</span>
+              <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClientDashboard}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClientDashboard() }}
+              >
+                {t('breadcrumb.client')}
+              </span>
+              {campaignId && (
+                <>
+                  <span className="mx-2">›</span>
+                  <span className="text-[#31499F] font-medium whitespace-nowrap">Campaign</span>
+                  <span className="mx-2">›</span>
+                  <span className="text-[#31499F] font-medium whitespace-nowrap">{campaignId}</span>
+                </>
+              )}
             </div>
 
             <div className="mt-2">
@@ -108,9 +136,33 @@ export function DashboardHeader({ references, sources, folderId, clientId, campa
                 {t('breadcrumb.clientsList')}
               </span>
             <span className="mx-2">›</span>
-            <span className="whitespace-nowrap">{t('breadcrumb.dashboard')}</span>
+            <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClientDashboard}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClientDashboard() }}
+              >
+                {t('breadcrumb.dashboard')}
+              </span>
             <span className="mx-2">›</span>
-            <span className="text-[#31499F] font-medium whitespace-nowrap">{t('breadcrumb.client')}</span>
+            <span
+                className="whitespace-nowrap cursor-pointer hover:underline"
+                role="link"
+                tabIndex={0}
+                onClick={goToClientDashboard}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') goToClientDashboard() }}
+              >
+                {t('breadcrumb.client')}
+              </span>
+            {campaignId && (
+              <>
+                <span className="mx-2">›</span>
+                <span className="text-[#31499F] font-medium whitespace-nowrap">Campaign</span>
+                <span className="mx-2">›</span>
+                <span className="text-[#31499F] font-medium whitespace-nowrap">{campaignId}</span>
+              </>
+            )}
           </div>
 
           {/* Title + controls row */}

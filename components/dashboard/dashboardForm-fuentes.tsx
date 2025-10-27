@@ -43,9 +43,6 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   { onSubmit, sources, folderId, editSource = null }: FuentesGeneralesFormProps,
   ref
 ) {
-  // Debug logging
-  console.log('🟠 FuentesGeneralesForm rendered with editSource:', editSource);
-  
   // Local edit state for list-based editing
   const [localEditSource, setLocalEditSource] = useState<SourceResponse | null>(null);
   
@@ -66,12 +63,23 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     text: isEditMode ? (currentEditSource?.content || "") : "", // Show content for ALL types in edit mode
   })
 
+  // Debug logging
+  console.log('🟠 FuentesGeneralesForm rendered with editSource:', editSource);
+  console.log('🟠 Current localEditSource:', localEditSource);
+  console.log('🟠 Current currentEditSource:', currentEditSource);
+  console.log('🟠 Current isEditMode:', isEditMode);
+  console.log('🟠 Current showForm:', showForm);
+  console.log('🟠 Current formData:', formData);
+
   const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(folderId)
   const router = useRouter()
   
   // Reset form when editSource or localEditSource changes
   React.useEffect(() => {
-    console.log('🟠 currentEditSource changed:', currentEditSource);
+    console.log('🟠 useEffect triggered - currentEditSource:', currentEditSource);
+    console.log('🟠 useEffect triggered - isEditMode:', isEditMode);
+    console.log('🟠 useEffect triggered - showForm:', showForm);
+    
     if (currentEditSource) {
       console.log('🟠 Setting form to edit mode with data:', {
         name: currentEditSource.title,
@@ -87,8 +95,20 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       })
       setActiveTab('text') // Always use text tab in edit mode
       setErrors({})
+      console.log('🟠 Form state updated - showForm set to true');
+    } else {
+      console.log('🟠 No currentEditSource, not setting edit mode');
     }
   }, [currentEditSource])
+
+  // Additional effect to watch localEditSource specifically
+  React.useEffect(() => {
+    console.log('🟠 localEditSource changed:', localEditSource);
+    if (localEditSource) {
+      console.log('🟠 localEditSource effect - setting showForm to true');
+      setShowForm(true);
+    }
+  }, [localEditSource])
 
   // Debug logging for folderId
   console.log('╔═══════════════════════════════════════════════════╗')
@@ -101,27 +121,66 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const stripHtmlAndCleanText = (htmlText: string): string => {
     if (!htmlText) return '';
     
-    // First check if it's just empty HTML tags
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlText;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    // If it's already plain text (no HTML tags), return as is
+    if (!htmlText.includes('<') && !htmlText.includes('>')) {
+      return htmlText.trim();
+    }
     
-    if (!textContent.trim()) return '';
-    
-    return textContent
-      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with spaces
-      .replace(/&amp;/g, '&') // Decode &amp;
-      .replace(/&lt;/g, '<') // Decode &lt;
-      .replace(/&gt;/g, '>') // Decode &gt;
-      .replace(/&quot;/g, '"') // Decode &quot;
-      .replace(/&#39;/g, "'") // Decode &#39;
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim(); // Remove leading/trailing whitespace
+    try {
+      // Create a temporary div to parse HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlText;
+      
+      // Get text content while preserving some formatting
+      let textContent = '';
+      
+      // Walk through child nodes to preserve some structure
+      const walker = document.createTreeWalker(
+        tempDiv,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        null,
+        false
+      );
+      
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textContent += node.textContent || '';
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as Element;
+          // Add line breaks for block elements
+          if (['P', 'DIV', 'BR', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+            textContent += '\n';
+          }
+        }
+      }
+      
+      // If tree walker didn't work, fall back to simple text extraction
+      if (!textContent.trim()) {
+        textContent = tempDiv.textContent || tempDiv.innerText || '';
+      }
+      
+      // Clean up the text but preserve structure
+      return textContent
+        .replace(/&nbsp;/g, ' ') // Replace &nbsp; with spaces
+        .replace(/&amp;/g, '&') // Decode &amp;
+        .replace(/&lt;/g, '<') // Decode &lt;
+        .replace(/&gt;/g, '>') // Decode &gt;
+        .replace(/&quot;/g, '"') // Decode &quot;
+        .replace(/&#39;/g, "'") // Decode &#39;
+        .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
+        .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
+        .trim(); // Remove leading/trailing whitespace
+    } catch (error) {
+      console.warn('Error processing HTML content:', error);
+      // Fallback: return original text if HTML processing fails
+      return htmlText.trim();
+    }
   }
 
   // Transform sources to SourceItem format for display - no caching
   const sourcesList: Source[] = sources.map((source, index) => ({
-    id: index + 1,
+    id: source._id, // Use actual _id instead of index + 1
     name: source.title || 'Untitled',
     type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
     category: "General",
@@ -143,15 +202,28 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       // Process text content to strip HTML tags for backend
       const processedText = stripHtmlAndCleanText(formData.text);
       
+      // Debug logging for text processing
+      console.log('🟠 Text processing debug:', {
+        originalText: formData.text?.substring(0, 100) + '...',
+        originalLength: formData.text?.length || 0,
+        processedText: processedText?.substring(0, 100) + '...',
+        processedLength: processedText?.length || 0,
+        isEditMode,
+        activeTab
+      });
+      
       // Validate that we have content after processing
       if (isEditMode || activeTab === 'text') {
-        if (!processedText) {
+        // In edit mode, be more lenient - check original text if processed text is empty
+        const textToValidate = processedText || formData.text;
+        
+        if (!textToValidate || textToValidate.trim().length === 0) {
           setErrors({ text: 'Please enter some text content' });
           return;
         }
         
-        // Additional validation for minimum content length
-        if (processedText.length < 3) {
+        // Additional validation for minimum content length (only for create mode)
+        if (!isEditMode && textToValidate.length < 3) {
           setErrors({ text: 'Text content must be at least 3 characters long' });
           return;
         }
@@ -162,7 +234,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         name: formData.name,
         // In edit mode, only allow text content updates
         ...(isEditMode ? {
-          text: processedText || undefined,
+          text: processedText || formData.text || undefined, // Fallback to original text if processing fails
         } : {
           file: formData.file || undefined,
           url: formData.url || undefined,
@@ -170,9 +242,21 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         }),
       }
       
+      // Additional safety check before submitting
+      if (isEditMode && (!sourceData.text || sourceData.text.trim().length === 0)) {
+        console.error('🟠 ERROR: Attempting to submit empty text content in edit mode');
+        setErrors({ text: 'Cannot save empty content. Please add some text.' });
+        return;
+      }
+      
       if (isEditMode && currentEditSource) {
         // Edit existing source
-        console.log('Editing source with data:', sourceData)
+        console.log('🟠 Editing source with data:', {
+          sourceId: currentEditSource._id,
+          name: sourceData.name,
+          textLength: sourceData.text?.length || 0,
+          textPreview: sourceData.text?.substring(0, 100) + '...'
+        })
         await editSourceMutation({ sourceId: currentEditSource._id, data: sourceData })
       } else {
         // Create new source
@@ -193,8 +277,20 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       setLocalEditSource(null) // Clear local edit state
       setShowForm(false) // Close form and show sources list
     } catch (error) {
-      console.error(`Error ${isEditMode ? 'editing' : 'creating'} source:`, error)
-      setErrors({ general: `Failed to ${isEditMode ? 'edit' : 'create'} source` })
+      console.error(`🟠 Error ${isEditMode ? 'editing' : 'creating'} source:`, error)
+      
+      // More specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes('text content')) {
+          setErrors({ text: error.message })
+        } else if (error.message.includes('validation')) {
+          setErrors({ general: 'Validation error: ' + error.message })
+        } else {
+          setErrors({ general: `Failed to ${isEditMode ? 'update' : 'create'} source: ${error.message}` })
+        }
+      } else {
+        setErrors({ general: `Failed to ${isEditMode ? 'edit' : 'create'} source` })
+      }
     }
   }
 
@@ -212,7 +308,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const t = useTranslations('FUENTES')
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push('/clients/fuentes') , variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: t('viewAll'), ariaLabel: t('viewAll'), onClick: () => router.push(`/clients/${folderId}/fuentes`) , variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: t('form.addButton'), ariaLabel: t('form.addButton'), onClick: handleAddMore, variant: "soft" as const },
   ]
 
@@ -229,13 +325,16 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   const handleEditFromList = (id: number | string) => {
     console.log('🟠 handleEditFromList called with id:', id);
-    // sourcesList uses index + 1 as id, so we need to find by index
-    const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
-    const source = sources[index];
+    // Find the source by _id
+    const source = sources.find(s => s._id === String(id));
     console.log('🟠 Found source:', source);
     if (source) {
+      console.log('🟠 Setting localEditSource to:', source);
       // Set local edit state to trigger edit mode
       setLocalEditSource(source);
+      console.log('🟠 localEditSource state updated');
+    } else {
+      console.log('🟠 Source not found for id:', id);
     }
   };
 
@@ -243,9 +342,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     console.log('🟠 handleDeleteFromList called with id:', id);
     
     try {
-      // sourcesList uses index + 1 as id, so we need to find the actual source
-      const index = typeof id === 'number' ? id - 1 : parseInt(String(id)) - 1;
-      const source = sources[index];
+      // Find the source by _id
+      const source = sources.find(s => s._id === String(id));
       
       if (source) {
         console.log('🟠 Deleting source:', source._id);
@@ -260,7 +358,9 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   };
 
   // Image 5: Sources list view
+  console.log('🟠 Rendering decision - sourcesList.length:', sourcesList.length, 'showForm:', showForm);
   if (sourcesList.length > 0 && !showForm) {
+    console.log('🟠 Rendering sources list view');
     return (
       <div className="space-y-2 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActions} />
@@ -273,6 +373,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   // Image 1: Empty state
   if (!showForm && sourcesList.length === 0) {
+    console.log('🟠 Rendering empty state');
     return (
       <>
   <HeaderControls title={t('title')} actions={headerActionsPlain} />
@@ -294,6 +395,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   }
 
   // Images 2-4: Form with tabs
+  console.log('🟠 Rendering form view');
     return (
     <div className="space-y-6 h-full flex flex-col">
   <HeaderControls title={t('title')} actions={headerActionsPlain} />

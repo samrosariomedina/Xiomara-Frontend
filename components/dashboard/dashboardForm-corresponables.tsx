@@ -174,7 +174,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   }
 
   const headerActions = [
-    { icon: <Eye className="h-4 w-4" />, label: tForm('header.viewFullList'), ariaLabel: tForm('header.viewFullList'), onClick: () => router.push('/clients/channels/corresponsables'), variant: "soft" as const },
+    { icon: <Eye className="h-4 w-4" />, label: tForm('header.viewFullList'), ariaLabel: tForm('header.viewFullList'), onClick: () => router.push(`/clients/${folderId}/corresponsables`), variant: "soft" as const },
     { icon: <Download className="h-4 w-4" />, label: tForm('header.uploadCSV'), ariaLabel: tForm('header.uploadCSV'), onClick: () => {}, variant: "soft" as const },
     { icon: <Plus className="h-4 w-4" />, label: tForm('header.add'), ariaLabel: tForm('header.add'), onClick: () => setShowForm(true), variant: "soft" as const },
   ]

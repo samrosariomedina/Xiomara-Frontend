@@ -6,6 +6,7 @@ import { DataTable, type Column } from "../lists-tableData"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
+import { routes } from "@/lib/routes"
 
 const usuariosColumns: Column[] = [
   { key: "nombre", label: "Nombre", width: "200px" },
@@ -83,10 +84,21 @@ function CorresponsalesPage({ clientId, campaignId }: CorresponsalesPageProps) {
   // Determine folderId from route params
   const folderId = campaignId || clientId;
   
-  // Simple breadcrumbs - can be enhanced later
+  // Dynamic breadcrumbs based on folder type
   const breadcrumbs = campaignId
-    ? [{ label: "Dashboard" }, { label: "Clients" }, { label: "Campaign" }, { label: "Corresponsables" }]
-    : [{ label: "Dashboard" }, { label: "Clients" }, { label: "Corresponsables" }];
+    ? [
+        { label: "Clients list", href: routes.clients.page }, 
+        { label: "Dashboard", href: routes.clients.clientDashboard(clientId) }, 
+        { label: "Client", href: routes.clients.clientDashboard(clientId) }, 
+        { label: "Campaign", href: routes.clients.campaignDashboard(clientId, campaignId) }, 
+        { label: "Corresponsables" }
+      ]
+    : [
+        { label: "Clients list", href: routes.clients.page }, 
+        { label: "Dashboard", href: routes.clients.clientDashboard(clientId) }, 
+        { label: "Client", href: routes.clients.clientDashboard(clientId) }, 
+        { label: "Corresponsables" }
+      ];
   
   // Fetch corresponsables data using React Query with folderId from route
   const { 

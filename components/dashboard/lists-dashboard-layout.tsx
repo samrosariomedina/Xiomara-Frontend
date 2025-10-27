@@ -6,7 +6,7 @@ import { Plus, Brain } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter, usePathname } from "next/navigation"
 import { ClientInfoDisplay } from "./ClientInfoDisplay"
-import { getLocalizedRouteFromPathname } from "@/lib/routes"
+import { getLocalizedRouteFromPathname, routes } from "@/lib/routes"
 
 
 interface DashboardLayoutProps {
@@ -24,16 +24,13 @@ export function DashboardLayout({ children, title, breadcrumbs, onAddClick, addB
   const pathname = usePathname()
 
   const handleContentEngineClick = () => {
-    // Navigate to campaign-specific or client-specific content engine
+    // Navigate to campaign-specific or client-specific content engine using routes
     if (!clientId) {
       console.error('Cannot navigate to content engine: clientId is missing')
       return
     }
     
-    const contentEngineRoute = campaignId 
-      ? `/clients/${clientId}/campaigns/${campaignId}/content-engine`
-      : `/clients/${clientId}/content-engine`
-    
+    const contentEngineRoute = routes.clients.contentEngine(clientId, campaignId)
     const localizedRoute = getLocalizedRouteFromPathname(contentEngineRoute, pathname || '/')
     router.push(localizedRoute)
   }
