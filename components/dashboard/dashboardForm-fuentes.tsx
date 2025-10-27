@@ -32,7 +32,7 @@ interface FuentesGeneralesFormProps {
 }
 
 interface Source {
-  id: number
+  id: string | number
   name: string
   type: "image" | "text" | "url"
   category: string
@@ -99,7 +99,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     } else {
       console.log('🟠 No currentEditSource, not setting edit mode');
     }
-  }, [currentEditSource])
+  }, [currentEditSource, isEditMode, showForm])
 
   // Additional effect to watch localEditSource specifically
   React.useEffect(() => {
@@ -137,9 +137,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       // Walk through child nodes to preserve some structure
       const walker = document.createTreeWalker(
         tempDiv,
-        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-        null,
-        false
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
       );
       
       let node;
@@ -179,7 +177,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   }
 
   // Transform sources to SourceItem format for display - no caching
-  const sourcesList: Source[] = sources.map((source, index) => ({
+  const sourcesList: Source[] = sources.map((source) => ({
     id: source._id, // Use actual _id instead of index + 1
     name: source.title || 'Untitled',
     type: source.type === 'generales' ? 'text' : source.type as "image" | "text" | "url",
