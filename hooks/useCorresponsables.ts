@@ -112,15 +112,10 @@ export function useCorresponsables(folderId?: string) {
       data: {
         clientName: string;
         email: string;
-        whatsapp: string;
-        accountType: "premium" | "standard" | "basic";
+        listenerType: "whatsapp" | "telegram";
+        whatsapp?: string;
         telegramToken?: string;
-        invitationMethods?: {
-          whatsapp: boolean;
-          telegram: boolean;
-          email: boolean;
-          copyLink: boolean;
-        };
+        accountType: "premium" | "standard" | "basic";
       }
     }) => {
       const result = await createCorresponsableWithSharingAction(folderId, data)

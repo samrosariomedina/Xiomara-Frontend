@@ -221,14 +221,10 @@ export async function createCorresponsablesAction(
   correspondents: Array<{
     clientName: string;
     email: string;
-    whatsapp: string;
+    listenerType: "whatsapp" | "telegram";
+    whatsapp?: string;
+    telegramToken?: string;
     accountType: "premium" | "standard" | "basic";
-    invitationMethods?: {
-      whatsapp: boolean;
-      telegram: boolean;
-      email: boolean;
-      copyLink: boolean;
-    };
   }>
 ) {
   try {
@@ -248,11 +244,40 @@ export async function createCorresponsablesAction(
     const createdListeners = [];
 
     for (const correspondent of correspondents) {
-      const result = await createCorresponsableAction(folderId, correspondent);
-      if (result.success) {
-        createdListeners.push(result.data);
+      // Create listener based on listenerType
+      if (correspondent.listenerType === 'telegram') {
+        if (!correspondent.telegramToken) {
+          console.warn(`Skipping corresponsable ${correspondent.clientName}: Telegram token required`);
+          continue;
+        }
+        const telegramResult = await createTelegramListenerAction(folderId, {
+          clientName: correspondent.clientName,
+          email: correspondent.email,
+          accountType: correspondent.accountType,
+          telegramToken: correspondent.telegramToken
+        });
+        if (telegramResult.success) {
+          createdListeners.push(telegramResult.data);
+        } else {
+          console.warn(`Failed to create corresponsable ${correspondent.clientName}: ${telegramResult.error}`);
+        }
       } else {
-        console.warn(`Failed to create corresponsable ${correspondent.clientName}: ${result.error}`);
+        // WhatsApp
+        if (!correspondent.whatsapp) {
+          console.warn(`Skipping corresponsable ${correspondent.clientName}: WhatsApp number required`);
+          continue;
+        }
+        const result = await createCorresponsableAction(folderId, {
+          clientName: correspondent.clientName,
+          email: correspondent.email,
+          whatsapp: correspondent.whatsapp,
+          accountType: correspondent.accountType
+        });
+        if (result.success) {
+          createdListeners.push(result.data);
+        } else {
+          console.warn(`Failed to create corresponsable ${correspondent.clientName}: ${result.error}`);
+        }
       }
     }
 
@@ -693,15 +718,10 @@ export async function createCorresponsableWithSharingAction(
   data: {
     clientName: string;
     email: string;
-    whatsapp: string;
-    accountType: "premium" | "standard" | "basic";
+    listenerType: "whatsapp" | "telegram";
+    whatsapp?: string;
     telegramToken?: string;
-    invitationMethods?: {
-      whatsapp: boolean;
-      telegram: boolean;
-      email: boolean;
-      copyLink: boolean;
-    };
+    accountType: "premium" | "standard" | "basic";
   }
 ) {
   try {
@@ -710,19 +730,24 @@ export async function createCorresponsableWithSharingAction(
       throw new Error('Authentication required');
     }
 
-    const createdListeners = [];
-    const listenerIds = [];
+    console.log('=== CREATING CORRESPONSABLE ===');
+    console.log('Listener Type:', data.listenerType);
+    console.log('Client Name:', data.clientName);
+    console.log('WhatsApp:', data.whatsapp ? 'PROVIDED' : 'NOT PROVIDED');
+    console.log('Telegram Token:', data.telegramToken ? 'PROVIDED' : 'NOT PROVIDED');
 
-    console.log('=== INVITATION METHODS DEBUG ===');
-    console.log('Full data received:', data);
-    console.log('Invitation methods selected:', data.invitationMethods);
-    console.log('Telegram selected:', data.invitationMethods?.telegram);
-    console.log('WhatsApp selected:', data.invitationMethods?.whatsapp);
-    console.log('Telegram token provided:', data.telegramToken ? 'YES' : 'NO');
-    console.log('Telegram token value:', data.telegramToken ? 'TOKEN_EXISTS' : 'NO_TOKEN');
+    let createdListener;
+    let listenerId: string;
 
-    // Create Telegram listener if requested and token provided
-    if (data.invitationMethods?.telegram && data.telegramToken) {
+    // Create listener based on listenerType
+    if (data.listenerType === 'telegram') {
+      if (!data.telegramToken || data.telegramToken.trim() === '') {
+        return {
+          success: false,
+          error: 'Telegram bot token is required when Telegram is selected'
+        };
+      }
+
       console.log('Creating Telegram listener for:', data.clientName);
       const telegramResult = await createTelegramListenerAction(folderId, {
         clientName: data.clientName,
@@ -731,91 +756,63 @@ export async function createCorresponsableWithSharingAction(
         telegramToken: data.telegramToken
       });
       
-      console.log('Telegram creation result:', telegramResult);
-      
-      if (telegramResult.success) {
-        createdListeners.push(telegramResult.data);
-        listenerIds.push(telegramResult.data._id);
-        console.log('Telegram listener added to created listeners');
-      } else {
-        console.error('Telegram listener creation failed:', telegramResult.error);
+      if (!telegramResult.success) {
+        return {
+          success: false,
+          error: telegramResult.error || 'Failed to create Telegram listener'
+        };
       }
-    }
 
-    // Create WhatsApp listener if requested (and not Telegram-only)
-    if (data.invitationMethods?.whatsapp) {
+      createdListener = telegramResult.data;
+      listenerId = createdListener._id;
+    } else {
+      // WhatsApp listener
+      if (!data.whatsapp || data.whatsapp.trim() === '') {
+        return {
+          success: false,
+          error: 'WhatsApp number is required when WhatsApp is selected'
+        };
+      }
+
       console.log('Creating WhatsApp listener for:', data.clientName);
-      const whatsappResult = await createCorresponsableAction(folderId, data);
-      if (whatsappResult.success) {
-        createdListeners.push(whatsappResult.data);
-        listenerIds.push(whatsappResult.data._id);
-        console.log('WhatsApp listener added to created listeners');
-      }
-    }
-
-    // If no listeners were created, create a default WhatsApp listener
-    if (createdListeners.length === 0) {
-      console.log('No invitation methods selected - creating default WhatsApp listener');
-      const defaultResult = await createCorresponsableAction(folderId, {
+      const whatsappResult = await createCorresponsableAction(folderId, {
         clientName: data.clientName,
         email: data.email,
         whatsapp: data.whatsapp,
         accountType: data.accountType
       });
-      
-      if (defaultResult.success) {
-        createdListeners.push(defaultResult.data);
-        listenerIds.push(defaultResult.data._id);
-        console.log('Default WhatsApp listener created');
-      } else {
-        console.error('Failed to create default listener:', defaultResult.error);
+
+      if (!whatsappResult.success) {
         return {
           success: false,
-          error: 'Failed to create corresponsable: ' + defaultResult.error
+          error: whatsappResult.error || 'Failed to create WhatsApp listener'
         };
       }
+
+      createdListener = whatsappResult.data;
+      listenerId = createdListener._id;
     }
 
-    // Get share URL for the first listener (for sharing operations)
-    const primaryListenerId = listenerIds[0];
-    // Note: Sharing results are handled by the frontend useSharing hook
-
     // Get share URL for sharing operations
-    const shareUrlResult = await getShareUrlAction(primaryListenerId);
+    const shareUrlResult = await getShareUrlAction(listenerId);
     
     if (shareUrlResult.success) {
       const shareUrl = shareUrlResult.data;
-      const message = `Hola ${data.clientName}, te invito a conectarte con nuestro sistema de corresponsales. ${shareUrl}`;
       
-      // Return sharing data for frontend execution
       return {
         success: true,
         data: {
-          listeners: createdListeners,
-          shareUrl,
-          message,
-          invitationMethods: data.invitationMethods || {
-            whatsapp: false,
-            telegram: false,
-            email: false,
-            copyLink: false
-          }
+          listeners: [createdListener],
+          shareUrl
         }
       };
     } else {
-      // Even if sharing fails, return the created listeners
+      // Even if sharing fails, return the created listener
       return {
         success: true,
         data: {
-          listeners: createdListeners,
+          listeners: [createdListener],
           shareUrl: null,
-          message: null,
-          invitationMethods: data.invitationMethods || {
-            whatsapp: false,
-            telegram: false,
-            email: false,
-            copyLink: false
-          },
           sharingError: shareUrlResult.error
         }
       };
@@ -837,14 +834,10 @@ export async function createCorresponsablesWithSharingAction(
   correspondents: Array<{
     clientName: string;
     email: string;
-    whatsapp: string;
+    listenerType: "whatsapp" | "telegram";
+    whatsapp?: string;
+    telegramToken?: string;
     accountType: "premium" | "standard" | "basic";
-    invitationMethods?: {
-      whatsapp: boolean;
-      telegram: boolean;
-      email: boolean;
-      copyLink: boolean;
-    };
   }>
 ) {
   try {

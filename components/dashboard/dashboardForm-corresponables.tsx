@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
 import HeaderControls from "../ui/formsHeader-dashboard"
 import SourcesList, { SourceItem } from "../ui/formsLists-dashboard"
 import { useTranslations } from 'next-intl'
@@ -17,14 +16,14 @@ import { corresponsablesSchema, type CorresponsablesInput } from '@/lib/schemas'
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
-import { useSharing } from "@/hooks/useSharing"
-import { createCorresponsableWithSharingAction } from "@/actions/corresponsables"
+import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
 import { toast } from "sonner"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
 interface CorresponsableData {
   _id: string;
+  type?: string; // "whatsapp" or "telegram"
   title?: string;
   origin?: string;
   approved: boolean;
@@ -42,6 +41,7 @@ interface CorresponsalesFormProps {
   folderId: string
   editCorresponsable?: {
     _id: string;
+    type?: string; // "whatsapp" or "telegram"
     title?: string;
     origin?: string;
     approved: boolean;
@@ -64,6 +64,13 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   const isEditMode = !!currentEditCorresponsable
   
   const [showForm, setShowForm] = useState(isEditMode) // Auto-show form in edit mode
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [shareDialogData, setShareDialogData] = useState<{
+    shareUrl: string;
+    clientName: string;
+    email?: string;
+    listenerType: "whatsapp" | "telegram";
+  } | null>(null)
   
   // Use react-hook-form like the client form
   const form = useForm<CorresponsableFormData>({
@@ -71,15 +78,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     defaultValues: {
       clientName: isEditMode ? (currentEditCorresponsable?.title || "") : "",
       email: isEditMode ? (currentEditCorresponsable?.metadata?.email || "") : "",
-      whatsapp: "",
+      listenerType: isEditMode ? (currentEditCorresponsable?.type === "telegram" ? "telegram" : "whatsapp") : "whatsapp",
+      whatsapp: isEditMode ? (currentEditCorresponsable?.type === "whatsapp" ? (currentEditCorresponsable?.origin || "") : "") : "",
+      telegramToken: isEditMode ? (currentEditCorresponsable?.type === "telegram" ? (currentEditCorresponsable?.origin || "") : "") : "",
       accountType: "basic",
-      telegramToken: "",
-      invitationMethods: {
-        whatsapp: false,
-        telegram: false,
-        email: false,
-        copyLink: false,
-      },
     },
     mode: "onSubmit"
   })
@@ -89,7 +91,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   const tForm = useTranslations('CORRESPONSABLES_FORM')
   const tMain = useTranslations('CORRESPONSABLES')
   const router = useRouter()
-  const { executeSharing } = useSharing()
 
   // Clear errors when form is shown
   useEffect(() => {
@@ -114,18 +115,23 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   useEffect(() => {
     console.log('🟣 currentEditCorresponsable changed:', currentEditCorresponsable);
     if (currentEditCorresponsable) {
+      const listenerType = currentEditCorresponsable.type === "telegram" ? "telegram" : "whatsapp";
+      const isWhatsApp = listenerType === "whatsapp";
+      
       console.log('🟣 Setting form to edit mode with data:', {
         clientName: currentEditCorresponsable.title,
         email: currentEditCorresponsable.metadata?.email,
-        whatsapp: currentEditCorresponsable.origin
+        listenerType,
+        origin: currentEditCorresponsable.origin
       });
       setShowForm(true)
       form.reset({
         clientName: currentEditCorresponsable.title || "",
         email: currentEditCorresponsable.metadata?.email || "",
-        whatsapp: currentEditCorresponsable.origin || "",
+        listenerType,
+        whatsapp: isWhatsApp ? (currentEditCorresponsable.origin || "") : "",
+        telegramToken: !isWhatsApp ? (currentEditCorresponsable.origin || "") : "",
         accountType: "basic",
-        telegramToken: "",
         invitationMethods: {
           whatsapp: false,
           telegram: false,
@@ -173,10 +179,31 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     return found ? found.label : "Select account type"
   }
 
+  const handleAddClick = () => {
+    // Clear any existing edit state when adding new
+    setLocalEditCorresponsable(null);
+    // Reset form to default values
+    form.reset({
+      clientName: "",
+      email: "",
+      listenerType: "whatsapp",
+      whatsapp: "",
+      telegramToken: "",
+      accountType: "basic",
+      invitationMethods: {
+        whatsapp: false,
+        telegram: false,
+        email: false,
+        copyLink: false,
+      },
+    });
+    setShowForm(true);
+  };
+
   const headerActions = [
     { icon: <Eye className="h-4 w-4" />, label: tForm('header.viewFullList'), ariaLabel: tForm('header.viewFullList'), onClick: () => router.push(`/clients/${folderId}/corresponsables`), variant: "soft" as const },
     { icon: <Download className="h-4 w-4" />, label: tForm('header.uploadCSV'), ariaLabel: tForm('header.uploadCSV'), onClick: () => {}, variant: "soft" as const },
-    { icon: <Plus className="h-4 w-4" />, label: tForm('header.add'), ariaLabel: tForm('header.add'), onClick: () => setShowForm(true), variant: "soft" as const },
+    { icon: <Plus className="h-4 w-4" />, label: tForm('header.add'), ariaLabel: tForm('header.add'), onClick: handleAddClick, variant: "soft" as const },
   ]
 
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
@@ -185,9 +212,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     form.reset({
       clientName: "",
       email: "",
+      listenerType: "whatsapp",
       whatsapp: "",
-      accountType: "basic",
       telegramToken: "",
+      accountType: "basic",
       invitationMethods: {
         whatsapp: false,
         telegram: false,
@@ -196,6 +224,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       },
     })
     setShowForm(false)
+    setLocalEditCorresponsable(null) // Clear edit state on cancel
   }
 
   // Form submission handler that matches the client form
@@ -220,7 +249,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           data: {
             title: data.clientName,
             email: data.email || "",
-            origin: data.whatsapp,
+            origin: data.listenerType === "whatsapp" ? data.whatsapp : data.telegramToken || "",
             enabled: true
           }
         });
@@ -232,9 +261,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         form.reset({
           clientName: "",
           email: "",
+          listenerType: "whatsapp",
           whatsapp: "",
-          accountType: "basic",
           telegramToken: "",
+          accountType: "basic",
           invitationMethods: {
             whatsapp: false,
             telegram: false,
@@ -252,7 +282,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           whatsapp: data.whatsapp,
           accountType: data.accountType,
           telegramToken: data.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
-          invitationMethods: data.invitationMethods
         });
         
         const result = await createCorresponsableWithSharing({
@@ -260,40 +289,34 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           data: {
             clientName: data.clientName,
             email: data.email || "",
-            whatsapp: data.whatsapp,
-            accountType: data.accountType,
-            telegramToken: data.telegramToken,
-            invitationMethods: data.invitationMethods
+            listenerType: data.listenerType,
+            whatsapp: data.whatsapp || "",
+            telegramToken: data.telegramToken || "",
+            accountType: data.accountType
           }
         });
 
         if (result) {
-          const { shareUrl, message, invitationMethods, sharingError, listeners } = result;
+          const { shareUrl, sharingError, listeners } = result;
           
           if (sharingError) {
             toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
           }
 
-          // Execute sharing if methods are selected and we have the data
-          if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
-            if (shareUrl && message) {
-              await executeSharing(
-                {
-                  shareUrl,
-                  message,
-                  email: data.email,
-                  clientName: data.clientName
-                },
-                invitationMethods
-              );
-            } else {
-              toast.warning('Corresponsable created but sharing data unavailable');
-            }
-          }
-
           const listenerCount = listeners ? listeners.length : 1;
           const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
           toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
+          
+          // Show sharing dialog if share URL is available
+          if (shareUrl) {
+            setShareDialogData({
+              shareUrl,
+              clientName: data.clientName,
+              email: data.email,
+              listenerType: data.listenerType
+            });
+            setShowShareDialog(true);
+          }
           
           // Add to local sources for immediate UI update
           const newItem: SourceItem = {
@@ -309,15 +332,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           form.reset({
             clientName: "",
             email: "",
+            listenerType: "whatsapp",
             whatsapp: "",
-            accountType: "basic",
             telegramToken: "",
-            invitationMethods: {
-              whatsapp: false,
-              telegram: false,
-              email: false,
-              copyLink: false,
-            },
+            accountType: "basic",
           })
           setShowForm(false)
         }
@@ -476,13 +494,53 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           </div>
 
           <div>
-            <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
-            <input 
-              {...register('whatsapp')}
-              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
-            />
-            {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
+            <label className="text-sm text-gray-700 mb-2 block">Connection Type</label>
+            <div className="flex gap-4 mb-3">
+              <label className="inline-flex items-center space-x-2">
+                <input
+                  type="radio"
+                  {...register('listenerType')}
+                  value="whatsapp"
+                  className="h-4 w-4 text-[#31499f]"
+                />
+                <span className="text-sm">WhatsApp</span>
+              </label>
+              <label className="inline-flex items-center space-x-2">
+                <input
+                  type="radio"
+                  {...register('listenerType')}
+                  value="telegram"
+                  className="h-4 w-4 text-[#31499f]"
+                />
+                <span className="text-sm">Telegram</span>
+              </label>
+            </div>
+            {errors.listenerType && <p className="text-red-500 text-xs mt-1">{errors.listenerType.message}</p>}
           </div>
+
+          {watch('listenerType') === 'whatsapp' && (
+            <div>
+              <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
+              <input 
+                {...register('whatsapp')}
+                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
+              />
+              {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
+            </div>
+          )}
+
+          {watch('listenerType') === 'telegram' && (
+            <div>
+              <label className="text-sm text-gray-700 mb-1 block">Telegram Bot Token</label>
+              <input 
+                {...register('telegramToken')}
+                type="password"
+                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'}`} 
+                placeholder="Enter bot token"
+              />
+              {errors.telegramToken && <p className="text-red-500 text-xs mt-1">{errors.telegramToken.message}</p>}
+            </div>
+          )}
 
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Account Type</label>
@@ -512,52 +570,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             </DropdownMenu>
             {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
           </div>
-
-          <div>
-            <div className="text-sm text-gray-600 mb-2">How do you want to send the invitation?</div>
-            <div className="flex flex-wrap gap-4">
-              <label className="inline-flex items-center space-x-2">
-                <Checkbox
-                  id="whatsapp"
-                  checked={watch('invitationMethods.whatsapp')}
-                  onCheckedChange={(checked) => setValue('invitationMethods.whatsapp', !!checked)}
-                  className="border-gray-300 h-4 w-4"
-                />
-                <span className="text-sm">Send via WhatsApp</span>
-              </label>
-
-              <label className="inline-flex items-center space-x-2">
-                <Checkbox
-                  id="telegram"
-                  checked={watch('invitationMethods.telegram')}
-                  onCheckedChange={(checked) => setValue('invitationMethods.telegram', !!checked)}
-                  className="border-gray-300 h-4 w-4"
-                />
-                <span className="text-sm">Send via Telegram</span>
-              </label>
-
-              <label className="inline-flex items-center space-x-2">
-                <Checkbox
-                  id="email"
-                  checked={watch('invitationMethods.email')}
-                  onCheckedChange={(checked) => setValue('invitationMethods.email', !!checked)}
-                  className="border-gray-300 h-4 w-4"
-                />
-                <span className="text-sm">Send via email</span>
-              </label>
-
-              <label className="inline-flex items-center space-x-2">
-                <Checkbox
-                  id="copyLink"
-                  checked={watch('invitationMethods.copyLink')}
-                  onCheckedChange={(checked) => setValue('invitationMethods.copyLink', !!checked)}
-                  className="border-gray-300 h-4 w-4"
-                />
-                <span className="text-sm">Copy the link and share</span>
-              </label>
-            </div>
-            {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods.message}</p>}
-          </div>
         </div>
 
         {/* Desktop / large screens: two-column layout */}
@@ -582,13 +594,54 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             </div>
 
             <div>
-              <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
-              <input 
-                {...register('whatsapp')}
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
-              />
-              {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
+              <label className="text-sm text-gray-700 mb-2 block">Connection Type</label>
+              <div className="flex gap-4 mb-3">
+                <label className="inline-flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    {...register('listenerType')}
+                    value="whatsapp"
+                    className="h-4 w-4 text-[#31499f]"
+                  />
+                  <span className="text-sm">WhatsApp</span>
+                </label>
+                <label className="inline-flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    {...register('listenerType')}
+                    value="telegram"
+                    className="h-4 w-4 text-[#31499f]"
+                  />
+                  <span className="text-sm">Telegram</span>
+                </label>
+              </div>
+              {errors.listenerType && <p className="text-red-500 text-xs mt-1">{errors.listenerType.message}</p>}
             </div>
+
+            {watch('listenerType') === 'whatsapp' && (
+              <div>
+                <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
+                <input 
+                  {...register('whatsapp')}
+                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
+                />
+                {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
+              </div>
+            )}
+
+            {watch('listenerType') === 'telegram' && (
+              <div>
+                <label className="text-sm text-gray-700 mb-1 block">Telegram Bot Token</label>
+                <input 
+                  {...register('telegramToken')}
+                  type="password"
+                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'}`} 
+                  placeholder="Enter bot token"
+                />
+                {errors.telegramToken && <p className="text-red-500 text-xs mt-1">{errors.telegramToken.message}</p>}
+              </div>
+            )}
+
             <div>
               <label className="text-sm text-gray-700 mb-1 block">Account Type</label>
               <DropdownMenu>
@@ -617,52 +670,6 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
               </DropdownMenu>
               {errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
             </div>
-
-            <div className="col-span-2 mt-2">
-              <div className="text-sm text-gray-600 mb-2">How do you want to send the invitation?</div>
-              <div className="flex items-center space-x-6">
-                <label className="inline-flex items-center space-x-2">
-                  <Checkbox
-                    id="whatsapp-d"
-                    checked={watch('invitationMethods.whatsapp')}
-                    onCheckedChange={(checked) => setValue('invitationMethods.whatsapp', !!checked)}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm">Send via WhatsApp</span>
-                </label>
-
-                <label className="inline-flex items-center space-x-2">
-                  <Checkbox
-                    id="telegram-d"
-                    checked={watch('invitationMethods.telegram')}
-                    onCheckedChange={(checked) => setValue('invitationMethods.telegram', !!checked)}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm">Send via Telegram</span>
-                </label>
-
-                <label className="inline-flex items-center space-x-2">
-                  <Checkbox
-                    id="email-d"
-                    checked={watch('invitationMethods.email')}
-                    onCheckedChange={(checked) => setValue('invitationMethods.email', !!checked)}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm">Send via email</span>
-                </label>
-
-                <label className="inline-flex items-center space-x-2">
-                  <Checkbox
-                    id="copyLink-d"
-                    checked={watch('invitationMethods.copyLink')}
-                    onCheckedChange={(checked) => setValue('invitationMethods.copyLink', !!checked)}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm">Copy the link and share</span>
-                </label>
-              </div>
-              {errors.invitationMethods && <p className="text-red-500 text-xs mt-1">{errors.invitationMethods.message}</p>}
-            </div>
           </div>
         </div>
       </div>
@@ -674,7 +681,22 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
                              </Button>
                            </div>
                          </div>
-  </div>
+      </div>
+      
+      {/* Share Link Dialog */}
+      {shareDialogData && (
+        <ShareLinkDialog
+          isOpen={showShareDialog}
+          onClose={() => {
+            setShowShareDialog(false);
+            setShareDialogData(null);
+          }}
+          shareUrl={shareDialogData.shareUrl}
+          clientName={shareDialogData.clientName}
+          email={shareDialogData.email}
+          listenerType={shareDialogData.listenerType}
+        />
+      )}
     </div>
   )
 }

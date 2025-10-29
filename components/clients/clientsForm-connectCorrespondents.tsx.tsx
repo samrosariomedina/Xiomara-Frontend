@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ChevronDown, Trash2 } from "lucide-react"
+import { ChevronDown, Trash2, Edit } from "lucide-react"
 import { Plus ,Upload } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import { useForm, useFieldArray } from "react-hook-form"
@@ -21,7 +21,7 @@ import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { useSharing } from "@/hooks/useSharing" 
 import { createCorresponsableWithSharingAction, updateCorresponsableAction, getShareUrlAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
-import { TelegramTokenDialog } from "./TelegramTokenDialog"
+import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
 
 interface ConnectCorrespondentsFormProps {
   folderId?: string | null;
@@ -42,15 +42,10 @@ interface CorrespondentFormData {
   id?: string; // For existing corresponsables
   clientName: string;
   email?: string;
+  listenerType: "whatsapp" | "telegram";
   whatsapp: string;
+  telegramToken?: string;
   accountType: "premium" | "standard" | "basic";
-  telegramToken?: string; // Store the telegram bot token
-  invitationMethods?: {
-    whatsapp: boolean;
-    telegram: boolean;
-    email: boolean;
-    copyLink: boolean;
-  };
 }
 
 type ChildFormRef<T = unknown> = {
@@ -65,15 +60,23 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   initialCorresponsables = []
 }, ref) {
   const t = useTranslations('CLIENT_FORM');
-  const { executeSharing } = useSharing();
 
   // CSV upload state
   const [selectedCsvFile, setSelectedCsvFile] = useState<File | null>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Telegram dialog state
-  const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
-  const [currentTelegramIndex, setCurrentTelegramIndex] = useState<number | null>(null);
+  // Telegram dialog state - removed since we have direct input field now
+  // const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
+  // const [currentTelegramIndex, setCurrentTelegramIndex] = useState<number | null>(null);
+  
+  // Share dialog state
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [shareDialogData, setShareDialogData] = useState<{
+    shareUrl: string;
+    clientName: string;
+    email?: string;
+    listenerType: "whatsapp" | "telegram";
+  } | null>(null)
 
   // Use corresponsables hook
   const { 
@@ -86,38 +89,36 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   // Convert corresponsables to form format
   const getCorrespondentsFromData = (corresponsablesData: Array<{
     _id: string;
+    type?: string; // "whatsapp" or "telegram"
     title?: string;
     origin?: string;
     metadata?: { email?: string };
     email?: string; // Direct email field if available
   }>): CorrespondentFormData[] => {
-    const correspondents = corresponsablesData.map(corresponsable => ({
-      id: corresponsable._id, // Store the original ID for updates
-      clientName: corresponsable.title || "",
-      email: corresponsable.metadata?.email || corresponsable.email || "", // Get email from metadata or direct field
-      whatsapp: corresponsable.origin || "",
-      accountType: "basic" as const, // Default account type
-      invitationMethods: {
-        whatsapp: false,
-        telegram: false,
-        email: false,
-        copyLink: false,
-      },
-    }));
+    const correspondents = corresponsablesData.map(corresponsable => {
+      const listenerType = corresponsable.type === "telegram" ? "telegram" : "whatsapp";
+      const isWhatsApp = listenerType === "whatsapp";
+      
+      return {
+        id: corresponsable._id, // Store the original ID for updates
+        clientName: corresponsable.title || "",
+        email: corresponsable.metadata?.email || corresponsable.email || "",
+        listenerType,
+        whatsapp: isWhatsApp ? (corresponsable.origin || "") : "",
+        telegramToken: !isWhatsApp ? (corresponsable.origin || "") : "",
+        accountType: "basic" as const,
+      };
+    });
     
     // Always add an empty field for adding new corresponsables
     correspondents.push({
       id: "", // Empty ID for new corresponsables
       clientName: "",
       email: "",
+      listenerType: "whatsapp",
       whatsapp: "",
+      telegramToken: "",
       accountType: "basic" as const,
-      invitationMethods: {
-        whatsapp: false,
-        telegram: false,
-        email: false,
-        copyLink: false,
-      },
     });
     
     return correspondents;
@@ -159,15 +160,10 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     append({
       clientName: "",
       email: "",
+      listenerType: "whatsapp",
       whatsapp: "",
-      accountType: "basic" as const,
       telegramToken: "",
-      invitationMethods: {
-        whatsapp: false,
-        telegram: false,
-        email: false,
-        copyLink: false,
-      },
+      accountType: "basic" as const,
     });
   };
 
@@ -216,52 +212,13 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     }
   };
 
-  // Telegram dialog handlers
-  const handleTelegramToggle = (index: number, checked: boolean) => {
-    const currentToken = watch(`correspondents.${index}.telegramToken`);
-    
-    if (checked) {
-      // If token already exists, just enable telegram
-      if (currentToken && currentToken.trim()) {
-        setValue(`correspondents.${index}.invitationMethods.telegram`, true);
-        toast.success('Telegram enabled with existing token');
-      } else {
-        // Open dialog to get token
-        setCurrentTelegramIndex(index);
-        setTelegramDialogOpen(true);
-      }
-    } else {
-      // Disable telegram and clear token
-      setValue(`correspondents.${index}.invitationMethods.telegram`, false);
-      setValue(`correspondents.${index}.telegramToken`, "");
-      toast.info('Telegram disabled and token cleared');
-    }
-  };
-
-  const handleTelegramTokenConfirm = (token: string) => {
-    if (currentTelegramIndex !== null) {
-      setValue(`correspondents.${currentTelegramIndex}.telegramToken`, token);
-      setValue(`correspondents.${currentTelegramIndex}.invitationMethods.telegram`, true);
-      toast.success('Telegram token saved and enabled');
-    }
-    setTelegramDialogOpen(false);
-    setCurrentTelegramIndex(null);
-  };
-
-  const handleTelegramDialogClose = () => {
-    // If dialog is closed without confirming, uncheck the telegram option
-    if (currentTelegramIndex !== null) {
-      setValue(`correspondents.${currentTelegramIndex}.invitationMethods.telegram`, false);
-      toast.info('Telegram dialog cancelled');
-    }
-    setTelegramDialogOpen(false);
-    setCurrentTelegramIndex(null);
-  };
 
   // Add sharing execution to form submission
-  const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData) => {
-    if (!folderId) return;
-
+  const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData): Promise<boolean> => {
+    if (!folderId) {
+      toast.error('No folder selected');
+      return false;
+    }
 
     try {
       // Check if this is an existing corresponsable (has an ID) or a new one
@@ -269,40 +226,18 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         // Update existing corresponsable
         const updateResult = await updateCorresponsableAction(correspondent.id, {
           title: correspondent.clientName,
-          origin: correspondent.whatsapp,
+          origin: correspondent.listenerType === "whatsapp" ? correspondent.whatsapp : correspondent.telegramToken || "",
           enabled: true,
           email: correspondent.email || ""
         });
 
-        // Execute sharing for existing corresponsables if methods are selected (regardless of update success)
-        if (correspondent.invitationMethods && (correspondent.invitationMethods.whatsapp || correspondent.invitationMethods.telegram || correspondent.invitationMethods.email || correspondent.invitationMethods.copyLink)) {
-          // Get share URL for the existing listener
-          const shareUrlResult = await getShareUrlAction(correspondent.id);
-          
-          if (shareUrlResult.success) {
-            const shareUrl = shareUrlResult.data;
-            const message = `Hola ${correspondent.clientName}, te invito a conectarte con nuestro sistema de corresponsales. ${shareUrl}`;
-            
-            await executeSharing(
-              {
-                shareUrl,
-                message,
-                email: correspondent.email || "",
-                clientName: correspondent.clientName
-              },
-              correspondent.invitationMethods
-            );
-          } else {
-            toast.warning(`Sharing failed: ${shareUrlResult.error}`);
-          }
-        }
-
         if (updateResult.success) {
           toast.success(`Corresponsable ${correspondent.clientName} updated successfully`);
+          return true;
         } else {
           toast.error(updateResult.error || 'Failed to update corresponsable');
+          return false;
         }
-        return;
       }
 
       // Create new corresponsable
@@ -312,51 +247,48 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         whatsapp: correspondent.whatsapp,
         accountType: correspondent.accountType,
         telegramToken: correspondent.telegramToken ? 'TOKEN_PROVIDED' : 'NO_TOKEN',
-        invitationMethods: correspondent.invitationMethods
       });
       
       const result = await createCorresponsableWithSharingAction(folderId, {
         clientName: correspondent.clientName,
         email: correspondent.email || "",
+        listenerType: correspondent.listenerType,
         whatsapp: correspondent.whatsapp,
-        accountType: correspondent.accountType,
         telegramToken: correspondent.telegramToken,
-        invitationMethods: correspondent.invitationMethods
+        accountType: correspondent.accountType
       });
 
       if (result.success && result.data) {
-        const { shareUrl, message, invitationMethods, sharingError, listeners } = result.data;
+        const { shareUrl, sharingError, listeners } = result.data;
         
         if (sharingError) {
           toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
         }
 
-        // Execute sharing if methods are selected and we have the data
-        if (invitationMethods && (invitationMethods.whatsapp || invitationMethods.telegram || invitationMethods.email || invitationMethods.copyLink)) {
-          if (shareUrl && message) {
-            await executeSharing(
-              {
-                shareUrl,
-                message,
-                email: correspondent.email || "",
-                clientName: correspondent.clientName
-              },
-              invitationMethods
-            );
-          } else {
-            toast.warning('Corresponsable created but sharing data unavailable');
-          }
-        }
-
         const listenerCount = listeners ? listeners.length : 1;
         const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
         toast.success(`Corresponsable ${correspondent.clientName} created successfully with ${listenerText}`);
+        
+        // Show sharing dialog if share URL is available
+        if (shareUrl) {
+          setShareDialogData({
+            shareUrl,
+            clientName: correspondent.clientName,
+            email: correspondent.email,
+            listenerType: correspondent.listenerType
+          });
+          setShowShareDialog(true);
+        }
+        
+        return true;
       } else {
         toast.error(result.error || 'Failed to create corresponsable');
+        return false;
       }
     } catch (error) {
       console.error('Error creating corresponsable:', error);
       toast.error('Failed to create corresponsable');
+      return false;
     }
   };
 
@@ -374,22 +306,52 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     },
     submit: async () => {
       const formData = form.getValues();
-      const validCorrespondents = formData.correspondents.filter(
+      // Only process NEW correspondents (those without an id)
+      const newCorrespondents = formData.correspondents.filter(
         (correspondent) => {
-          const hasBasicInfo = correspondent.clientName.trim() && correspondent.whatsapp.trim();
-          const hasTelegramWithToken = correspondent.invitationMethods?.telegram ? correspondent.telegramToken?.trim() : true;
-          return hasBasicInfo && hasTelegramWithToken;
+          const isNew = !correspondent.id || correspondent.id.trim() === "";
+          const hasBasicInfo = correspondent.clientName.trim() && 
+            (correspondent.listenerType === "whatsapp" ? correspondent.whatsapp?.trim() : correspondent.telegramToken?.trim());
+          return isNew && hasBasicInfo;
         }
       );
       
-      if (validCorrespondents.length === 0) {
-        toast.warning('Please add at least one correspondent with name and WhatsApp number');
+      if (newCorrespondents.length === 0) {
+        toast.warning('Please add at least one new correspondent with name and contact information');
         return false;
       }
 
       try {
-        for (const correspondent of validCorrespondents) {
+        for (const correspondent of newCorrespondents) {
           await handleCorrespondentSubmission(correspondent);
+        }
+        // Remove the created correspondents from the form
+        const remainingCorrespondents = formData.correspondents.filter(
+          (correspondent) => correspondent.id && correspondent.id.trim() !== ""
+        );
+        // Always keep at least one empty field for adding new
+        if (remainingCorrespondents.length === 0) {
+          form.reset({
+            correspondents: [{
+              id: "",
+              clientName: "",
+              email: "",
+              listenerType: "whatsapp",
+              whatsapp: "",
+              telegramToken: "",
+              accountType: "basic",
+              invitationMethods: {
+                whatsapp: false,
+                telegram: false,
+                email: false,
+                copyLink: false,
+              },
+            }]
+          });
+        } else {
+          form.reset({
+            correspondents: remainingCorrespondents
+          });
         }
         return true;
       } catch (error) {
@@ -472,19 +434,76 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           <div key={field.id} className="border border-white rounded-lg p-4 bg-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-900">
-                {t('correspondents.addNew')} {index + 1}
+                {watch(`correspondents.${index}.id`) && watch(`correspondents.${index}.id`).trim() !== ""
+                  ? watch(`correspondents.${index}.clientName`) || 'Unnamed Corresponsable'
+                  : `${t('correspondents.addNew')} ${index + 1}`
+                }
               </h3>
-              {fields.length > 1 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="h-8 w-8 p-0 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Show "Save" button for existing corresponsables */}
+                {watch(`correspondents.${index}.id`) && watch(`correspondents.${index}.id`).trim() !== "" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={async () => {
+                      // Trigger form submission for this specific correspondent
+                      const correspondent = watch(`correspondents.${index}`);
+                      if (correspondent) {
+                        await handleCorrespondentSubmission(correspondent);
+                      }
+                    }}
+                    className="h-8 px-3 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 flex items-center gap-1.5"
+                    title="Save changes"
+                  >
+                    <Edit className="h-3 w-3" />
+                    <span className="text-xs">Save</span>
+                  </Button>
+                )}
+                {/* Show "Add" button for new corresponsables */}
+                {(!watch(`correspondents.${index}.id`) || watch(`correspondents.${index}.id`).trim() === "") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={async () => {
+                      // Validate this specific correspondent
+                      const isValid = await form.trigger(`correspondents.${index}`);
+                      if (!isValid) {
+                        toast.error('Please fill in all required fields');
+                        return;
+                      }
+                      
+                      const correspondent = watch(`correspondents.${index}`);
+                      if (correspondent) {
+                        const success = await handleCorrespondentSubmission(correspondent);
+                        // Only remove if creation was successful
+                        // The hook will refetch and it will reappear as an existing corresponsable
+                        if (success) {
+                          remove(index);
+                        }
+                      }
+                    }}
+                    className="h-8 px-3 rounded-full bg-green-50 hover:bg-green-100 text-green-600 border-green-200 flex items-center gap-1.5"
+                    title="Add this corresponsable"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span className="text-xs">Add</span>
+                  </Button>
+                )}
+                {fields.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="h-8 w-8 p-0 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                    title="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -530,27 +549,82 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                 </div>
               </div>
 
+              {/* Connection Type Selection */}
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-700 font-medium">Connection Type</Label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      {...register(`correspondents.${index}.listenerType`)}
+                      value="whatsapp"
+                      className="h-4 w-4 text-[#31499F]"
+                    />
+                    <span className="text-xs">WhatsApp</span>
+                  </label>
+                  <label className="inline-flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      {...register(`correspondents.${index}.listenerType`)}
+                      value="telegram"
+                      className="h-4 w-4 text-[#31499F]"
+                    />
+                    <span className="text-xs">Telegram</span>
+                  </label>
+                </div>
+                {errors.correspondents?.[index]?.listenerType && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.correspondents[index]?.listenerType?.message as string}
+                  </p>
+                )}
+              </div>
+
               {/* Second row */}
               <div className="grid lg:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
-                    {t('correspondents.whatsapp')}
-                  </Label>
-                  <Input
-                    id={`correspondents.${index}.whatsapp`}
-                    {...register(`correspondents.${index}.whatsapp`)}
-                    className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
-                      errors.correspondents?.[index]?.whatsapp ? "border-red-300" : ""
-                    }`}
-                    placeholder={t('contact.whatsappPlaceholder')}
-                    suppressHydrationWarning
-                  />
-                  {errors.correspondents?.[index]?.whatsapp && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.correspondents[index]?.whatsapp?.message as string}
-                    </p>
-                  )}
-                </div>
+                {watch(`correspondents.${index}.listenerType`) === 'whatsapp' && (
+                  <div className="space-y-2">
+                    <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
+                      {t('correspondents.whatsapp')}
+                    </Label>
+                    <Input
+                      id={`correspondents.${index}.whatsapp`}
+                      {...register(`correspondents.${index}.whatsapp`)}
+                      className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
+                        errors.correspondents?.[index]?.whatsapp ? "border-red-300" : ""
+                      }`}
+                      placeholder={t('contact.whatsappPlaceholder')}
+                      suppressHydrationWarning
+                    />
+                    {errors.correspondents?.[index]?.whatsapp && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.correspondents[index]?.whatsapp?.message as string}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {watch(`correspondents.${index}.listenerType`) === 'telegram' && (
+                  <div className="space-y-2">
+                    <Label htmlFor={`correspondents.${index}.telegramToken`} className="text-xs text-gray-700 font-medium">
+                      Telegram Bot Token
+                    </Label>
+                    <Input
+                      id={`correspondents.${index}.telegramToken`}
+                      type="password"
+                      {...register(`correspondents.${index}.telegramToken`)}
+                      className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
+                        errors.correspondents?.[index]?.telegramToken ? "border-red-300" : ""
+                      }`}
+                      placeholder="Enter bot token"
+                      suppressHydrationWarning
+                    />
+                    {errors.correspondents?.[index]?.telegramToken && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.correspondents[index]?.telegramToken?.message as string}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor={`correspondents.${index}.accountType`} className="text-xs text-gray-700 font-medium">
                     {t('correspondents.accountType')}
@@ -602,74 +676,25 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
               </div>
             </div>
 
-            {/* Invitation Methods */}
-            <div className="space-y-3 mt-6">
-              <Label className="text-xs text-gray-600 font-medium">{t('correspondents.invitationMethods')}</Label>
-
-              <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-6">
-                <label className="flex items-center space-x-2 text-xs text-gray-700">
-                  <Checkbox
-                    id={`whatsapp-${index}`}
-                    checked={watch(`correspondents.${index}.invitationMethods.whatsapp`) || false}
-                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.whatsapp`, !!checked)}
-                    className="border-gray-300 h-4 w-4"
-                  />
-                  <span>{t('correspondents.sendWhatsapp')}</span>
-                </label>
-
-                <label className="flex items-center space-x-2 text-xs text-gray-700">
-                  <Checkbox
-                    id={`telegram-${index}`}
-                    checked={watch(`correspondents.${index}.invitationMethods.telegram`) || false}
-                    onCheckedChange={(checked) => handleTelegramToggle(index, !!checked)}
-                    className="border-gray-300 h-4 w-4"
-                  />
-                  <span>{t('correspondents.sendTelegram')}</span>
-                  {watch(`correspondents.${index}.telegramToken`) ? (
-                    <span className="text-xs text-green-600 font-medium">✓ Token configured</span>
-                  ) : (
-                    watch(`correspondents.${index}.invitationMethods.telegram`) && (
-                      <span className="text-xs text-orange-600">⚠ Token needed</span>
-                    )
-                  )}
-                </label>
-
-                <label className="flex items-center space-x-2 text-xs text-gray-700">
-                  <Checkbox
-                    id={`email-${index}`}
-                    checked={watch(`correspondents.${index}.invitationMethods.email`) || false}
-                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.email`, !!checked)}
-                    className="border-gray-300 h-4 w-4"
-                  />
-                  <span>{t('correspondents.sendEmail')}</span>
-                </label>
-
-                <label className="flex items-center space-x-2 text-xs text-gray-700">
-                  <Checkbox
-                    id={`copyLink-${index}`}
-                    checked={watch(`correspondents.${index}.invitationMethods.copyLink`) || false}
-                    onCheckedChange={(checked) => setValue(`correspondents.${index}.invitationMethods.copyLink`, !!checked)}
-                    className="border-gray-300 h-4 w-4"
-                  />
-                  <span>{t('correspondents.copyLink')}</span>
-                </label>
-              </div>
-            </div>
+            {/* Invitation Methods section removed - sharing happens after creation */}
           </div>
         ))}
       </div>
 
-      {/* Telegram Token Dialog */}
-      <TelegramTokenDialog
-        isOpen={telegramDialogOpen}
-        onClose={handleTelegramDialogClose}
-        onConfirm={handleTelegramTokenConfirm}
-        correspondentName={
-          currentTelegramIndex !== null 
-            ? watch(`correspondents.${currentTelegramIndex}.clientName`) || 'Correspondent'
-            : 'Correspondent'
-        }
-      />
+      {/* Share Link Dialog */}
+      {shareDialogData && (
+        <ShareLinkDialog
+          isOpen={showShareDialog}
+          onClose={() => {
+            setShowShareDialog(false);
+            setShareDialogData(null);
+          }}
+          shareUrl={shareDialogData.shareUrl}
+          clientName={shareDialogData.clientName}
+          email={shareDialogData.email}
+          listenerType={shareDialogData.listenerType}
+        />
+      )}
 
     </div>
   );

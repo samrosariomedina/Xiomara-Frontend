@@ -129,18 +129,13 @@ const correspondentSchema = z.object({
         message: 'Invalid email format',
       }
     ),
+  listenerType: z.enum(['whatsapp', 'telegram'], {
+    message: 'Please select either WhatsApp or Telegram',
+  }),
   whatsapp: z.string()
-    .min(1, 'WhatsApp number is required')
-    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-')
-    .refine(
-      (val) => {
-        const sanitized = val.replace(/[\s\-\+]/g, "");
-        return sanitized.length >= 10 && sanitized.length <= 15;
-      },
-      {
-        message: 'WhatsApp number must be 10-15 digits long',
-      }
-    ),
+    .optional()
+    .or(z.literal("")),
+  telegramToken: z.string().optional(),
   accountType: z.enum(['premium', 'standard', 'basic']),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
@@ -148,7 +143,39 @@ const correspondentSchema = z.object({
     email: z.boolean(),
     copyLink: z.boolean()
   }).optional()
-});
+}).refine(
+  (data) => {
+    // If listenerType is whatsapp, whatsapp field is required
+    if (data.listenerType === 'whatsapp') {
+      if (!data.whatsapp || data.whatsapp.trim() === '') {
+        return false;
+      }
+      // Validate whatsapp format
+      const sanitized = data.whatsapp.replace(/[\s\-\+]/g, "");
+      return /^[0-9+\s()-]+$/.test(data.whatsapp) && sanitized.length >= 10 && sanitized.length <= 15;
+    }
+    // If listenerType is telegram, telegramToken is required
+    if (data.listenerType === 'telegram') {
+      return !!(data.telegramToken && data.telegramToken.trim() !== '');
+    }
+    return true;
+  },
+  {
+    message: 'WhatsApp number is required and must be 10-15 digits when WhatsApp is selected',
+    path: ['whatsapp'],
+  }
+).refine(
+  (data) => {
+    if (data.listenerType === 'telegram') {
+      return !!(data.telegramToken && data.telegramToken.trim() !== '');
+    }
+    return true;
+  },
+  {
+    message: 'Telegram bot token is required when Telegram is selected',
+    path: ['telegramToken'],
+  }
+);
 
 // Connect Correspondents Form Schema
 export const connectCorrespondentsSchema = z.object({
@@ -170,29 +197,55 @@ export const corresponsablesSchema = z.object({
         message: 'Invalid email format',
       }
     ),
+  listenerType: z.enum(['whatsapp', 'telegram'], {
+    message: 'Please select either WhatsApp or Telegram',
+  }),
   whatsapp: z.string()
-    .min(1, 'WhatsApp number is required')
-    .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-')
-    .refine(
-      (val) => {
-        const sanitized = val.replace(/[\s\-\+]/g, "");
-        return sanitized.length >= 10 && sanitized.length <= 15;
-      },
-      {
-        message: 'WhatsApp number must be 10-15 digits long',
-      }
-    ),
+    .optional()
+    .or(z.literal("")),
+  telegramToken: z.string().optional(),
   accountType: z.enum(['premium', 'standard', 'basic'], {
     message: 'Please select a valid account type',
   }),
-  telegramToken: z.string().optional(),
   invitationMethods: z.object({
     whatsapp: z.boolean(),
     telegram: z.boolean(),
     email: z.boolean(),
     copyLink: z.boolean(),
   }).optional(),
-});
+}).refine(
+  (data) => {
+    // If listenerType is whatsapp, whatsapp field is required
+    if (data.listenerType === 'whatsapp') {
+      if (!data.whatsapp || data.whatsapp.trim() === '') {
+        return false;
+      }
+      // Validate whatsapp format
+      const sanitized = data.whatsapp.replace(/[\s\-\+]/g, "");
+      return /^[0-9+\s()-]+$/.test(data.whatsapp) && sanitized.length >= 10 && sanitized.length <= 15;
+    }
+    // If listenerType is telegram, telegramToken is required
+    if (data.listenerType === 'telegram') {
+      return !!(data.telegramToken && data.telegramToken.trim() !== '');
+    }
+    return true;
+  },
+  {
+    message: 'WhatsApp number is required and must be 10-15 digits when WhatsApp is selected',
+    path: ['whatsapp'],
+  }
+).refine(
+  (data) => {
+    if (data.listenerType === 'telegram') {
+      return !!(data.telegramToken && data.telegramToken.trim() !== '');
+    }
+    return true;
+  },
+  {
+    message: 'Telegram bot token is required when Telegram is selected',
+    path: ['telegramToken'],
+  }
+);
 
 // Fuentes Generales Form Schema
 export const fuentesGeneralesSchema = z.object({
