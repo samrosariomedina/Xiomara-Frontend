@@ -109,7 +109,7 @@ export function ShareLinkDialog({
             </Button>
 
             {/* Share via App (mobile) */}
-            {navigator.share && (
+            {!!navigator.share ? (
               <Button
                 onClick={handleShareViaApp}
                 variant="outline"
@@ -118,10 +118,10 @@ export function ShareLinkDialog({
                 <Share2 className="h-4 w-4" />
                 <span className="text-sm">Send via App</span>
               </Button>
-            )}
+            ) : null}
 
             {/* Share via WhatsApp */}
-            {listenerType === "whatsapp" && (
+            {listenerType === "whatsapp" ? (
               <Button
                 onClick={handleShareViaWhatsApp}
                 variant="outline"
@@ -130,10 +130,10 @@ export function ShareLinkDialog({
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-sm">WhatsApp</span>
               </Button>
-            )}
+            ) : null}
 
             {/* Share via Telegram */}
-            {listenerType === "telegram" && (
+            {listenerType === "telegram" ? (
               <Button
                 onClick={handleShareViaTelegram}
                 variant="outline"
@@ -142,10 +142,10 @@ export function ShareLinkDialog({
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-sm">Telegram</span>
               </Button>
-            )}
+            ) : null}
 
             {/* Share via Email */}
-            {email && (
+            {email ? (
               <Button
                 onClick={handleShareViaEmail}
                 variant="outline"
@@ -154,7 +154,7 @@ export function ShareLinkDialog({
                 <Mail className="h-4 w-4" />
                 <span className="text-sm">Email</span>
               </Button>
-            )}
+            ) : null}
           </div>
 
           {/* Close button */}

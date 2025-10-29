@@ -119,6 +119,7 @@ export const generalInformationSchema = z.object({
 
 // Individual correspondent schema
 const correspondentSchema = z.object({
+  id: z.string().optional(), // For tracking existing vs new correspondents
   clientName: z.string().min(1, 'Client name is required'),
   email: z.string()
     .optional()

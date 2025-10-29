@@ -9,7 +9,6 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronDown, Trash2, Edit } from "lucide-react"
 import { Plus ,Upload } from "lucide-react"
 import { useTranslations } from 'next-intl'
@@ -18,8 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { type ConnectCorrespondentsInput, connectCorrespondentsSchema } from '@/lib/schemas'
 import { forwardRef, useImperativeHandle, useState, useRef, useEffect } from "react"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
-import { useSharing } from "@/hooks/useSharing" 
-import { createCorresponsableWithSharingAction, updateCorresponsableAction, getShareUrlAction } from "@/actions/corresponsables"
+import { createCorresponsableWithSharingAction, updateCorresponsableAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
 import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
 
@@ -38,14 +36,9 @@ interface ConnectCorrespondentsFormProps {
   }>;
 }
 
-interface CorrespondentFormData {
-  id?: string; // For existing corresponsables
-  clientName: string;
-  email?: string;
-  listenerType: "whatsapp" | "telegram";
-  whatsapp: string;
-  telegramToken?: string;
-  accountType: "premium" | "standard" | "basic";
+// Use the schema type instead of custom interface
+type CorrespondentFormData = ConnectCorrespondentsInput['correspondents'][number] & {
+  id?: string; // For existing corresponsables (not in schema but used internally)
 }
 
 type ChildFormRef<T = unknown> = {
@@ -103,7 +96,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         id: corresponsable._id, // Store the original ID for updates
         clientName: corresponsable.title || "",
         email: corresponsable.metadata?.email || corresponsable.email || "",
-        listenerType,
+        listenerType: listenerType as "whatsapp" | "telegram",
         whatsapp: isWhatsApp ? (corresponsable.origin || "") : "",
         telegramToken: !isWhatsApp ? (corresponsable.origin || "") : "",
         accountType: "basic" as const,
@@ -127,7 +120,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
   // Use fetched corresponsables or initial corresponsables
   const corresponsablesToUse = fetchedCorresponsables.length > 0 ? fetchedCorresponsables : initialCorresponsables;
 
-  const form = useForm<{ correspondents: CorrespondentFormData[] }>({
+  const form = useForm<ConnectCorrespondentsInput>({
     resolver: zodResolver(connectCorrespondentsSchema),
     defaultValues: {
       correspondents: getCorrespondentsFromData(corresponsablesToUse)
@@ -214,7 +207,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
 
 
   // Add sharing execution to form submission
-  const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData): Promise<boolean> => {
+  const handleCorrespondentSubmission = async (correspondent: CorrespondentFormData & { id?: string }): Promise<boolean> => {
     if (!folderId) {
       toast.error('No folder selected');
       return false;
@@ -296,7 +289,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     validate: async () => {
       return await form.trigger();
     },
-    getValues: () => form.getValues() as { correspondents: CorrespondentFormData[] },
+    getValues: () => form.getValues() as ConnectCorrespondentsInput,
     reset: () => {
       form.reset();
       setSelectedCsvFile(null);
@@ -307,7 +300,9 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     submit: async () => {
       const formData = form.getValues();
       // Only process NEW correspondents (those without an id)
-      const newCorrespondents = formData.correspondents.filter(
+      // We need to cast because 'id' is not part of the schema type but we add it internally
+      const formDataWithIds = formData.correspondents as Array<CorrespondentFormData>;
+      const newCorrespondents = formDataWithIds.filter(
         (correspondent) => {
           const isNew = !correspondent.id || correspondent.id.trim() === "";
           const hasBasicInfo = correspondent.clientName.trim() && 
@@ -326,31 +321,30 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           await handleCorrespondentSubmission(correspondent);
         }
         // Remove the created correspondents from the form
-        const remainingCorrespondents = formData.correspondents.filter(
+        const remainingCorrespondents = formDataWithIds.filter(
           (correspondent) => correspondent.id && correspondent.id.trim() !== ""
         );
         // Always keep at least one empty field for adding new
         if (remainingCorrespondents.length === 0) {
           form.reset({
             correspondents: [{
-              id: "",
               clientName: "",
               email: "",
               listenerType: "whatsapp",
               whatsapp: "",
               telegramToken: "",
               accountType: "basic",
-              invitationMethods: {
-                whatsapp: false,
-                telegram: false,
-                email: false,
-                copyLink: false,
-              },
             }]
           });
         } else {
+          // Remove id before resetting since it's not part of schema
+          const correspondentsWithoutId: Omit<CorrespondentFormData, 'id'>[] = remainingCorrespondents.map((correspondent) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { id, ...rest } = correspondent;
+            return rest;
+          });
           form.reset({
-            correspondents: remainingCorrespondents
+            correspondents: correspondentsWithoutId
           });
         }
         return true;
@@ -434,63 +428,70 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
           <div key={field.id} className="border border-white rounded-lg p-4 bg-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-900">
-                {watch(`correspondents.${index}.id`) && watch(`correspondents.${index}.id`).trim() !== ""
-                  ? watch(`correspondents.${index}.clientName`) || 'Unnamed Corresponsable'
-                  : `${t('correspondents.addNew')} ${index + 1}`
-                }
+                {(() => {
+                  const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
+                  const hasId = correspondent?.id && correspondent.id.trim() !== "";
+                  return hasId
+                    ? (correspondent?.clientName || 'Unnamed Corresponsable')
+                    : `${t('correspondents.addNew')} ${index + 1}`;
+                })()}
               </h3>
               <div className="flex items-center gap-2">
-                {/* Show "Save" button for existing corresponsables */}
-                {watch(`correspondents.${index}.id`) && watch(`correspondents.${index}.id`).trim() !== "" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={async () => {
-                      // Trigger form submission for this specific correspondent
-                      const correspondent = watch(`correspondents.${index}`);
-                      if (correspondent) {
-                        await handleCorrespondentSubmission(correspondent);
-                      }
-                    }}
-                    className="h-8 px-3 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 flex items-center gap-1.5"
-                    title="Save changes"
-                  >
-                    <Edit className="h-3 w-3" />
-                    <span className="text-xs">Save</span>
-                  </Button>
-                )}
-                {/* Show "Add" button for new corresponsables */}
-                {(!watch(`correspondents.${index}.id`) || watch(`correspondents.${index}.id`).trim() === "") && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={async () => {
-                      // Validate this specific correspondent
-                      const isValid = await form.trigger(`correspondents.${index}`);
-                      if (!isValid) {
-                        toast.error('Please fill in all required fields');
-                        return;
-                      }
-                      
-                      const correspondent = watch(`correspondents.${index}`);
-                      if (correspondent) {
-                        const success = await handleCorrespondentSubmission(correspondent);
-                        // Only remove if creation was successful
-                        // The hook will refetch and it will reappear as an existing corresponsable
-                        if (success) {
-                          remove(index);
-                        }
-                      }
-                    }}
-                    className="h-8 px-3 rounded-full bg-green-50 hover:bg-green-100 text-green-600 border-green-200 flex items-center gap-1.5"
-                    title="Add this corresponsable"
-                  >
-                    <Plus className="h-3 w-3" />
-                    <span className="text-xs">Add</span>
-                  </Button>
-                )}
+                {(() => {
+                  const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
+                  const hasId = correspondent?.id && correspondent.id.trim() !== "";
+                  
+                  if (hasId) {
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={async () => {
+                          if (correspondent) {
+                            await handleCorrespondentSubmission(correspondent);
+                          }
+                        }}
+                        className="h-8 px-3 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 flex items-center gap-1.5"
+                        title="Save changes"
+                      >
+                        <Edit className="h-3 w-3" />
+                        <span className="text-xs">Save</span>
+                      </Button>
+                    );
+                  } else {
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={async () => {
+                          // Validate this specific correspondent
+                          const isValid = await form.trigger(`correspondents.${index}`);
+                          if (!isValid) {
+                            toast.error('Please fill in all required fields');
+                            return;
+                          }
+                          
+                          const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
+                          if (correspondent) {
+                            const success = await handleCorrespondentSubmission(correspondent);
+                            // Only remove if creation was successful
+                            // The hook will refetch and it will reappear as an existing corresponsable
+                            if (success) {
+                              remove(index);
+                            }
+                          }
+                        }}
+                        className="h-8 px-3 rounded-full bg-green-50 hover:bg-green-100 text-green-600 border-green-200 flex items-center gap-1.5"
+                        title="Add this corresponsable"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span className="text-xs">Add</span>
+                      </Button>
+                    );
+                  }
+                })()}
                 {fields.length > 1 && (
                   <Button
                     variant="outline"
