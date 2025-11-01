@@ -464,7 +464,6 @@ export async function updateCorresponsableAction(
   listenerId: string, 
   data: {
     title?: string;
-    origin?: string;
     enabled?: boolean;
     email?: string;
   }
@@ -475,12 +474,12 @@ export async function updateCorresponsableAction(
       throw new Error('Authentication required');
     }
 
-    // Prepare update data with all supported fields
+    // Prepare update data - only allow title, enabled, and metadata (email)
+    // Note: origin is intentionally NOT editable for security reasons
     const updateData: {
       listener: string;
       title?: string | null;
       enabled?: boolean;
-      origin?: string | null;
       metadata?: { email: string };
     } = {
       listener: listenerId
@@ -493,9 +492,7 @@ export async function updateCorresponsableAction(
     if (data.enabled !== undefined) {
       updateData.enabled = data.enabled;
     }
-    if (data.origin !== undefined) {
-      updateData.origin = data.origin || null;
-    }
+    // Origin is intentionally excluded - not editable after creation
     if (data.email !== undefined) {
       updateData.metadata = {
         email: data.email

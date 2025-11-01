@@ -217,9 +217,9 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       // Check if this is an existing corresponsable (has an ID) or a new one
       if (correspondent.id && correspondent.id.trim() !== "") {
         // Update existing corresponsable
+        // Note: origin is intentionally NOT editable for security reasons
         const updateResult = await updateCorresponsableAction(correspondent.id, {
-          title: correspondent.clientName,
-          origin: correspondent.listenerType === "whatsapp" ? correspondent.whatsapp : correspondent.telegramToken || "",
+          title: correspondent.clientName?.trim() || undefined, // Allow empty title, backend can handle it
           enabled: true,
           email: correspondent.email || ""
         });
