@@ -20,6 +20,7 @@ import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { createCorresponsableWithSharingAction, updateCorresponsableAction } from "@/actions/corresponsables"
 import { toast } from "sonner"
 import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ConnectCorrespondentsFormProps {
   folderId?: string | null;
@@ -78,6 +79,9 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     isLoading: isLoadingCorresponsables,
     corresponsables: fetchedCorresponsables = []
   } = useCorresponsables(folderId || undefined);
+  
+  // Get query client for invalidating queries to sync data across pages
+  const queryClient = useQueryClient();
 
   // Convert corresponsables to form format
   const getCorrespondentsFromData = (corresponsablesData: Array<{
@@ -219,16 +223,19 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         // Update existing corresponsable
         // Note: origin is intentionally NOT editable for security reasons
         const updateResult = await updateCorresponsableAction(correspondent.id, {
-          title: correspondent.clientName?.trim() || undefined, // Allow empty title, backend can handle it
+          title: (correspondent.clientName && correspondent.clientName.trim()) ? correspondent.clientName.trim() : null, // Send null explicitly to remove title (backend requires null, not undefined)
           enabled: true,
           email: correspondent.email || ""
         });
 
         if (updateResult.success) {
-          toast.success(`Corresponsable ${correspondent.clientName} updated successfully`);
+          // No success toast - matches dashboard behavior
+          // Invalidate queries to sync data across pages (dashboard will see updated data)
+          queryClient.invalidateQueries({ queryKey: ['corresponsables'] });
           return true;
         } else {
-          toast.error(updateResult.error || 'Failed to update corresponsable');
+          // No error toast for updates - only log for debugging
+          console.error('Failed to update corresponsable:', updateResult.error);
           return false;
         }
       }
@@ -243,7 +250,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       });
       
       const result = await createCorresponsableWithSharingAction(folderId, {
-        clientName: correspondent.clientName,
+        clientName: correspondent.clientName?.trim() || "",
         email: correspondent.email || "",
         listenerType: correspondent.listenerType,
         whatsapp: correspondent.whatsapp,
@@ -252,21 +259,19 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       });
 
       if (result.success && result.data) {
-        const { shareUrl, sharingError, listeners } = result.data;
+        const { shareUrl, sharingError } = result.data;
         
         if (sharingError) {
           toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
         }
 
-        const listenerCount = listeners ? listeners.length : 1;
-        const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
-        toast.success(`Corresponsable ${correspondent.clientName} created successfully with ${listenerText}`);
+        // Success toast is handled by the mutation hook, don't show duplicate
         
         // Show sharing dialog if share URL is available
         if (shareUrl) {
           setShareDialogData({
             shareUrl,
-            clientName: correspondent.clientName,
+            clientName: correspondent.clientName?.trim() || 'Unnamed',
             email: correspondent.email,
             listenerType: correspondent.listenerType
           });
@@ -305,14 +310,15 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       const newCorrespondents = formDataWithIds.filter(
         (correspondent) => {
           const isNew = !correspondent.id || correspondent.id.trim() === "";
-          const hasBasicInfo = correspondent.clientName.trim() && 
+          // clientName is optional, so only check for listener contact info
+          const hasBasicInfo = 
             (correspondent.listenerType === "whatsapp" ? correspondent.whatsapp?.trim() : correspondent.telegramToken?.trim());
           return isNew && hasBasicInfo;
         }
       );
       
       if (newCorrespondents.length === 0) {
-        toast.warning('Please add at least one new correspondent with name and contact information');
+        toast.warning('Please add at least one new correspondent with contact information');
         return false;
       }
 
@@ -469,7 +475,18 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                           // Validate this specific correspondent
                           const isValid = await form.trigger(`correspondents.${index}`);
                           if (!isValid) {
-                            toast.error('Please fill in all required fields');
+                            // Check if the only error is clientName (which is optional)
+                            const fieldErrors = form.formState.errors.correspondents?.[index];
+                            if (fieldErrors) {
+                              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                              const { clientName, ...requiredErrors } = fieldErrors;
+                              // Only show toast if there are errors other than clientName
+                              if (Object.keys(requiredErrors).length > 0) {
+                                toast.error('Please fill in all required fields');
+                              }
+                            } else {
+                              toast.error('Please fill in all required fields');
+                            }
                             return;
                           }
                           

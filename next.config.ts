@@ -1,20 +1,20 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+
 import createNextIntlPlugin from 'next-intl/plugin';
 
-const nextConfig: NextConfig = {
-  // Configure server actions body size limit to 100MB
-  serverActions: {
-    bodySizeLimit: '100mb',
+const withNextIntl = createNextIntlPlugin();
+
+module.exports = withNextIntl({
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
   },
   
- 
-  
-  // Additional configuration for large file uploads
-  
-  
-  // Configure webpack for large files
-  
-};
-const withNextIntl = createNextIntlPlugin();
-export default withNextIntl(nextConfig);
-
+  // Configure API routes body size limit (for Pages Router compatibility)
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb',
+    },
+  },
+});

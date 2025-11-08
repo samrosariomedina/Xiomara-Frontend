@@ -60,10 +60,18 @@ export function useEditSource() {
   return useMutation({
     mutationFn: ({ sourceId, data }: { sourceId: string; data: Partial<SourceInputData> }) =>
       editSourceAction(sourceId, data),
-    onSuccess: () => {
-      // Invalidate ALL sources queries (including folder-specific ones)
-      queryClient.invalidateQueries({ queryKey: ['sources'] })
-      toast.success('Source updated successfully')
+    onSuccess: (response) => {
+      // Backend returns the updated source object with updated fields
+      // Verify we got a valid response with expected structure
+      if (response && typeof response === 'object') {
+        // Invalidate ALL sources queries (including folder-specific ones)
+        queryClient.invalidateQueries({ queryKey: ['sources'] })
+        toast.success('Source updated successfully')
+      } else {
+        // If response doesn't indicate success, show warning
+        console.warn('Source update response unclear:', response)
+        toast.error('Source update may not have been applied. Please refresh and try again.')
+      }
     },
     onError: (error: Error) => {
       console.error('Edit source error:', error)

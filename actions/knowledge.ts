@@ -354,35 +354,137 @@ export async function editReferenceAction(
     }
 
     // Backend expects content as plain text string (per references.md docs)
-    // Updated to match references.md documentation format
-    const cleanText = stripHtmlAndCleanText(data.text || '');
+    // Backend code shows content is required: if (con.post.content) { ... }
+    // Per docs: "content (string): New raw text content" - required field
     
-    const requestData = {
+    // Content is required for references edit (per backend code and docs)
+    if (data.text === undefined || data.text === null) {
+      throw new Error('Content is required to update a reference. Please provide text content.');
+    }
+    
+    const cleanText = stripHtmlAndCleanText(data.text);
+    
+    // Validate that content is not empty after cleaning
+    if (!cleanText || cleanText.trim().length === 0) {
+      throw new Error('Text content cannot be empty. Please enter some text.');
+    }
+    
+    // Prepare request data - content is required per backend
+    const requestData: {
+      reference: string;
+      content: string; // Required per backend code and docs
+      title?: string | null;
+    } = {
       reference: referenceId, // ObjectId string: Identifier of the reference to edit
       content: cleanText, // Send as plain text string (per docs)
-      title: data.name || null // New display title (string or null, optional)
     }
+    
+    // Handle title - can be null or string (per backend code)
+    // Backend: if (con.post.title === null || typeof con.post.title === "string") reference.title = con.post.title || null;
+    // This means empty string becomes null, so send null to remove title
+    if (data.name !== undefined) {
+      // Send null to remove title (backend converts empty string to null anyway)
+      requestData.title = data.name && data.name.trim() ? data.name.trim() : null;
+    }
+
+    // Calculate request body size for large content debugging
+    const requestBodyString = JSON.stringify(requestData);
+    const requestBodySize = new Blob([requestBodyString]).size;
+    const requestBodySizeMB = requestBodySize / (1024 * 1024);
 
     console.log('=== EDIT REFERENCE DEBUG ===')
     console.log('Reference ID:', referenceId)
-    console.log('Request Data:', requestData)
+    console.log('Request Data:', {
+      reference: requestData.reference,
+      title: requestData.title,
+      contentLength: requestData.content?.length || 0,
+      contentPreview: requestData.content?.substring(0, 100) + (requestData.content && requestData.content.length > 100 ? '...' : ''),
+      requestBodySize: `${requestBodySizeMB.toFixed(2)} MB`,
+      requestBodySizeBytes: requestBodySize
+    })
     console.log('============================')
+
+    // Verify content is not truncated
+    if (requestData.content && data.text) {
+      const originalLength = data.text.length;
+      const sentLength = requestData.content.length;
+      if (sentLength < originalLength * 0.9) { // Allow 10% difference for HTML stripping
+        console.warn('⚠️ WARNING: Content may be truncated!', {
+          originalLength,
+          sentLength,
+          difference: originalLength - sentLength
+        });
+      }
+    }
 
     const response = await axios.post(`${API_BASE_URL}/references/edit`, requestData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      timeout: 120000, // 2 minutes timeout for large content
+      // Add transform request to log actual payload size
+      transformRequest: [(data) => {
+        const jsonString = JSON.stringify(data);
+        console.log('📤 Actual request payload size:', `${(new Blob([jsonString]).size / (1024 * 1024)).toFixed(2)} MB`);
+        return jsonString;
+      }]
     })
 
-    // Revalidate all relevant paths to ensure real-time updates
-    revalidatePath('/clients')
-    revalidatePath('/clients/knowledge')
-    revalidatePath('/clients/dashboards/knowledge')
-    revalidatePath('/[locale]/clients', 'page')
-    revalidatePath('/[locale]/clients/[clientId]', 'page')
-    revalidatePath('/[locale]/clients/[clientId]/campaigns/[campaignId]', 'page')
-    return response.data
+    console.log('Edit reference response status:', response.status)
+    console.log('Edit reference response data:', response.data)
+    
+    // Verify the response contains the updated content
+    if (response.data && requestData.content) {
+      const responseContentLength = response.data.content?.length || 0;
+      const sentContentLength = requestData.content.length;
+      console.log('📥 Response content verification:', {
+        sentLength: sentContentLength,
+        receivedLength: responseContentLength,
+        match: responseContentLength === sentContentLength
+      });
+      
+      if (Math.abs(responseContentLength - sentContentLength) > sentContentLength * 0.1) {
+        console.error('❌ ERROR: Response content length does not match sent content!', {
+          sent: sentContentLength,
+          received: responseContentLength,
+          difference: sentContentLength - responseContentLength
+        });
+        throw new Error(`Content length mismatch: sent ${sentContentLength} bytes, received ${responseContentLength} bytes. The update may not have been applied correctly.`);
+      }
+    }
+
+    // Backend returns 200 with updated reference object, or 404 if not found
+    // Verify we got a valid response
+    if (response.status === 200 && response.data) {
+      // Double-check that the content was actually updated
+      if (requestData.content && response.data.content !== requestData.content) {
+        // Content might be processed/stripped by backend, so check length instead
+        const responseLength = response.data.content?.length || 0;
+        const sentLength = requestData.content.length;
+        if (Math.abs(responseLength - sentLength) > sentLength * 0.1) {
+          console.error('❌ Content update verification failed:', {
+            sentLength,
+            responseLength,
+            sentPreview: requestData.content.substring(0, 200),
+            responsePreview: response.data.content?.substring(0, 200)
+          });
+        }
+      }
+      
+      // Revalidate all relevant paths to ensure real-time updates
+      revalidatePath('/clients')
+      revalidatePath('/clients/knowledge')
+      revalidatePath('/clients/dashboards/knowledge')
+      revalidatePath('/[locale]/clients', 'page')
+      revalidatePath('/[locale]/clients/[clientId]', 'page')
+      revalidatePath('/[locale]/clients/[clientId]/campaigns/[campaignId]', 'page')
+      return response.data
+    } else {
+      throw new Error('Reference update failed: Invalid response from server')
+    }
   } catch (error) {
     console.error('Edit reference error:', error)
     if (axios.isAxiosError(error)) {

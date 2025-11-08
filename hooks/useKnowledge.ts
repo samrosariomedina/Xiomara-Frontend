@@ -51,10 +51,18 @@ export function useEditReference() {
   return useMutation({
     mutationFn: ({ referenceId, data }: { referenceId: string; data: Partial<KnowledgeBaseInput> }) =>
       editReferenceAction(referenceId, data),
-    onSuccess: () => {
-      // Invalidate ALL references queries (including folder-specific ones)
-      queryClient.invalidateQueries({ queryKey: ['references'] })
-      toast.success('Knowledge base item updated successfully')
+    onSuccess: (response) => {
+      // Backend returns the updated reference object with updated fields
+      // Verify we got a valid response with expected structure
+      if (response && typeof response === 'object') {
+        // Invalidate ALL references queries (including folder-specific ones)
+        queryClient.invalidateQueries({ queryKey: ['references'] })
+        toast.success('Knowledge base item updated successfully')
+      } else {
+        // If response doesn't indicate success, show warning
+        console.warn('Reference update response unclear:', response)
+        toast.error('Knowledge base update may not have been applied. Please refresh and try again.')
+      }
     },
     onError: (error: Error) => {
       console.error('Edit reference error:', error)

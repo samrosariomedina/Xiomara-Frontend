@@ -24,9 +24,10 @@ interface KnowledgeBaseFormProps {
   references: ReferenceResponse[]
   folderId: string
   editReference?: ReferenceResponse | null
+  onClose?: () => void // Callback to close the drawer
 }
 
-export function KnowledgeBaseForm({ onSubmit, references, folderId, editReference = null }: KnowledgeBaseFormProps) {
+export function KnowledgeBaseForm({ onSubmit, references, folderId, editReference = null, onClose }: KnowledgeBaseFormProps) {
   // Debug logging
   console.log('🔵 KnowledgeBaseForm rendered with editReference:', editReference);
   console.log('🔵 References array:', references);
@@ -36,12 +37,19 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   const cleanHtmlContent = (text: string): string => {
     if (!text) return '';
     
-    // Remove empty paragraphs and line breaks
+    // Remove empty paragraphs and line breaks (handle all variations)
     const cleaned = text
-      .replace(/<p><br><\/p>/g, '')
-      .replace(/<p><\/p>/g, '')
-      .replace(/<p>\s*<\/p>/g, '')
+      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '') // <p><br></p> or <p> <br> </p> with any whitespace
+      .replace(/<p>\s*<\/p>/gi, '') // Empty paragraphs <p></p> or <p> </p>
+      .replace(/<p>\s*&nbsp;\s*<\/p>/gi, '') // Paragraphs with only &nbsp;
+      .replace(/<div>\s*<br\s*\/?>\s*<\/div>/gi, '') // Empty divs with br
+      .replace(/<div>\s*<\/div>/gi, '') // Empty divs
       .trim();
+    
+    // If after removing empty tags, we have no content, return empty
+    if (!cleaned || cleaned.trim().length === 0) {
+      return '';
+    }
     
     return cleaned;
   };
@@ -104,8 +112,64 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     }
   })
   
-  // Reset form when editReference or localEditReference changes
+  // Update localEditReference and form data when references prop changes (after successful edit/delete)
+  // This ensures the form shows updated content immediately after a successful edit
   React.useEffect(() => {
+    if (localEditReference && references.length > 0) {
+      // Find the updated reference in the references array
+      const updatedReference = references.find(r => r._id === localEditReference._id);
+      if (updatedReference) {
+        // Only update if the content or title actually changed to avoid unnecessary re-renders
+        const hasChanges = 
+          updatedReference.title !== localEditReference.title ||
+          updatedReference.content !== localEditReference.content;
+        
+        if (hasChanges) {
+          // Mark that we're updating from references to prevent form reset effect from overwriting
+          justUpdatedFromReferences.current = true;
+          // Update both localEditReference and form data simultaneously to prevent blinking
+          setLocalEditReference(updatedReference);
+          // Extract content and update form immediately with fresh content to prevent showing old data
+          const { text: textContent } = extractContentFromReference(updatedReference);
+          form.reset({
+            name: updatedReference.title || "",
+            file: null,
+            url: "",
+            text: textContent,
+          });
+          console.log('🔵 Updated localEditReference and form with fresh data from references prop');
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [references])
+
+  // Reset form when editReference or localEditReference changes (but not when we just updated from references prop)
+  // Use a ref to track if we just updated from references to prevent overwriting
+  const justUpdatedFromReferences = React.useRef(false);
+  
+  // Ensure showForm is true when editReference prop is provided (from list page edit)
+  React.useEffect(() => {
+    if (editReference) {
+      setShowForm(true);
+    }
+  }, [editReference]);
+  
+  // Ensure showForm is true whenever we're in edit mode (for tab switching)
+  React.useEffect(() => {
+    if (isEditMode && !showForm) {
+      console.log('🔵 isEditMode is true but showForm is false - setting showForm to true');
+      setShowForm(true);
+    }
+  }, [isEditMode, showForm]);
+  
+  React.useEffect(() => {
+    if (justUpdatedFromReferences.current) {
+      // Skip this update cycle if we just updated from references prop
+      justUpdatedFromReferences.current = false;
+      return;
+    }
+    
     console.log('🔵 currentEditReference changed:', currentEditReference);
     if (currentEditReference) {
       console.log('🔵 Setting form to edit mode with data:', {
@@ -164,7 +228,13 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   const handleCancel = () => {
     form.reset()
     form.clearErrors()
+    setLocalEditReference(null) // Clear edit state on cancel
     setShowForm(false)
+    
+    // Always close drawer on cancel
+    if (onClose) {
+      onClose()
+    }
   }
 
   const handleSubmit = form.handleSubmit((data) => {
@@ -204,10 +274,28 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     }
 
     if (isEditMode && currentEditReference) {
-      // Edit existing reference - send text content (HTML stripping handled in backend)
+      // Edit existing reference - always send both name and text to ensure content is preserved
+      // Use cleaned text if available and not empty, otherwise fall back to original form data or reference content
+      // This ensures large content is preserved even if HTML cleaning has issues
+      const textToSend = (cleanedData.text && cleanedData.text.trim().length > 0)
+        ? cleanedData.text
+        : (data.text && data.text.trim().length > 0)
+          ? data.text.trim()
+          : extractContentFromReference(currentEditReference).text || '';
+      
+      // Log content length to help debug large content issues
+      console.log('🔵 Content to send:', {
+        cleanedLength: cleanedData.text?.length || 0,
+        originalLength: data.text?.length || 0,
+        finalLength: textToSend.length,
+        usingCleaned: cleanedData.text && cleanedData.text.trim().length > 0
+      });
+      
+      // Always include name field (even if empty) to allow title removal
+      // Send empty string to remove title, or the actual name
       const editData = {
-        name: cleanedData.name,
-        text: cleanedData.text || '', // Send cleaned text content
+        name: cleanedData.name || '', // Empty string will be converted to null by backend
+        text: textToSend, // Always include current content
       }
       
       console.log('🔵 Edit data prepared:', {
@@ -222,7 +310,12 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
             form.reset()
             setLocalEditReference(null) // Clear local edit state
             setShowForm(false)
-            onSubmit?.(cleanedData)
+            // Close drawer on successful update
+            if (onClose) {
+              onClose()
+            }
+            // Don't call onSubmit in edit mode to avoid duplicate toasts
+            // The mutation hook already shows success toast
           },
           onError: (error) => {
             console.error('Error updating knowledge base:', error)
@@ -258,6 +351,8 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     if (reference) {
       // Set local edit state to trigger edit mode
       setLocalEditReference(reference);
+      setShowForm(true); // Ensure form is shown when editing from list
+      console.log('🔵 localEditReference state updated, showForm set to true');
     }
   };
 

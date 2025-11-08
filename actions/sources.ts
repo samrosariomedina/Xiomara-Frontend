@@ -425,75 +425,163 @@ export async function editSourceAction(
       throw new Error('Authentication required');
     }
 
-    // Prepare form data for multipart/form-data (in case we're uploading a file)
-    const formData = new FormData()
-
-    // Add basic fields
-    formData.append('source', sourceId)
-    if (data.name) {
-      formData.append('title', data.name)
+    // Backend expects JSON (application/json) per sources.md documentation
+    // The edit endpoint only supports updating title and content, not file uploads
+    // File uploads would require creating a new source
+    
+    // Prepare request data according to backend API spec
+    const requestData: {
+      source: string;
+      title?: string | null;
+      content?: string;
+    } = {
+      source: sourceId
     }
 
-    // Determine type and content based on what's provided
-    let sourceType = 'text';
-    let content = '';
-    
-    if (data.file) {
-      // Handle file upload
-      sourceType = 'file';
-      const buffer = Buffer.from(await data.file.arrayBuffer())
-      formData.append('file', buffer, {
-        filename: data.file.name,
-        contentType: data.file.type
-      })
-      content = data.file.name;
-    } else if (data.url) {
-      sourceType = 'webpage';
-      content = data.url.trim();
-    } else if (data.text) {
-      sourceType = 'text';
-      content = data.text.trim();
+    // Handle title - can be null or string (per backend code)
+    // Backend: if (con.post.title === null || typeof con.post.title === "string") source.title = con.post.title || null;
+    // This means empty string becomes null, so send null to remove title
+    if (data.name !== undefined) {
+      // Send null to remove title (backend converts empty string to null anyway)
+      requestData.title = data.name && data.name.trim() ? data.name.trim() : null;
+    }
+
+    // Handle content - determine what content to send
+    // Always send content if provided to ensure it's preserved when title changes
+    if (data.text !== undefined && data.text !== null) {
+      // Text content - send as plain string (backend expects raw text)
+      const textContent = data.text.trim();
       
-      // Validate that text content is not empty after processing
-      if (!content) {
+      // Validate that text content is not empty
+      if (!textContent) {
         throw new Error('Text content cannot be empty. Please enter some text.');
       }
-    }
-
-    formData.append('type', sourceType)
-    formData.append('content', content)
-
-    // Check file size and type for edit
-    if (data.file) {
-      const fileSizeMB = data.file.size / (1024 * 1024);
-      if (fileSizeMB > 100) {
-        throw new Error('File size exceeds 100MB limit');
+      
+      requestData.content = textContent;
+    } else if (data.url !== undefined && data.url !== null) {
+      // URL content - send URL as plain string
+      const urlContent = data.url.trim();
+      
+      // Validate URL format
+      try {
+        new URL(urlContent);
+      } catch {
+        throw new Error('Invalid URL format. Please enter a valid URL starting with http:// or https://');
       }
       
-      // Check if file type is supported by backend
-      const supportedTypes = ['txt', 'md', 'pdf', 'htm', 'html'];
-      const fileExtension = data.file.name.split('.').pop()?.toLowerCase();
-      if (!fileExtension || !supportedTypes.includes(fileExtension)) {
-        throw new Error(`Unsupported file type. Please upload one of: ${supportedTypes.join(', ').toUpperCase()}`);
+      requestData.content = urlContent;
+    } else if (data.file) {
+      // File uploads are not supported in edit endpoint
+      // User would need to create a new source instead
+      throw new Error('File uploads are not supported when editing. Please create a new source with the file.');
+    }
+
+    // Validate that we have at least title or content to update
+    if (requestData.title === undefined && !requestData.content) {
+      throw new Error('At least title or content must be provided to update the source.');
+    }
+
+    // Calculate request body size for large content debugging
+    const requestBodyString = JSON.stringify(requestData);
+    const requestBodySize = new Blob([requestBodyString]).size;
+    const requestBodySizeMB = requestBodySize / (1024 * 1024);
+
+    console.log('=== EDIT SOURCE DEBUG ===')
+    console.log('Source ID:', sourceId)
+    console.log('Request Data:', {
+      source: requestData.source,
+      title: requestData.title,
+      contentLength: requestData.content?.length || 0,
+      contentPreview: requestData.content?.substring(0, 100) + (requestData.content && requestData.content.length > 100 ? '...' : ''),
+      requestBodySize: `${requestBodySizeMB.toFixed(2)} MB`,
+      requestBodySizeBytes: requestBodySize
+    })
+    console.log('========================')
+
+    // Verify content is not truncated
+    if (requestData.content && data.text) {
+      const originalLength = data.text.length;
+      const sentLength = requestData.content.length;
+      if (sentLength < originalLength * 0.9) { // Allow 10% difference for HTML stripping
+        console.warn('⚠️ WARNING: Content may be truncated!', {
+          originalLength,
+          sentLength,
+          difference: originalLength - sentLength
+        });
       }
     }
 
-    const response = await axios.post(`${API_BASE_URL}/sources/edit`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/sources/edit`, requestData, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        ...formData.getHeaders()
-      }
+        'Content-Type': 'application/json'
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      timeout: 120000, // 2 minutes timeout for large content
+      // Add transform request to log actual payload size
+      transformRequest: [(data) => {
+        const jsonString = JSON.stringify(data);
+        console.log('📤 Actual request payload size:', `${(new Blob([jsonString]).size / (1024 * 1024)).toFixed(2)} MB`);
+        return jsonString;
+      }]
     })
 
-    revalidatePath('/clients')
-    revalidatePath('/clients/fuentes')
-    revalidatePath('/clients/dashboards/fuentes')
-    revalidatePath('/clients/content-engine')
-    return response.data
+    console.log('Edit source response status:', response.status)
+    console.log('Edit source response data:', response.data)
+    
+    // Verify the response contains the updated content
+    if (response.data && requestData.content) {
+      const responseContentLength = response.data.content?.length || 0;
+      const sentContentLength = requestData.content.length;
+      console.log('📥 Response content verification:', {
+        sentLength: sentContentLength,
+        receivedLength: responseContentLength,
+        match: responseContentLength === sentContentLength
+      });
+      
+      if (Math.abs(responseContentLength - sentContentLength) > sentContentLength * 0.1) {
+        console.error('❌ ERROR: Response content length does not match sent content!', {
+          sent: sentContentLength,
+          received: responseContentLength,
+          difference: sentContentLength - responseContentLength
+        });
+        throw new Error(`Content length mismatch: sent ${sentContentLength} bytes, received ${responseContentLength} bytes. The update may not have been applied correctly.`);
+      }
+    }
+
+    // Backend returns 200 with updated source object, or 404 if not found
+    // Verify we got a valid response
+    if (response.status === 200 && response.data) {
+      // Double-check that the content was actually updated
+      if (requestData.content && response.data.content !== requestData.content) {
+        // Content might be processed/stripped by backend, so check length instead
+        const responseLength = response.data.content?.length || 0;
+        const sentLength = requestData.content.length;
+        if (Math.abs(responseLength - sentLength) > sentLength * 0.1) {
+          console.error('❌ Content update verification failed:', {
+            sentLength,
+            responseLength,
+            sentPreview: requestData.content.substring(0, 200),
+            responsePreview: response.data.content?.substring(0, 200)
+          });
+        }
+      }
+      
+      revalidatePath('/clients')
+      revalidatePath('/clients/fuentes')
+      revalidatePath('/clients/dashboards/fuentes')
+      revalidatePath('/clients/content-engine')
+      return response.data
+    } else {
+      throw new Error('Source update failed: Invalid response from server')
+    }
   } catch (error) {
     console.error('Edit source error:', error)
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to update source')
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      throw new Error(error.response?.data?.message || error.response?.data || 'Failed to update source')
     }
     throw new Error('Failed to update source')
   }

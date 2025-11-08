@@ -29,6 +29,7 @@ interface FuentesGeneralesFormProps {
   sources: SourceResponse[]
   folderId: string
   editSource?: SourceResponse | null
+  onClose?: () => void // Callback to close the drawer
 }
 
 interface Source {
@@ -40,7 +41,7 @@ interface Source {
 }
 
 export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
-  { onSubmit, sources, folderId, editSource = null }: FuentesGeneralesFormProps,
+  { onSubmit, sources, folderId, editSource = null, onClose }: FuentesGeneralesFormProps,
   ref
 ) {
   // Local edit state for list-based editing
@@ -74,11 +75,50 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const { createSource, editSource: editSourceMutation, removeSource, isCreating, isEditing } = useSourcesMutations(folderId)
   const router = useRouter()
   
-  // Reset form when editSource or localEditSource changes
+  // Update localEditSource and form data when sources prop changes (after successful edit/delete)
+  // This ensures the form shows updated content immediately after a successful edit
   React.useEffect(() => {
+    if (localEditSource && sources.length > 0) {
+      // Find the updated source in the sources array
+      const updatedSource = sources.find(s => s._id === localEditSource._id);
+      if (updatedSource) {
+        // Only update if the content or title actually changed to avoid unnecessary re-renders
+        const hasChanges = 
+          updatedSource.title !== localEditSource.title ||
+          updatedSource.content !== localEditSource.content;
+        
+        if (hasChanges) {
+          // Mark that we're updating from sources to prevent form reset effect from overwriting
+          justUpdatedFromSources.current = true;
+          // Update both localEditSource and form data simultaneously to prevent blinking
+          setLocalEditSource(updatedSource);
+          // Update form data immediately with fresh content to prevent showing old data
+          setFormData({
+            name: updatedSource.title || "",
+            file: null,
+            url: "",
+            text: updatedSource.content || "",
+          });
+          console.log('🟠 Updated localEditSource and formData with fresh data from sources prop');
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sources])
+
+  // Reset form when editSource or localEditSource changes (but not when we just updated from sources prop)
+  // Use a ref to track if we just updated from sources to prevent overwriting
+  const justUpdatedFromSources = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (justUpdatedFromSources.current) {
+      // Skip this update cycle if we just updated from sources prop
+      justUpdatedFromSources.current = false;
+      return;
+    }
+    
     console.log('🟠 useEffect triggered - currentEditSource:', currentEditSource);
     console.log('🟠 useEffect triggered - isEditMode:', isEditMode);
-    console.log('🟠 useEffect triggered - showForm:', showForm);
     
     if (currentEditSource) {
       console.log('🟠 Setting form to edit mode with data:', {
@@ -99,7 +139,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
     } else {
       console.log('🟠 No currentEditSource, not setting edit mode');
     }
-  }, [currentEditSource, isEditMode, showForm])
+  }, [currentEditSource, isEditMode])
 
   // Additional effect to watch localEditSource specifically
   React.useEffect(() => {
@@ -109,6 +149,14 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       setShowForm(true);
     }
   }, [localEditSource])
+  
+  // Ensure showForm is true whenever we're in edit mode (for tab switching)
+  React.useEffect(() => {
+    if (isEditMode && !showForm) {
+      console.log('🟠 isEditMode is true but showForm is false - setting showForm to true');
+      setShowForm(true);
+    }
+  }, [isEditMode, showForm])
 
   // Debug logging for folderId
   console.log('╔═══════════════════════════════════════════════════╗')
@@ -118,6 +166,7 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   console.log('╚═══════════════════════════════════════════════════╝')
 
   // Utility function to strip HTML and clean text content
+  // For large content, uses regex-based stripping to avoid DOM performance issues
   const stripHtmlAndCleanText = (htmlText: string): string => {
     if (!htmlText) return '';
     
@@ -126,10 +175,63 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       return htmlText.trim();
     }
     
+    // First, remove empty paragraph tags and line breaks that create empty content
+    // Handle variations: <p><br></p>, <p> <br> </p>, <p></p>, <p> </p>, etc.
+    const cleanedHtml = htmlText
+      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '') // <p><br></p> or <p> <br> </p> with any whitespace
+      .replace(/<p>\s*<\/p>/gi, '') // Empty paragraphs <p></p> or <p> </p>
+      .replace(/<p>\s*&nbsp;\s*<\/p>/gi, '') // Paragraphs with only &nbsp;
+      .replace(/<div>\s*<br\s*\/?>\s*<\/div>/gi, '') // Empty divs with br
+      .replace(/<div>\s*<\/div>/gi, '') // Empty divs
+      .trim();
+    
+    // If after removing empty tags, we have no content, return empty
+    if (!cleanedHtml || cleanedHtml.trim().length === 0) {
+      return '';
+    }
+    
+    // For very large content (>500KB), use regex-based stripping to avoid DOM performance issues
+    const isLargeContent = cleanedHtml.length > 500 * 1024;
+    
+    if (isLargeContent) {
+      // Use regex-based HTML stripping for large content (more efficient)
+      try {
+        const textContent = cleanedHtml
+          // Remove HTML tags
+          .replace(/<[^>]*>/g, '')
+          // Decode HTML entities
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&rsquo;/g, "'")
+          .replace(/&lsquo;/g, "'")
+          .replace(/&rdquo;/g, '"')
+          .replace(/&ldquo;/g, '"')
+          .replace(/&hellip;/g, '...')
+          .replace(/&mdash;/g, '—')
+          .replace(/&ndash;/g, '–')
+          // Clean up whitespace but preserve structure
+          .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
+          .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
+          .trim();
+        
+        return textContent;
+      } catch (error) {
+        console.warn('Error processing large HTML content with regex:', error);
+        // Fallback: return cleaned HTML (empty tags already removed) if processing fails
+        return cleanedHtml.trim();
+      }
+    }
+    
+    // For smaller content, use DOM-based parsing for better formatting preservation
     try {
       // Create a temporary div to parse HTML
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlText;
+      tempDiv.innerHTML = cleanedHtml;
       
       // Get text content while preserving some formatting
       let textContent = '';
@@ -171,8 +273,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
         .trim(); // Remove leading/trailing whitespace
     } catch (error) {
       console.warn('Error processing HTML content:', error);
-      // Fallback: return original text if HTML processing fails
-      return htmlText.trim();
+      // Fallback: return cleaned HTML (empty tags already removed) if HTML processing fails
+      return cleanedHtml.trim();
     }
   }
 
@@ -228,52 +330,95 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       }
       
       // Prepare source data
-      const sourceData = {
-        name: formData.name,
-        // In edit mode, only allow text content updates
-        ...(isEditMode ? {
-          text: processedText || formData.text || undefined, // Fallback to original text if processing fails
-        } : {
-          file: formData.file || undefined,
-          url: formData.url || undefined,
-          text: processedText || undefined,
-        }),
-      }
-      
-      // Additional safety check before submitting
-      if (isEditMode && (!sourceData.text || sourceData.text.trim().length === 0)) {
-        console.error('🟠 ERROR: Attempting to submit empty text content in edit mode');
-        setErrors({ text: 'Cannot save empty content. Please add some text.' });
-        return;
-      }
-      
+      // In edit mode, always send both name and text to ensure content is preserved
       if (isEditMode && currentEditSource) {
+        // In edit mode, ensure we have content to send
+        // Use processedText if available and not empty, otherwise fall back to original formData.text
+        // This ensures large content is preserved even if HTML stripping has issues
+        const textToSend = (processedText && processedText.trim().length > 0) 
+          ? processedText 
+          : (formData.text && formData.text.trim().length > 0)
+            ? formData.text.trim()
+            : currentEditSource?.content || '';
+            
+        if (!textToSend || textToSend.trim().length === 0) {
+          console.error('🟠 ERROR: Attempting to submit empty text content in edit mode');
+          setErrors({ text: 'Cannot save empty content. Please add some text.' });
+          return;
+        }
+        
+        // Log content length to help debug large content issues
+        console.log('🟠 Content to send:', {
+          processedLength: processedText?.length || 0,
+          originalLength: formData.text?.length || 0,
+          finalLength: textToSend.length,
+          usingProcessed: processedText && processedText.trim().length > 0
+        });
+        
+        // Edit mode: prepare data with optional name and required text
+        // Always include name field (even if empty) to allow title removal
+        const editData: {
+          name?: string;
+          text: string;
+        } = {
+          text: textToSend, // Always include current content
+        }
+        
+        // Always include name field - send empty string to remove title, or the actual name
+        // This ensures we can update the title to null when the field is cleared
+        editData.name = formData.name || ''; // Empty string will be converted to null by backend
+        
         // Edit existing source
         console.log('🟠 Editing source with data:', {
           sourceId: currentEditSource._id,
-          name: sourceData.name,
-          textLength: sourceData.text?.length || 0,
-          textPreview: sourceData.text?.substring(0, 100) + '...'
+          name: editData.name,
+          textLength: editData.text.length,
+          textPreview: editData.text.substring(0, 100) + '...'
         })
-        await editSourceMutation({ sourceId: currentEditSource._id, data: sourceData })
+        await editSourceMutation({ 
+          sourceId: currentEditSource._id, 
+          data: editData
+        })
       } else {
+        // Create mode: prepare data with required name
+        const createData: {
+          name: string;
+          file?: File;
+          url?: string;
+          text?: string;
+        } = {
+          name: formData.name || '', // Name is required for create
+        }
+        
+        if (formData.file) createData.file = formData.file
+        if (formData.url) createData.url = formData.url
+        if (processedText) createData.text = processedText
+        
         // Create new source
         console.log('╔═══════════════════════════════════════════════════╗')
         console.log('║  CREATING NEW SOURCE                              ║')
         console.log('╠═══════════════════════════════════════════════════╣')
-        console.log('║  Source Data:', JSON.stringify(sourceData).substring(0, 40).padEnd(20), '║')
+        console.log('║  Source Data:', JSON.stringify(createData).substring(0, 40).padEnd(20), '║')
         console.log('║  Folder ID:     ', (folderId || 'N/A').padEnd(27), '║')
         console.log('╚═══════════════════════════════════════════════════╝')
-        await createSource(sourceData)
+        await createSource(createData)
       }
       
-      // Call the parent onSubmit for any additional handling
-      onSubmit(formData)
+      // Don't call onSubmit in edit mode to avoid duplicate toasts
+      // The mutation hook already shows success toast
+      if (!isEditMode) {
+        onSubmit(formData)
+      }
       
       // Reset form
       setFormData({ name: "", file: null, url: "", text: "" })
       setLocalEditSource(null) // Clear local edit state
       setShowForm(false) // Close form and show sources list
+      
+      // Close drawer on successful update
+      if (isEditMode && onClose) {
+        onClose()
+      }
     } catch (error) {
       console.error(`🟠 Error ${isEditMode ? 'editing' : 'creating'} source:`, error)
       
@@ -295,7 +440,13 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   const handleCancel = () => {
     setErrors({}) // Clear validation errors
     setFormData({ name: "", file: null, url: "", text: "" })
+    setLocalEditSource(null) // Clear edit state on cancel
     setShowForm(false) // Just close the form without creating a source
+    
+    // Always close drawer on cancel
+    if (onClose) {
+      onClose()
+    }
   }
 
   const handleAddMore = () => {
@@ -330,7 +481,8 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       console.log('🟠 Setting localEditSource to:', source);
       // Set local edit state to trigger edit mode
       setLocalEditSource(source);
-      console.log('🟠 localEditSource state updated');
+      setShowForm(true); // Ensure form is shown when editing from list
+      console.log('🟠 localEditSource state updated, showForm set to true');
     } else {
       console.log('🟠 Source not found for id:', id);
     }

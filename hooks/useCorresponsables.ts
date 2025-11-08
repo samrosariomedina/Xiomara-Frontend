@@ -53,6 +53,7 @@ export function useCorresponsables(folderId?: string) {
     }) => {
       const correspondentsWithEmail = correspondents.map(correspondent => ({
         ...correspondent,
+        clientName: correspondent.clientName || '', // Ensure clientName is always a string (can be empty)
         email: correspondent.email || ''
       }))
       const result = await createCorresponsablesAction(folderId, correspondentsWithEmail)
@@ -146,10 +147,10 @@ export function useCorresponsables(folderId?: string) {
     }: { 
       listenerId: string
       data: {
-        title?: string;
-        origin?: string;
+        title?: string | null; // null to remove title, string to set title, undefined to not change
         enabled?: boolean;
         email?: string;
+        // Note: origin is intentionally NOT editable for security reasons
       }
     }) => {
       const result = await updateCorresponsableAction(listenerId, data)
@@ -160,13 +161,15 @@ export function useCorresponsables(folderId?: string) {
       }
     },
     onSuccess: () => {
-      toast.success('Corresponsable updated successfully')
-      // Invalidate and refetch corresponsables
+      // No success toast for updates - matches client page behavior
+      // Invalidate and refetch corresponsables to sync data across pages
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
     onError: (error: Error) => {
+      // No error toast - only log for debugging
       console.error('Update corresponsable error:', error)
-      toast.error(error.message || 'Failed to update corresponsable')
+      // Still invalidate queries to refresh data even on error
+      queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     }
   })
 

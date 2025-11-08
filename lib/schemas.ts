@@ -120,7 +120,15 @@ export const generalInformationSchema = z.object({
 // Individual correspondent schema
 const correspondentSchema = z.object({
   id: z.string().optional(), // For tracking existing vs new correspondents
-  clientName: z.string().min(1, 'Client name is required'),
+  clientName: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || val.length <= 100,
+      {
+        message: 'Client name must be less than 100 characters',
+      }
+    ),
   email: z.string()
     .optional()
     .or(z.literal(""))
@@ -188,7 +196,15 @@ export const brandGuidesSchema = z.object({});
 
 // Corresponsables Form Schema
 export const corresponsablesSchema = z.object({
-  clientName: z.string().min(1, 'Client name is required').max(100, 'Client name must be less than 100 characters'),
+  clientName: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || val.length <= 100,
+      {
+        message: 'Client name must be less than 100 characters',
+      }
+    ),
   email: z.string()
     .optional()
     .or(z.literal(""))

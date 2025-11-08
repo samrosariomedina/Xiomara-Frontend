@@ -463,7 +463,7 @@ export async function getCorresponsablesAction(folderId: string) {
 export async function updateCorresponsableAction(
   listenerId: string, 
   data: {
-    title?: string;
+    title?: string | null; // null to remove title, string to set title, undefined to not change
     enabled?: boolean;
     email?: string;
   }
@@ -511,7 +511,9 @@ export async function updateCorresponsableAction(
       }
     });
 
-    if (response.status === 200) {
+    // Backend returns 200 with updated data, or 404 if listener not found/doesn't belong to user
+    // Verify we got a valid response (similar to sources.ts and knowledge.ts)
+    if (response.status === 200 && response.data) {
       // Revalidate the clients page to show fresh data
       revalidatePath('/clients');
       return {
@@ -519,46 +521,52 @@ export async function updateCorresponsableAction(
         data: response.data
       };
     } else {
-      throw new Error('Failed to update corresponsable');
+      throw new Error('Failed to update corresponsable: Invalid response from server');
     }
   } catch (error: unknown) {
     console.error('Update corresponsable error:', error);
 
-    if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { 
-        response?: { 
-          status?: number;
-          data?: unknown;
-        } 
-      };
+    // Use axios.isAxiosError for better type safety (like sources.ts and knowledge.ts)
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const errorData = error.response?.data;
       
       console.error('Axios error details:', {
-        status: axiosError.response?.status,
-        data: axiosError.response?.data,
+        status,
+        data: errorData,
         fullError: error
       });
       
-      if (axiosError.response?.status === 401) {
+      // Backend returns 404 when listener not found or doesn't belong to user
+      // This happens when modifiedCount is 0 (listener doesn't exist or belongs to another user)
+      if (status === 404) {
+        return {
+          success: false,
+          error: 'Corresponsable not found or you do not have permission to update it. The listener may not exist or may belong to another user.'
+        };
+      } else if (status === 400) {
+        // Backend returns 400 if listener ID is invalid
+        return {
+          success: false,
+          error: error.response?.data?.message || 'Invalid listener ID format'
+        };
+      } else if (status === 401) {
         return {
           success: false,
           error: 'Authentication required'
         };
-      } else if (axiosError.response?.status === 404) {
+      } else if (status === 500) {
         return {
           success: false,
-          error: `Corresponsable not found. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
-        };
-      } else if (axiosError.response?.status === 400) {
-        return {
-          success: false,
-          error: `Bad request. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
-        };
-      } else if (axiosError.response?.status === 500) {
-        return {
-          success: false,
-          error: `Server error. Status: ${axiosError.response.status}, Data: ${axiosError.response.data ? String(axiosError.response.data) : 'Unknown'}`
+          error: error.response?.data?.message || 'Server error occurred while updating corresponsable'
         };
       }
+      
+      // Generic axios error handling
+      return {
+        success: false,
+        error: error.response?.data?.message || error.response?.data || 'Failed to update corresponsable'
+      };
     }
 
     return {

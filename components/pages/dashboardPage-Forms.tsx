@@ -22,6 +22,7 @@ interface SourcesAdministratorProps {
   editReference?: ReferenceResponse | null
   editCorresponsable?: {
     _id: string;
+    type?: string; // "whatsapp" or "telegram"
     title?: string;
     origin?: string;
     approved: boolean;
@@ -78,29 +79,36 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
       setIsSubmitting(true)
       const d = data as SourceData
       
-      // Validate data before processing
-      if (!d?.name) {
+      // Only validate name for sources/knowledge forms, not for corresponsables
+      // Corresponsables form handles its own validation and doesn't need this check
+      if (activeTab !== "corresponsales" && !d?.name) {
         toast.error('Name is required')
         return
       }
       
-      const newSource = {
-        id: localSources.length + 1,
-        name: d.name,
-        type: "image" as const,
-        category: "Marketing",
-        timestamp: new Date().toISOString(),
+      // Only process sources/knowledge here - corresponsables handle their own submission
+      if (activeTab !== "corresponsales" && d.name) {
+        const newSource = {
+          id: localSources.length + 1,
+          name: d.name,
+          type: "image" as const,
+          category: "Marketing",
+          timestamp: new Date().toISOString(),
+        }
+        
+        setLocalSources(prev => [...prev, newSource])
+        toast.success('Source added successfully')
       }
-      
-      setLocalSources(prev => [...prev, newSource])
-      toast.success('Source added successfully')
+      // Corresponsables form handles its own success/error toasts
     } catch (error) {
       console.error('Submit error:', error)
-      toast.error('Failed to add source')
+      if (activeTab !== "corresponsales") {
+        toast.error('Failed to add source')
+      }
     } finally {
       setIsSubmitting(false)
     }
-  }, [localSources.length])
+  }, [localSources.length, activeTab])
 
   // Animation effects
   useEffect(() => {
@@ -169,7 +177,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} sources={sources} editSource={editSource} folderId={folderId} />
+              <FuentesGeneralesForm ref={formRef} onSubmit={handleSubmit} sources={sources} editSource={editSource} folderId={folderId} onClose={onClose} />
             </div>
           </div>
         )
@@ -178,7 +186,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <CorresponsalesForm onSubmit={handleSubmit} editCorresponsable={editCorresponsable} folderId={folderId} />
+              <CorresponsalesForm onSubmit={handleSubmit} editCorresponsable={editCorresponsable} folderId={folderId} onClose={onClose} />
             </div>
           </div>
         )
@@ -187,7 +195,7 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <KnowledgeBaseForm onSubmit={handleSubmit} references={references} editReference={editReference} folderId={folderId} />
+              <KnowledgeBaseForm onSubmit={handleSubmit} references={references} editReference={editReference} folderId={folderId} onClose={onClose} />
             </div>
           </div>
         )

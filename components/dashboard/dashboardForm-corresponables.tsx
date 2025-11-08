@@ -50,9 +50,10 @@ interface CorresponsalesFormProps {
       email?: string;
     };
   } | null
+  onClose?: () => void // Callback to close the drawer
 }
 
-export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = null }: CorresponsalesFormProps) {
+export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = null, onClose }: CorresponsalesFormProps) {
   // Debug logging
   console.log('🟣 CorresponsalesForm rendered with editCorresponsable:', editCorresponsable);
   
@@ -72,7 +73,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     listenerType: "whatsapp" | "telegram";
   } | null>(null)
   
-  // Use react-hook-form like the client form
+  // Use react-hook-form like the client form - schema already makes clientName optional
   const form = useForm<CorresponsableFormData>({
     resolver: zodResolver(corresponsablesSchema),
     defaultValues: {
@@ -92,12 +93,16 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   const tMain = useTranslations('CORRESPONSABLES')
   const router = useRouter()
 
-  // Clear errors when form is shown
+  // Clear errors when form is shown, and always clear clientName errors since it's optional
   useEffect(() => {
     if (showForm) {
       clearErrors()
     }
-  }, [showForm, clearErrors])
+    // Always clear clientName errors since it's optional and shouldn't show validation errors
+    if (form.formState.errors.clientName) {
+      form.clearErrors('clientName')
+    }
+  }, [showForm, clearErrors, form])
   
   // Fetch corresponsables for the folder (client or campaign)
   const { 
@@ -141,6 +146,14 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       })
     }
   }, [currentEditCorresponsable, form])
+  
+  // Ensure showForm is true whenever we're in edit mode (for tab switching)
+  useEffect(() => {
+    if (isEditMode && !showForm) {
+      console.log('🟣 isEditMode is true but showForm is false - setting showForm to true');
+      setShowForm(true);
+    }
+  }, [isEditMode, showForm])
 
   // Convert corresponsables to SourceItem format for display
   const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, ) => ({
@@ -225,6 +238,11 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     })
     setShowForm(false)
     setLocalEditCorresponsable(null) // Clear edit state on cancel
+    
+    // Always close drawer on cancel
+    if (onClose) {
+      onClose()
+    }
   }
 
   // Form submission handler that matches the client form
@@ -247,10 +265,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         await updateCorresponsable({
           listenerId: currentEditCorresponsable._id,
           data: {
-            title: data.clientName,
-            email: data.email || "",
-            origin: data.listenerType === "whatsapp" ? data.whatsapp : data.telegramToken || "",
-            enabled: true
+            title: (data.clientName && data.clientName.trim()) ? data.clientName.trim() : null, // Send null explicitly to remove title (backend requires null, not undefined)
+            enabled: true,
+            email: data.email || ""
+            // Note: origin is intentionally NOT editable for security reasons (matches client form)
           }
         });
 
@@ -274,6 +292,11 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         });
         setLocalEditCorresponsable(null); // Clear local edit state
         setShowForm(false);
+        
+        // Close drawer on successful update
+        if (onClose) {
+          onClose()
+        }
       } else {
         // Create mode
         console.log('Creating corresponsable with data:', {
@@ -287,7 +310,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         const result = await createCorresponsableWithSharing({
           folderId,
           data: {
-            clientName: data.clientName,
+            clientName: data.clientName?.trim() || "",
             email: data.email || "",
             listenerType: data.listenerType,
             whatsapp: data.whatsapp || "",
@@ -297,21 +320,19 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         });
 
         if (result) {
-          const { shareUrl, sharingError, listeners } = result;
+          const { shareUrl, sharingError } = result;
           
           if (sharingError) {
             toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
           }
 
-          const listenerCount = listeners ? listeners.length : 1;
-          const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
-          toast.success(`Corresponsable ${data.clientName} created successfully with ${listenerText}`);
+          // Success toast is handled by the mutation hook, don't show duplicate
           
           // Show sharing dialog if share URL is available
           if (shareUrl) {
             setShareDialogData({
               shareUrl,
-              clientName: data.clientName,
+              clientName: (data.clientName?.trim() || 'Unnamed') as string,
               email: data.email,
               listenerType: data.listenerType
             });
@@ -321,7 +342,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           // Add to local sources for immediate UI update
           const newItem: SourceItem = {
             id: Date.now(), // Temporary ID for UI
-            name: data.clientName,
+            name: data.clientName?.trim() || 'Unnamed',
             type: "text",
             category: "Corresponsable",
             timestamp: "Just now",
@@ -342,12 +363,18 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} corresponsable:`, error);
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} corresponsable`);
+      // No error toast for updates - success toast is handled by mutation hook
+      // Only show error toast for create mode if needed
+      if (!isEditMode) {
+        toast.error(`Failed to create corresponsable`);
+      }
     }
   }
 
   const handleAdd = handleSubmit(
     async (data) => {
+      // Clear any clientName errors before submission since it's optional
+      form.clearErrors('clientName')
       console.log('Form validation passed, data:', data)
       console.log('Current form values:', form.getValues())
       console.log('Current form errors:', form.formState.errors)
@@ -358,7 +385,19 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     (errors) => {
       console.log('Form validation failed, errors:', errors)
       console.log('Current form values:', form.getValues())
-      toast.error('Please fill in all required fields')
+      // Immediately clear clientName errors to prevent any toast/UI display
+      // This must happen before any toast logic
+      form.clearErrors('clientName')
+      // Remove clientName from errors object for processing (intentionally unused)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { clientName, ...requiredErrors } = errors
+      // No error toasts for updates - only log for debugging
+      // For create mode, we can show errors, but for edit mode, suppress all validation error toasts
+      if (!isEditMode && Object.keys(requiredErrors).length > 0) {
+        toast.error('Please fill in all required fields')
+      }
+      // clientName errors are completely ignored - no toast, no UI display, no validation
+      // Schema already makes clientName optional, so errors should not appear
     }
   )
 
@@ -403,6 +442,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     if (corresponsable) {
       // Set local edit state to trigger edit mode
       setLocalEditCorresponsable(corresponsable);
+      setShowForm(true); // Ensure form is shown when editing from list
+      console.log('🟣 localEditCorresponsable state updated, showForm set to true');
     }
   };
 
@@ -478,9 +519,9 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             <label className="text-sm text-gray-700 mb-1 block">Client Name</label>
             <input 
               {...register('clientName')}
-              className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.clientName ? 'border-red-500' : 'border-gray-200'}`} 
+              className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-3" 
             />
-            {errors.clientName && <p className="text-red-500 text-xs mt-1">{errors.clientName.message}</p>}
+            {/* clientName is optional - no error display, validation completely skipped */}
           </div>
 
           <div>
@@ -579,9 +620,9 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
               <label className="text-sm text-gray-700 mb-1 block">Client Name</label>
               <input 
                 {...register('clientName')}
-                className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.clientName ? 'border-red-500' : 'border-gray-200'}`} 
+                className="w-full bg-[#f7f9ff] border border-gray-200 rounded px-3 py-2" 
               />
-              {errors.clientName && <p className="text-red-500 text-xs mt-1">{errors.clientName.message}</p>}
+              {/* clientName is optional - no error display, validation completely skipped */}
             </div>
             <div>
               <label className="text-sm text-gray-700 mb-1 block">Email</label>

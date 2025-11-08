@@ -17,6 +17,7 @@ import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
 
 export interface CorresponsableData {
   _id: string;
+  type?: string; // "whatsapp" or "telegram"
   title?: string;
   origin?: string;
   approved: boolean;
