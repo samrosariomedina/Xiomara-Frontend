@@ -209,6 +209,7 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
                 className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                   errors.clientName ? "border-red-300" : ""
                 }`}
+                placeholder="Optional - will show as 'Untitled' if empty"
                 suppressHydrationWarning
               />
               {errors.clientName && (
@@ -383,6 +384,7 @@ export const GeneralInformationForm = forwardRef<ChildFormRef<GeneralInformation
                   className={`bg-[#F7F9FF] border-gray-200 h-9 text-sm ${
                     errors.contactName ? "border-red-300" : ""
                   }`}
+                  placeholder="Optional"
                   suppressHydrationWarning
                 />
                 {errors.contactName && (

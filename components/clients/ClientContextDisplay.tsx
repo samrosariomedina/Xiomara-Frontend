@@ -20,7 +20,7 @@ export function ClientContextDisplay() {
       <h3 className="text-blue-900 font-medium text-sm mb-2">Selected Client Context</h3>
       <div className="text-blue-800 text-sm space-y-1">
         <p><strong>Client ID:</strong> {selectedClient?._id}</p>
-        <p><strong>Client Name:</strong> {selectedClient?.title}</p>
+        <p><strong>Client Name:</strong> {selectedClient?.title || 'Untitled'}</p>
         <p><strong>Contact:</strong> {selectedClient?.metadata?.contactName || 'N/A'}</p>
         <p><strong>Industry:</strong> {selectedClient?.metadata?.industry || 'N/A'}</p>
       </div>

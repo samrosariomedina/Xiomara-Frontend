@@ -63,14 +63,27 @@ export function useCorresponsables(folderId?: string) {
         throw new Error(result.error || 'Failed to create corresponsables')
       }
     },
-    onSuccess: () => {
-      toast.success('Corresponsables created successfully')
+    onSuccess: (data, variables) => {
+      const count = variables.correspondents.length;
+      const countText = count === 1 ? 'corresponsable' : 'corresponsables';
+      toast.success(`${count} ${countText} added successfully`)
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
     onError: (error: Error) => {
       console.error('Create corresponsables error:', error)
-      toast.error(error.message || 'Failed to create corresponsables')
+      const errorMessage = error.message || 'Failed to create corresponsables';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('required')) {
+        toast.error('Please provide all required information for all corresponsables')
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.')
+      } else if (errorMessage.includes('Invalid')) {
+        toast.error('Invalid data provided. Please check your input and try again.')
+      } else {
+        toast.error(`Failed to add corresponsables: ${errorMessage}`)
+      }
     }
   })
 
@@ -92,14 +105,31 @@ export function useCorresponsables(folderId?: string) {
         throw new Error(result.error || 'Failed to create corresponsables from CSV')
       }
     },
-    onSuccess: () => {
-      toast.success('Corresponsables created successfully from CSV')
+    onSuccess: (data) => {
+      const count = data?.length || 0;
+      if (count > 0) {
+        const countText = count === 1 ? 'corresponsable' : 'corresponsables';
+        toast.success(`${count} ${countText} imported successfully from CSV`)
+      } else {
+        toast.success('CSV file processed, but no corresponsables were created')
+      }
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
     onError: (error: Error) => {
       console.error('Create corresponsables from CSV error:', error)
-      toast.error(error.message || 'Failed to create corresponsables from CSV')
+      const errorMessage = error.message || 'Failed to create corresponsables from CSV';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('CSV') || errorMessage.includes('file')) {
+        toast.error('Invalid CSV file format. Please check the file structure and try again.')
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.')
+      } else if (errorMessage.includes('Invalid')) {
+        toast.error('CSV file contains invalid data. Please check the format and try again.')
+      } else {
+        toast.error(`Failed to import corresponsables: ${errorMessage}`)
+      }
     }
   })
 
@@ -123,19 +153,33 @@ export function useCorresponsables(folderId?: string) {
       if (result.success) {
         return result.data
       } else {
-        throw new Error(result.error || 'Failed to create corresponsable with sharing')
+        throw new Error(result.error || 'Failed to create corresponsable')
       }
     },
-    onSuccess: (data) => {
-      const listenerCount = data?.listeners ? data.listeners.length : 1;
-      const listenerText = listenerCount > 1 ? `${listenerCount} listeners` : 'listener';
-      toast.success(`Corresponsable created successfully with ${listenerText}`)
+    onSuccess: (data, variables) => {
+      const clientName = variables.data.clientName?.trim() || 'Corresponsable';
+      const listenerType = variables.data.listenerType === 'whatsapp' ? 'WhatsApp' : 'Telegram';
+      toast.success(`${clientName} added successfully as ${listenerType} corresponsable`)
       // Invalidate and refetch corresponsables
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
       console.error('Create corresponsable with sharing error:', error)
-      toast.error(error.message || 'Failed to create corresponsable with sharing')
+      const clientName = variables.data.clientName?.trim() || 'Corresponsable';
+      const errorMessage = error.message || 'Failed to create corresponsable';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('required')) {
+        toast.error(`Please provide all required information for ${clientName}`)
+      } else if (errorMessage.includes('token') || errorMessage.includes('Telegram')) {
+        toast.error('Invalid Telegram bot token. Please check your token and try again.')
+      } else if (errorMessage.includes('WhatsApp') || errorMessage.includes('whatsapp')) {
+        toast.error('Invalid WhatsApp number. Please check the number format and try again.')
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.')
+      } else {
+        toast.error(`Failed to add ${clientName}: ${errorMessage}`)
+      }
     }
   })
 
@@ -160,14 +204,26 @@ export function useCorresponsables(folderId?: string) {
         throw new Error(result.error || 'Failed to update corresponsable')
       }
     },
-    onSuccess: () => {
-      // No success toast for updates - matches client page behavior
+    onSuccess: (data) => {
+      const corresponsableName = data?.title || 'Corresponsable';
+      toast.success(`${corresponsableName} updated successfully`)
       // Invalidate and refetch corresponsables to sync data across pages
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     },
     onError: (error: Error) => {
-      // No error toast - only log for debugging
       console.error('Update corresponsable error:', error)
+      const errorMessage = error.message || 'Failed to update corresponsable';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('not found') || errorMessage.includes('permission')) {
+        toast.error('Corresponsable not found or you do not have permission to update it.')
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.')
+      } else if (errorMessage.includes('Invalid')) {
+        toast.error('Invalid data provided. Please check your input and try again.')
+      } else {
+        toast.error(`Failed to update corresponsable: ${errorMessage}`)
+      }
       // Still invalidate queries to refresh data even on error
       queryClient.invalidateQueries({ queryKey: ['corresponsables'] })
     }
@@ -201,7 +257,18 @@ export function useCorresponsables(folderId?: string) {
     },
     onError: (error: Error) => {
       console.error('❌ Mutation: Remove corresponsable error:', error)
-      toast.error(error.message || 'Failed to remove corresponsable')
+      const errorMessage = error.message || 'Failed to remove corresponsable';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('not found')) {
+        toast.error('Corresponsable not found. It may have already been deleted.')
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.')
+      } else if (errorMessage.includes('permission')) {
+        toast.error('You do not have permission to remove this corresponsable.')
+      } else {
+        toast.error(`Failed to remove corresponsable: ${errorMessage}`)
+      }
     }
   })
 

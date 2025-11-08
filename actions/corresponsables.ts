@@ -101,19 +101,23 @@ export async function createTelegramListenerAction(folderId: string, data: {
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 400) {
+        const errorData = axiosError.response?.data;
+        const errorMessage = typeof errorData === 'string' ? errorData : 
+                           (errorData && typeof errorData === 'object' && 'message' in errorData) ? String(errorData.message) :
+                           'Invalid Telegram bot token. Please check your token and try again.';
         return {
           success: false,
-          error: `Invalid data provided: ${axiosError.response?.data ? String(axiosError.response.data) : 'Unknown error'}`
+          error: errorMessage
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create Telegram listener'
+      error: error instanceof Error ? error.message : 'Failed to create Telegram corresponsable. Please check your bot token and try again.'
     };
   }
 }
@@ -192,23 +196,27 @@ export async function createCorresponsableAction(folderId: string, data: {
     console.error('Create corresponsable error:', error);
 
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { status?: number } };
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 400) {
+        const errorData = axiosError.response?.data;
+        const errorMessage = typeof errorData === 'string' ? errorData : 
+                           (errorData && typeof errorData === 'object' && 'message' in errorData) ? String(errorData.message) :
+                           'Invalid WhatsApp number. Please check the number format and try again.';
         return {
           success: false,
-          error: 'Invalid data provided'
+          error: errorMessage
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create corresponsable'
+      error: error instanceof Error ? error.message : 'Failed to create corresponsable. Please check your WhatsApp number and try again.'
     };
   }
 }
@@ -291,23 +299,27 @@ export async function createCorresponsablesAction(
     console.error('Create corresponsables error:', error);
 
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { status?: number } };
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 400) {
+        const errorData = axiosError.response?.data;
+        const errorMessage = typeof errorData === 'string' ? errorData : 
+                           (errorData && typeof errorData === 'object' && 'message' in errorData) ? String(errorData.message) :
+                           'Invalid data provided. Please check your input and try again.';
         return {
           success: false,
-          error: 'Invalid data provided'
+          error: errorMessage
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create corresponsables'
+      error: error instanceof Error ? error.message : 'Failed to create corresponsables. Please check your information and try again.'
     };
   }
 }
@@ -375,23 +387,27 @@ export async function createCorresponsablesFromCSVAction(
     console.error('Create corresponsables from CSV error:', error);
 
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { status?: number } };
+      const axiosError = error as { response?: { status?: number; data?: unknown } };
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 400) {
+        const errorData = axiosError.response?.data;
+        const errorMessage = typeof errorData === 'string' ? errorData : 
+                           (errorData && typeof errorData === 'object' && 'message' in errorData) ? String(errorData.message) :
+                           'Invalid CSV file format. Please check the file structure and try again.';
         return {
           success: false,
-          error: 'Invalid CSV file or data'
+          error: errorMessage
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create corresponsables from CSV'
+      error: error instanceof Error ? error.message : 'Failed to import corresponsables from CSV. Please check the file format and try again.'
     };
   }
 }
@@ -440,19 +456,19 @@ export async function getCorresponsablesAction(folderId: string) {
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 404) {
         return {
           success: false,
-          error: 'Folder not found'
+          error: 'Client folder not found. Please refresh the page and try again.'
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch corresponsables'
+      error: error instanceof Error ? error.message : 'Failed to load corresponsables. Please refresh the page and try again.'
     };
   }
 }
@@ -542,23 +558,24 @@ export async function updateCorresponsableAction(
       if (status === 404) {
         return {
           success: false,
-          error: 'Corresponsable not found or you do not have permission to update it. The listener may not exist or may belong to another user.'
+          error: 'Corresponsable not found or you do not have permission to update it.'
         };
       } else if (status === 400) {
         // Backend returns 400 if listener ID is invalid
+        const errorMessage = error.response?.data?.message || 'Invalid data provided. Please check your input and try again.';
         return {
           success: false,
-          error: error.response?.data?.message || 'Invalid listener ID format'
+          error: errorMessage
         };
       } else if (status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (status === 500) {
         return {
           success: false,
-          error: error.response?.data?.message || 'Server error occurred while updating corresponsable'
+          error: error.response?.data?.message || 'A server error occurred. Please try again later.'
         };
       }
       
@@ -571,7 +588,7 @@ export async function updateCorresponsableAction(
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update corresponsable'
+      error: error instanceof Error ? error.message : 'Failed to update corresponsable. Please try again.'
     };
   }
 }
@@ -641,19 +658,19 @@ export async function removeCorresponsableAction(listenerId: string, folderId: s
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 404) {
         return {
           success: false,
-          error: 'Corresponsable not found'
+          error: 'Corresponsable not found. It may have already been deleted.'
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to remove corresponsable'
+      error: error instanceof Error ? error.message : 'Failed to remove corresponsable. Please try again.'
     };
   }
 }
@@ -693,24 +710,24 @@ export async function getShareUrlAction(listenerId: string) {
       if (axiosError.response?.status === 401) {
         return {
           success: false,
-          error: 'Authentication required'
+          error: 'Your session has expired. Please log in again.'
         };
       } else if (axiosError.response?.status === 404) {
         return {
           success: false,
-          error: 'Listener not found'
+          error: 'Corresponsable not found. It may have already been deleted.'
         };
       } else if (axiosError.response?.status === 501) {
         return {
           success: false,
-          error: 'WhatsApp not configured'
+          error: 'WhatsApp service is not configured. Please contact your administrator.'
         };
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get share URL'
+      error: error instanceof Error ? error.message : 'Failed to generate sharing link. Please try again.'
     };
   }
 }
@@ -749,7 +766,7 @@ export async function createCorresponsableWithSharingAction(
       if (!data.telegramToken || data.telegramToken.trim() === '') {
         return {
           success: false,
-          error: 'Telegram bot token is required when Telegram is selected'
+          error: 'Telegram bot token is required. Please provide a valid bot token.'
         };
       }
 
@@ -775,7 +792,7 @@ export async function createCorresponsableWithSharingAction(
       if (!data.whatsapp || data.whatsapp.trim() === '') {
         return {
           success: false,
-          error: 'WhatsApp number is required when WhatsApp is selected'
+          error: 'WhatsApp number is required. Please provide a valid phone number.'
         };
       }
 
@@ -826,7 +843,7 @@ export async function createCorresponsableWithSharingAction(
     console.error('Create corresponsable with sharing error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create corresponsable with sharing'
+      error: error instanceof Error ? error.message : 'Failed to create corresponsable. Please check your information and try again.'
     };
   }
 }

@@ -158,7 +158,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   // Convert corresponsables to SourceItem format for display
   const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, ) => ({
     id: corresponsable._id,
-    name: corresponsable.title || 'Unnamed',
+    name: corresponsable.title || 'Untitled',
     type: "corresponsable",
     category: "Corresponsable",
     timestamp: formatDateSafe(corresponsable.timestamp),
@@ -171,7 +171,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   useEffect(() => {
     const updatedSources = corresponsables.map((corresponsable: CorresponsableData) => ({
       id: corresponsable._id,
-      name: corresponsable.title || 'Unnamed',
+      name: corresponsable.title || 'Untitled',
       type: "corresponsable" as const,
       category: "Corresponsable",
       timestamp: formatDateSafe(corresponsable.timestamp),
@@ -332,7 +332,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           if (shareUrl) {
             setShareDialogData({
               shareUrl,
-              clientName: (data.clientName?.trim() || 'Unnamed') as string,
+              clientName: (data.clientName?.trim() || 'Untitled') as string,
               email: data.email,
               listenerType: data.listenerType
             });
@@ -342,7 +342,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           // Add to local sources for immediate UI update
           const newItem: SourceItem = {
             id: Date.now(), // Temporary ID for UI
-            name: data.clientName?.trim() || 'Unnamed',
+            name: data.clientName?.trim() || 'Untitled',
             type: "text",
             category: "Corresponsable",
             timestamp: "Just now",
@@ -520,6 +520,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             <input 
               {...register('clientName')}
               className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-3" 
+              placeholder="Optional - will show as 'Untitled' if empty"
             />
             {/* clientName is optional - no error display, validation completely skipped */}
           </div>
@@ -537,20 +538,22 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
           <div>
             <label className="text-sm text-gray-700 mb-2 block">Connection Type</label>
             <div className="flex gap-4 mb-3">
-              <label className="inline-flex items-center space-x-2">
+              <label className={`inline-flex items-center space-x-2 ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <input
                   type="radio"
                   {...register('listenerType')}
                   value="whatsapp"
+                  disabled={isEditMode}
                   className="h-4 w-4 text-[#31499f]"
                 />
                 <span className="text-sm">WhatsApp</span>
               </label>
-              <label className="inline-flex items-center space-x-2">
+              <label className={`inline-flex items-center space-x-2 ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <input
                   type="radio"
                   {...register('listenerType')}
                   value="telegram"
+                  disabled={isEditMode}
                   className="h-4 w-4 text-[#31499f]"
                 />
                 <span className="text-sm">Telegram</span>
@@ -564,7 +567,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
               <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
               <input 
                 {...register('whatsapp')}
-                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
+                disabled={isEditMode}
+                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'} ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
               />
               {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
             </div>
@@ -576,7 +580,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
               <input 
                 {...register('telegramToken')}
                 type="password"
-                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'}`} 
+                disabled={isEditMode}
+                className={`w-full bg-gray-50 border rounded px-3 py-3 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'} ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 placeholder="Enter bot token"
               />
               {errors.telegramToken && <p className="text-red-500 text-xs mt-1">{errors.telegramToken.message}</p>}
@@ -621,6 +626,7 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
               <input 
                 {...register('clientName')}
                 className="w-full bg-[#f7f9ff] border border-gray-200 rounded px-3 py-2" 
+                placeholder="Optional - will show as 'Untitled' if empty"
               />
               {/* clientName is optional - no error display, validation completely skipped */}
             </div>
@@ -637,20 +643,22 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
             <div>
               <label className="text-sm text-gray-700 mb-2 block">Connection Type</label>
               <div className="flex gap-4 mb-3">
-                <label className="inline-flex items-center space-x-2">
+                <label className={`inline-flex items-center space-x-2 ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
                     {...register('listenerType')}
                     value="whatsapp"
+                    disabled={isEditMode}
                     className="h-4 w-4 text-[#31499f]"
                   />
                   <span className="text-sm">WhatsApp</span>
                 </label>
-                <label className="inline-flex items-center space-x-2">
+                <label className={`inline-flex items-center space-x-2 ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
                     {...register('listenerType')}
                     value="telegram"
+                    disabled={isEditMode}
                     className="h-4 w-4 text-[#31499f]"
                   />
                   <span className="text-sm">Telegram</span>
@@ -664,7 +672,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
                 <label className="text-sm text-gray-700 mb-1 block">WhatsApp Number</label>
                 <input 
                   {...register('whatsapp')}
-                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}`} 
+                  disabled={isEditMode}
+                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'} ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 />
                 {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp.message}</p>}
               </div>
@@ -676,7 +685,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
                 <input 
                   {...register('telegramToken')}
                   type="password"
-                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'}`} 
+                  disabled={isEditMode}
+                  className={`w-full bg-[#f7f9ff] border rounded px-3 py-2 ${errors.telegramToken ? 'border-red-500' : 'border-gray-200'} ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                   placeholder="Enter bot token"
                 />
                 {errors.telegramToken && <p className="text-red-500 text-xs mt-1">{errors.telegramToken.message}</p>}

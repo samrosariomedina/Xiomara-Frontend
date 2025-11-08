@@ -192,20 +192,25 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
     }
 
     try {
-      await createCorresponsablesFromCSV({
+      const result = await createCorresponsablesFromCSV({
         folderId,
         csvFile: selectedCsvFile,
         enabled: true
       });
       
+      // Success toast is handled by the mutation hook
       // Clear the selected file after successful upload
       setSelectedCsvFile(null);
       if (csvFileInputRef.current) {
         csvFileInputRef.current.value = '';
       }
     } catch (error) {
-      // Error handling is done in the hook
+      // Error handling is done in the hook, but provide fallback
       console.error('CSV upload failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!errorMessage.includes('Authentication') && !errorMessage.includes('CSV') && !errorMessage.includes('file')) {
+        toast.error('Failed to import corresponsables from CSV. Please check the file and try again.');
+      }
     }
   };
 
@@ -222,6 +227,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       if (correspondent.id && correspondent.id.trim() !== "") {
         // Update existing corresponsable
         // Note: origin is intentionally NOT editable for security reasons
+        const clientName = correspondent.clientName?.trim() || 'Corresponsable';
         const updateResult = await updateCorresponsableAction(correspondent.id, {
           title: (correspondent.clientName && correspondent.clientName.trim()) ? correspondent.clientName.trim() : null, // Send null explicitly to remove title (backend requires null, not undefined)
           enabled: true,
@@ -229,18 +235,32 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         });
 
         if (updateResult.success) {
-          // No success toast - matches dashboard behavior
+          toast.success(`${clientName} updated successfully`);
           // Invalidate queries to sync data across pages (dashboard will see updated data)
           queryClient.invalidateQueries({ queryKey: ['corresponsables'] });
           return true;
         } else {
-          // No error toast for updates - only log for debugging
-          console.error('Failed to update corresponsable:', updateResult.error);
+          const errorMessage = updateResult.error || 'Failed to update corresponsable';
+          console.error('Failed to update corresponsable:', errorMessage);
+          
+          // Provide specific error messages
+          if (errorMessage.includes('not found') || errorMessage.includes('permission')) {
+            toast.error('Corresponsable not found or you do not have permission to update it.');
+          } else if (errorMessage.includes('Authentication')) {
+            toast.error('Your session has expired. Please log in again.');
+          } else if (errorMessage.includes('Invalid')) {
+            toast.error('Invalid data provided. Please check your input and try again.');
+          } else {
+            toast.error(`Failed to update ${clientName}: ${errorMessage}`);
+          }
           return false;
         }
       }
 
       // Create new corresponsable
+      const clientName = correspondent.clientName?.trim() || 'Corresponsable';
+      const listenerType = correspondent.listenerType === 'whatsapp' ? 'WhatsApp' : 'Telegram';
+      
       console.log('Creating corresponsable with data:', {
         clientName: correspondent.clientName,
         email: correspondent.email,
@@ -261,17 +281,18 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       if (result.success && result.data) {
         const { shareUrl, sharingError } = result.data;
         
+        // Show success toast
+        toast.success(`${clientName} added successfully as ${listenerType} corresponsable`);
+        
         if (sharingError) {
-          toast.error(`Corresponsable created but sharing failed: ${sharingError}`);
+          toast.error(`Sharing link generation failed: ${sharingError}`);
         }
-
-        // Success toast is handled by the mutation hook, don't show duplicate
         
         // Show sharing dialog if share URL is available
         if (shareUrl) {
           setShareDialogData({
             shareUrl,
-            clientName: correspondent.clientName?.trim() || 'Unnamed',
+            clientName: correspondent.clientName?.trim() || 'Untitled',
             email: correspondent.email,
             listenerType: correspondent.listenerType
           });
@@ -280,12 +301,32 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
         
         return true;
       } else {
-        toast.error(result.error || 'Failed to create corresponsable');
+        const errorMessage = result.error || 'Failed to create corresponsable';
+        
+        // Provide specific error messages
+        if (errorMessage.includes('required')) {
+          toast.error(`Please provide all required information for ${clientName}`);
+        } else if (errorMessage.includes('token') || errorMessage.includes('Telegram')) {
+          toast.error('Invalid Telegram bot token. Please check your token and try again.');
+        } else if (errorMessage.includes('WhatsApp') || errorMessage.includes('whatsapp')) {
+          toast.error('Invalid WhatsApp number. Please check the number format and try again.');
+        } else if (errorMessage.includes('Authentication')) {
+          toast.error('Your session has expired. Please log in again.');
+        } else {
+          toast.error(`Failed to add ${clientName}: ${errorMessage}`);
+        }
         return false;
       }
     } catch (error) {
       console.error('Error creating corresponsable:', error);
-      toast.error('Failed to create corresponsable');
+      const clientName = correspondent.clientName?.trim() || 'Corresponsable';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Authentication')) {
+        toast.error('Your session has expired. Please log in again.');
+      } else {
+        toast.error(`Failed to add ${clientName}. Please try again.`);
+      }
       return false;
     }
   };
@@ -318,7 +359,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
       );
       
       if (newCorrespondents.length === 0) {
-        toast.warning('Please add at least one new correspondent with contact information');
+        toast.warning('Please add at least one new corresponsable with contact information (WhatsApp number or Telegram token)');
         return false;
       }
 
@@ -438,7 +479,7 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                   const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
                   const hasId = correspondent?.id && correspondent.id.trim() !== "";
                   return hasId
-                    ? (correspondent?.clientName || 'Unnamed Corresponsable')
+                    ? (correspondent?.clientName || 'Untitled')
                     : `${t('correspondents.addNew')} ${index + 1}`;
                 })()}
               </h3>
@@ -482,7 +523,12 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
                               const { clientName, ...requiredErrors } = fieldErrors;
                               // Only show toast if there are errors other than clientName
                               if (Object.keys(requiredErrors).length > 0) {
-                                toast.error('Please fill in all required fields');
+                                const listenerType = watch(`correspondents.${index}.listenerType`);
+                                if (listenerType === 'whatsapp') {
+                                  toast.error('Please provide a valid WhatsApp number');
+                                } else {
+                                  toast.error('Please provide a valid Telegram bot token');
+                                }
                               }
                             } else {
                               toast.error('Please fill in all required fields');
@@ -568,81 +614,106 @@ export const ConnectCorrespondentsForm = forwardRef<ChildFormRef<ConnectCorrespo
               </div>
 
               {/* Connection Type Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-700 font-medium">Connection Type</Label>
-                <div className="flex gap-4">
-                  <label className="inline-flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      {...register(`correspondents.${index}.listenerType`)}
-                      value="whatsapp"
-                      className="h-4 w-4 text-[#31499F]"
-                    />
-                    <span className="text-xs">WhatsApp</span>
-                  </label>
-                  <label className="inline-flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      {...register(`correspondents.${index}.listenerType`)}
-                      value="telegram"
-                      className="h-4 w-4 text-[#31499F]"
-                    />
-                    <span className="text-xs">Telegram</span>
-                  </label>
-                </div>
-                {errors.correspondents?.[index]?.listenerType && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.correspondents[index]?.listenerType?.message as string}
-                  </p>
-                )}
-              </div>
+              {(() => {
+                const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
+                const hasId = correspondent?.id && correspondent.id.trim() !== "";
+                const isDisabled = hasId;
+                
+                return (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-700 font-medium">Connection Type</Label>
+                    <div className="flex gap-4">
+                      <label className={`inline-flex items-center space-x-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="radio"
+                          {...register(`correspondents.${index}.listenerType`)}
+                          value="whatsapp"
+                          {...(isDisabled && { disabled: true })}
+                          className="h-4 w-4 text-[#31499F]"
+                        />
+                        <span className="text-xs">WhatsApp</span>
+                      </label>
+                      <label className={`inline-flex items-center space-x-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="radio"
+                          {...register(`correspondents.${index}.listenerType`)}
+                          value="telegram"
+                          {...(isDisabled && { disabled: true })}
+                          className="h-4 w-4 text-[#31499F]"
+                        />
+                        <span className="text-xs">Telegram</span>
+                      </label>
+                    </div>
+                    {errors.correspondents?.[index]?.listenerType && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.correspondents[index]?.listenerType?.message as string}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Second row */}
               <div className="grid lg:grid-cols-2 gap-6">
-                {watch(`correspondents.${index}.listenerType`) === 'whatsapp' && (
-                  <div className="space-y-2">
-                    <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
-                      {t('correspondents.whatsapp')}
-                    </Label>
-                    <Input
-                      id={`correspondents.${index}.whatsapp`}
-                      {...register(`correspondents.${index}.whatsapp`)}
-                      className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
-                        errors.correspondents?.[index]?.whatsapp ? "border-red-300" : ""
-                      }`}
-                      placeholder={t('contact.whatsappPlaceholder')}
-                      suppressHydrationWarning
-                    />
-                    {errors.correspondents?.[index]?.whatsapp && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.correspondents[index]?.whatsapp?.message as string}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {watch(`correspondents.${index}.listenerType`) === 'telegram' && (
-                  <div className="space-y-2">
-                    <Label htmlFor={`correspondents.${index}.telegramToken`} className="text-xs text-gray-700 font-medium">
-                      Telegram Bot Token
-                    </Label>
-                    <Input
-                      id={`correspondents.${index}.telegramToken`}
-                      type="password"
-                      {...register(`correspondents.${index}.telegramToken`)}
-                      className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
-                        errors.correspondents?.[index]?.telegramToken ? "border-red-300" : ""
-                      }`}
-                      placeholder="Enter bot token"
-                      suppressHydrationWarning
-                    />
-                    {errors.correspondents?.[index]?.telegramToken && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.correspondents[index]?.telegramToken?.message as string}
-                      </p>
-                    )}
-                  </div>
-                )}
+                {(() => {
+                  const correspondent = watch(`correspondents.${index}`) as CorrespondentFormData;
+                  const hasId = correspondent?.id && correspondent.id.trim() !== "";
+                  const isDisabled = hasId;
+                  const listenerType = watch(`correspondents.${index}.listenerType`);
+                  
+                  if (listenerType === 'whatsapp') {
+                    return (
+                      <div className="space-y-2">
+                        <Label htmlFor={`correspondents.${index}.whatsapp`} className="text-xs text-gray-700 font-medium">
+                          {t('correspondents.whatsapp')}
+                        </Label>
+                        <Input
+                          id={`correspondents.${index}.whatsapp`}
+                          {...register(`correspondents.${index}.whatsapp`)}
+                          {...(isDisabled && { disabled: true })}
+                          className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
+                            errors.correspondents?.[index]?.whatsapp ? "border-red-300" : ""
+                          } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          placeholder={t('contact.whatsappPlaceholder')}
+                          suppressHydrationWarning
+                        />
+                        {errors.correspondents?.[index]?.whatsapp && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {errors.correspondents[index]?.whatsapp?.message as string}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  if (listenerType === 'telegram') {
+                    return (
+                      <div className="space-y-2">
+                        <Label htmlFor={`correspondents.${index}.telegramToken`} className="text-xs text-gray-700 font-medium">
+                          Telegram Bot Token
+                        </Label>
+                        <Input
+                          id={`correspondents.${index}.telegramToken`}
+                          type="password"
+                          {...register(`correspondents.${index}.telegramToken`)}
+                          {...(isDisabled && { disabled: true })}
+                          className={`bg-[#F7F9FF] border-gray-300 h-9 text-sm ${
+                            errors.correspondents?.[index]?.telegramToken ? "border-red-300" : ""
+                          } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          placeholder="Enter bot token"
+                          suppressHydrationWarning
+                        />
+                        {errors.correspondents?.[index]?.telegramToken && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {errors.correspondents[index]?.telegramToken?.message as string}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()}
                 <div className="space-y-2">
                   <Label htmlFor={`correspondents.${index}.accountType`} className="text-xs text-gray-700 font-medium">
                     {t('correspondents.accountType')}

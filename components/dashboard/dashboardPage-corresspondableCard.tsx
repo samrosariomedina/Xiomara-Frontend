@@ -180,7 +180,7 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
                       />
                       <div>
                         {/* Name text - change font sizes/weights here */}
-                        <p className="text-sm font-medium">{corresponsable.title || 'Unnamed'}</p>
+                        <p className="text-sm font-medium">{corresponsable.title || 'Untitled'}</p>
                         {/* Sources row: globe icon + number. To change color or spacing edit classes below */}
                         <div className="inline-flex bg-[#F7F9FF]  items-center text-xs text-blue-900 w-auto p-1">
                           <Globe className="h-3.5 w-3.5 mr-1" />

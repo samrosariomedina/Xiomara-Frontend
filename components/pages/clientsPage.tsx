@@ -81,7 +81,7 @@ function ClientsPage({ initialClients, initialCampaigns }: ClientsPageProps) {
     return clientsData.map((clientData: ClientResponse) => {
       return {
         id: clientData._id,
-        name: clientData.metadata?.contactName || clientData.title || 'Unnamed Client',
+        name: clientData.title || clientData.metadata?.contactName || 'Untitled',
         contact: clientData.metadata?.email || '',
         email: clientData.metadata?.email || '',
         createdDate: formatDateSafe(clientData.timestamp),

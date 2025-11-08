@@ -30,10 +30,10 @@ async function getAuthToken(): Promise<string | null> {
  * Server action to create a new client (folder)
  */
 export async function createClientAction(data: {
-    clientName: string;
+    clientName?: string;
     industry: string;
     description?: string;
-    contactName: string;
+    contactName?: string;
     whatsapp?: string;
     position: string;
     email?: string;
@@ -51,7 +51,7 @@ export async function createClientAction(data: {
       type: "client",
       industry: data.industry,
       description: data.description || null,
-      contactName: data.contactName,
+      contactName: data.contactName || null,
       whatsapp: data.whatsapp ? data.whatsapp.replace(/[\s\-\+]/g, "") : null, // Sanitize WhatsApp number if provided
       position: data.position,
       email: data.email || null,
@@ -61,7 +61,7 @@ export async function createClientAction(data: {
 
     // First, create the client folder
     const requestData = {
-      title: data.clientName,
+      title: data.clientName || null, // Allow null for optional client name
       metadata: metadata
     };
 
@@ -80,7 +80,7 @@ export async function createClientAction(data: {
         try {
           // Upload logo to images endpoint
           const logoFormData = new FormData();
-          logoFormData.append('title', `${data.clientName} Logo`);
+          logoFormData.append('title', `${data.clientName || 'Untitled'} Logo`);
           logoFormData.append('metadata', JSON.stringify({
             type: 'client-logo',
             clientId: clientData._id
@@ -243,18 +243,18 @@ export async function editClientAction(clientId: string, data: {
     }
 
     // Prepare metadata for the folder update
-    const metadata: Record<string, string> = {};
+    const metadata: Record<string, string | null> = {};
     
     if (data.industry !== undefined) metadata.industry = data.industry;
-    if (data.description !== undefined) metadata.description = data.description;
-    if (data.contactName !== undefined) metadata.contactName = data.contactName;
-    if (data.whatsapp !== undefined) metadata.whatsapp = data.whatsapp.replace(/[\s\-\+]/g, "");
+    if (data.description !== undefined) metadata.description = data.description || null;
+    if (data.contactName !== undefined) metadata.contactName = data.contactName || null;
+    if (data.whatsapp !== undefined) metadata.whatsapp = data.whatsapp ? data.whatsapp.replace(/[\s\-\+]/g, "") : null;
     if (data.position !== undefined) metadata.position = data.position;
-    if (data.email !== undefined) metadata.email = data.email;
+    if (data.email !== undefined) metadata.email = data.email || null;
 
     // Prepare update data
-    const updateData: Record<string, string | Record<string, string>> = {};
-    if (data.clientName !== undefined) updateData.title = data.clientName;
+    const updateData: Record<string, string | null | Record<string, string | null>> = {};
+    if (data.clientName !== undefined) updateData.title = data.clientName || null;
     if (Object.keys(metadata).length > 0) updateData.metadata = metadata;
 
     const response = await axios.post(`${BACKEND_URL}/folders/edit`, {

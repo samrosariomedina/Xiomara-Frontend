@@ -101,12 +101,28 @@ export const validateForm = <T>(schema: z.ZodSchema<T>, data: unknown) => {
 
 // General Information Form Schema
 export const generalInformationSchema = z.object({
-  clientName: z.string().min(1, 'Client name is required'),
+  clientName: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || val.length <= 100,
+      {
+        message: 'Client name must be less than 100 characters',
+      }
+    ),
   industry: z.enum(['tecnologia', 'salud', 'educacion', 'finanzas', 'retail', 'manufactura'], {
     message: 'Please select a valid industry'
   }),
   description: z.string().optional(),
-  contactName: z.string().min(1, 'Contact name is required'),
+  contactName: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || val.length <= 100,
+      {
+        message: 'Contact name must be less than 100 characters',
+      }
+    ),
   whatsapp: z.string()
     .min(1, 'WhatsApp number is required')
     .regex(/^[0-9+\s()-]+$/, 'WhatsApp number can only contain digits and +()-'),
