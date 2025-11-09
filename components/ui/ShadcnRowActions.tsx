@@ -1,7 +1,7 @@
   "use client"
 
 import { useState } from "react"
-import { Edit, Trash2, MoreVertical } from "lucide-react"
+import { Edit, Trash2, MoreVertical, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 interface ShadcnRowActionsProps {
   onEdit?: () => void | Promise<void>
   onDelete?: () => void | Promise<void>
+  onShare?: () => void | Promise<void>
   itemName?: string
   itemType: "Client" | "Campaign" | "Source" | "Knowledge" | "Corresponsable" | "Media"
   children?: React.ReactNode
@@ -31,6 +32,7 @@ interface ShadcnRowActionsProps {
 export function ShadcnRowActions({
   onEdit,
   onDelete,
+  onShare,
   itemName = '',
   itemType,
   children,
@@ -39,6 +41,7 @@ export function ShadcnRowActions({
 }: ShadcnRowActionsProps) {
   const [isEditLoading, setIsEditLoading] = useState(false)
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const [isShareLoading, setIsShareLoading] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
 
@@ -67,6 +70,17 @@ export function ShadcnRowActions({
   const handleDeleteClick = () => {
     setPopoverOpen(false) // Close popover when delete is clicked
     setDeleteDialogOpen(true)
+  }
+
+  const handleShare = async () => {
+    if (!onShare) return
+    try {
+      setIsShareLoading(true)
+      await Promise.resolve(onShare())
+      setPopoverOpen(false) // Close popover after share
+    } finally {
+      setIsShareLoading(false)
+    }
   }
 
   const triggerButton = children || (
@@ -101,6 +115,23 @@ export function ShadcnRowActions({
               >
                 <Edit className="h-4 w-4 mr-2" />
                 {isEditLoading ? 'Editing...' : `Edit ${itemType}`}
+              </Button>
+            )}
+
+            {/* Share option - only for Corresponsables */}
+            {itemType === "Corresponsable" && onShare && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleShare()
+                }}
+                disabled={isShareLoading}
+                className="justify-start h-8 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                {isShareLoading ? 'Loading...' : 'Share'}
               </Button>
             )}
 

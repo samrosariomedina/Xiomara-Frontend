@@ -17,6 +17,7 @@ interface SourcesListProps {
   pageType?: "fuentes" | "knowledge" | "corresponsables"
   onEdit?: (id: number | string) => void
   onDelete?: (id: number | string) => void
+  onShare?: (id: number | string) => void | Promise<void>
 }
 
 function getInitials(name: string) {
@@ -26,7 +27,7 @@ function getInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
-export default function SourcesList({ sources, className = "", pageType = "fuentes", onEdit, onDelete }: SourcesListProps) {
+export default function SourcesList({ sources, className = "", pageType = "fuentes", onEdit, onDelete, onShare }: SourcesListProps) {
   const handleEdit = (sourceId: number | string) => {
     console.log('📝 SourcesList handleEdit called with sourceId:', sourceId)
     onEdit?.(sourceId)
@@ -67,6 +68,7 @@ export default function SourcesList({ sources, className = "", pageType = "fuent
                 </span>
                 <ShadcnRowActions
                   onEdit={() => handleEdit(source.id)}
+                  onShare={pageType === "corresponsables" && onShare ? () => onShare(source.id) : undefined}
                   onDelete={() => handleDelete(source.id)}
                   itemName={source.name}
                   itemType={getItemType(pageType)}
@@ -111,6 +113,7 @@ export default function SourcesList({ sources, className = "", pageType = "fuent
                 </div>
                 <ShadcnRowActions
                   onEdit={() => handleEdit(source.id)}
+                  onShare={pageType === "corresponsables" && onShare ? () => onShare(source.id) : undefined}
                   onDelete={() => handleDelete(source.id)}
                   itemName={source.name}
                   itemType={getItemType(pageType)}

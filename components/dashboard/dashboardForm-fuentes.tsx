@@ -190,14 +190,16 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
       return '';
     }
     
-    // For very large content (>500KB), use regex-based stripping to avoid DOM performance issues
-    const isLargeContent = cleanedHtml.length > 500 * 1024;
+    // For large content (>100KB), use regex-based stripping to avoid DOM performance issues
+    // This is more efficient and doesn't have memory limits like DOM parsing
+    const isLargeContent = cleanedHtml.length > 100 * 1024;
     
     if (isLargeContent) {
-      // Use regex-based HTML stripping for large content (more efficient)
+      // Use regex-based HTML stripping for large content (more efficient, no size limits)
       try {
+        // Process in chunks for very large content to avoid memory issues
         const textContent = cleanedHtml
-          // Remove HTML tags
+          // Remove HTML tags first (most important)
           .replace(/<[^>]*>/g, '')
           // Decode HTML entities
           .replace(/&nbsp;/g, ' ')

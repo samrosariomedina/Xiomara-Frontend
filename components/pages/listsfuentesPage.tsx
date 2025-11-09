@@ -7,9 +7,10 @@ import { formatDateSafe } from "@/lib/utils"
 import SourcesAdministrator from "./dashboardPage-Forms"
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSources, removeSourceAction } from "@/actions/sources"
+import { getReferences } from "@/actions/knowledge"
 import { ClientOnly } from "@/components/providers/ClientOnly"
 import { toast } from "sonner"
-import type { SourceResponse } from "@/lib/schemas"
+import type { SourceResponse, ReferenceResponse } from "@/lib/schemas"
 import { routes } from "@/lib/routes"
 
 const columns: Column[] = [
@@ -29,6 +30,7 @@ interface FuentesGeneralesPageProps {
 function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProps) {
   const [isSourcesAdminOpen, setIsSourcesAdminOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<SourceResponse | null>(null)
+  const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null)
   const queryClient = useQueryClient()
 
   // Determine folder ID - campaignId takes priority over clientId
@@ -65,6 +67,22 @@ function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProp
     queryFn: async () => {
       if (!folderId) return [];
       return await getSources({ folderId });
+    },
+    enabled: !!folderId,
+    staleTime: 30 * 1000,
+    retry: 2,
+  })
+
+  // Fetch references for the drawer to show complete data
+  const {
+    data: references = [],
+    isLoading: referencesLoading,
+    error: referencesError
+  } = useQuery({
+    queryKey: ['references', folderId],
+    queryFn: async () => {
+      if (!folderId) return [];
+      return await getReferences({ folderId });
     },
     enabled: !!folderId,
     staleTime: 30 * 1000,
@@ -115,11 +133,12 @@ function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProp
   const handleCloseSourcesAdmin = () => {
     setIsSourcesAdminOpen(false)
     setEditingSource(null)
+    setEditingReference(null)
   }
 
 
   // Show loading state while data is being fetched
-  if (sourcesLoading) {
+  if (sourcesLoading || referencesLoading) {
     return (
       <DashboardLayout
         title="Listado Fuentes Generales"
@@ -137,7 +156,7 @@ function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProp
   }
 
   // Show error state if there's an error
-  if (sourcesError) {
+  if (sourcesError || referencesError) {
     return (
       <DashboardLayout
         title="Listado Fuentes Generales"
@@ -192,10 +211,11 @@ function FuentesGeneralesPage({ clientId, campaignId }: FuentesGeneralesPageProp
       <SourcesAdministrator
         isOpen={isSourcesAdminOpen}
         onClose={handleCloseSourcesAdmin}
-        references={[]}
+        references={references}
         sources={sources}
         defaultTab="fuentes-generales"
         editSource={editingSource}
+        editReference={editingReference}
         folderId={folderId}
         clientId={clientId}
         campaignId={campaignId}

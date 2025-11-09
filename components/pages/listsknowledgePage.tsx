@@ -6,7 +6,8 @@ import { DashboardLayout } from "@/components/dashboard/lists-dashboard-layout"
 import { DataTable, type Column } from "../lists-tableData"
 import { formatDateSafe } from "@/lib/utils"
 import { getReferencesAction, removeReferenceAction } from "@/actions/knowledge"
-import type { ReferenceResponse } from "@/lib/schemas"
+import { getSources } from "@/actions/sources"
+import type { ReferenceResponse, SourceResponse } from "@/lib/schemas"
 import SourcesAdministrator from "./dashboardPage-Forms"
 import { toast } from "sonner"
 import { routes } from "@/lib/routes"
@@ -19,6 +20,7 @@ interface KnowledgeBasePageProps {
 function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   const [isKnowledgeAdminOpen, setIsKnowledgeAdminOpen] = useState(false)
   const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null)
+  const [editingSource, setEditingSource] = useState<SourceResponse | null>(null)
   const queryClient = useQueryClient()
   
   // Determine folder ID - campaignId takes priority over clientId
@@ -55,6 +57,22 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
     queryFn: async () => {
       if (!folderId) return [];
       return await getReferencesAction({ folderId });
+    },
+    enabled: !!folderId,
+    staleTime: 30 * 1000,
+    retry: 2,
+  });
+
+  // Fetch sources for the drawer to show complete data
+  const {
+    data: sources = [],
+    isLoading: sourcesLoading,
+    error: sourcesError
+  } = useQuery({
+    queryKey: ['sources', folderId],
+    queryFn: async () => {
+      if (!folderId) return [];
+      return await getSources({ folderId });
     },
     enabled: !!folderId,
     staleTime: 30 * 1000,
@@ -155,6 +173,7 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
     const reference = cachedReferences.find(r => r._id === rowId)
     if (reference) {
       setEditingReference(reference)
+      setEditingSource(null)
       setIsKnowledgeAdminOpen(true)
     }
   }
@@ -166,6 +185,7 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   const handleCloseKnowledgeAdmin = () => {
     setIsKnowledgeAdminOpen(false)
     setEditingReference(null)
+    setEditingSource(null)
   }
 
   // Show loading state while data is being fetched
@@ -197,7 +217,7 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   }
 
   // Show loading state while data is loading
-  if (isLoadingReferences) {
+  if (isLoadingReferences || sourcesLoading) {
     return (
         <DashboardLayout
           title="Listado Knowledge Base"
@@ -218,7 +238,7 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
   }
 
   // Show error state if there's an error
-  if (referencesError) {
+  if (referencesError || sourcesError) {
     return (
         <DashboardLayout
           title="Listado Knowledge Base"
@@ -265,12 +285,13 @@ function KnowledgeBasePage({ clientId, campaignId }: KnowledgeBasePageProps) {
         isOpen={isKnowledgeAdminOpen}
         onClose={handleCloseKnowledgeAdmin}
         references={cachedReferences}
-        sources={[]}
+        sources={sources}
         defaultTab="knowledge-base"
         folderId={folderId}
         clientId={clientId}
         campaignId={campaignId}
         editReference={editingReference}
+        editSource={editingSource}
       />
     </>
   )

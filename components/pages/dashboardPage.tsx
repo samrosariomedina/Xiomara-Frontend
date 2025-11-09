@@ -72,6 +72,7 @@ function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoard
   const [editingSource, setEditingSource] = useState<SourceResponse | null>(null);
   const [editingReference, setEditingReference] = useState<ReferenceResponse | null>(null);
   const [editingCorresponsable, setEditingCorresponsable] = useState<CorresponsableData | null>(null);
+  const [autoOpenCorresponsableForm, setAutoOpenCorresponsableForm] = useState(false);
 
   // Determine the folder ID - campaignId takes priority over clientId
   const folderId = campaignId || clientId;
@@ -184,9 +185,25 @@ function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoard
     setEditingSource(null);
     setEditingReference(null);
     setDefaultTab("corresponsales");
+    setAutoOpenCorresponsableForm(false); // Don't auto-open form when editing
     setIsSourcesAdminOpen(true);
     console.log('🟣 Set editingCorresponsable to:', corresponsable);
     console.log('🟣 Set defaultTab to: corresponsales');
+  };
+
+  const handleCreateCorresponsable = () => {
+    console.log('🟣 handleCreateCorresponsable called');
+    // Clear any editing state
+    setEditingCorresponsable(null);
+    setEditingSource(null);
+    setEditingReference(null);
+    // Set tab to corresponsales
+    setDefaultTab("corresponsales");
+    // Enable auto-open form
+    setAutoOpenCorresponsableForm(true);
+    // Open the drawer
+    setIsSourcesAdminOpen(true);
+    console.log('🟣 Set defaultTab to: corresponsales, autoOpenCorresponsableForm: true');
   };
 
   // Delete handlers
@@ -211,6 +228,7 @@ function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoard
     setEditingSource(null);
     setEditingReference(null);
     setEditingCorresponsable(null);
+    setAutoOpenCorresponsableForm(false); // Reset auto-open flag when closing
   };
 
   // folderId is always required from route params now, so this check is simpler
@@ -291,6 +309,7 @@ function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoard
                folderId={folderId}
                onEdit={handleEditCorresponsable}
                onDelete={handleDeleteCorresponsable}
+               onCreateClick={handleCreateCorresponsable}
                clientId={clientId}
                campaignId={campaignId}
              />
@@ -335,6 +354,7 @@ function DashBoard({ clientId, campaignId, campaignData, clientData }: DashBoard
         editSource={editingSource}
         editReference={editingReference}
         editCorresponsable={editingCorresponsable}
+        autoOpenCorresponsableForm={autoOpenCorresponsableForm}
       />
     )}
     </>

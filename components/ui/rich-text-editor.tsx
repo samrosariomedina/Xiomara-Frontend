@@ -22,7 +22,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ 
   value, 
   onChange, 
-  maxLength = 300,
+  maxLength, // No default limit - allow unlimited text
   placeholder = "Escribe tu texto aquí...",
   minHeight = 128
 }: RichTextEditorProps) {
@@ -55,13 +55,16 @@ export function RichTextEditor({
   ]
 
   const handleChange = (content: string) => {
-    // Check character limit based on text content length
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = content
-    const textLength = tempDiv.textContent?.length || 0
-    
-    if (maxLength && textLength > maxLength) {
-      return // Don't update if over limit
+    // Only check character limit if maxLength is explicitly provided
+    // For sources, we want unlimited text, so maxLength should be undefined
+    if (maxLength !== undefined) {
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+      const textLength = tempDiv.textContent?.length || 0
+      
+      if (textLength > maxLength) {
+        return // Don't update if over limit
+      }
     }
     onChange(content)
   }

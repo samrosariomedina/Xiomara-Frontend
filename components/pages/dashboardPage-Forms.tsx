@@ -31,6 +31,7 @@ interface SourcesAdministratorProps {
       email?: string;
     };
   } | null
+  autoOpenCorresponsableForm?: boolean
 }
 
 interface SourceData {
@@ -38,7 +39,7 @@ interface SourceData {
   [key: string]: unknown
 }
 
-export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales", folderId, clientId, campaignId, editSource = null, editReference = null, editCorresponsable = null }: SourcesAdministratorProps) {
+export function SourcesAdministrator({ isOpen, onClose, references, sources, defaultTab = "fuentes-generales", folderId, clientId, campaignId, editSource = null, editReference = null, editCorresponsable = null, autoOpenCorresponsableForm = false }: SourcesAdministratorProps) {
   // Animation state: control mounting (`visible`) and the active CSS state (`active`) separately
   const [visible, setVisible] = useState(isOpen)
   const [active, setActive] = useState(isOpen)
@@ -186,7 +187,13 @@ export function SourcesAdministrator({ isOpen, onClose, references, sources, def
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg p-4">
-              <CorresponsalesForm onSubmit={handleSubmit} editCorresponsable={editCorresponsable} folderId={folderId} onClose={onClose} />
+              <CorresponsalesForm 
+                onSubmit={handleSubmit} 
+                editCorresponsable={editCorresponsable} 
+                folderId={folderId} 
+                onClose={onClose}
+                autoOpenForm={autoOpenCorresponsableForm && !editCorresponsable}
+              />
             </div>
           </div>
         )

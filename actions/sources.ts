@@ -340,6 +340,9 @@ export async function createSourceAction(data: {
         'Authorization': `Bearer ${token}`,
         ...formData.getHeaders()
       },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      timeout: 120000, // 2 minutes timeout for large content
     })
     
     const created: SourceResponse = response.data

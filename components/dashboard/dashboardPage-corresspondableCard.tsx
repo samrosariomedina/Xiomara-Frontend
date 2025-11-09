@@ -14,6 +14,11 @@ import { EmptyCorresponsable } from "@/components/icons/icons"
 import { useCorresponsables } from "@/hooks/useCorresponsables"
 import { formatDateSafe } from "@/lib/utils"
 import { ShadcnRowActions } from "@/components/ui/ShadcnRowActions"
+import { getShareUrlAction } from "@/actions/corresponsables"
+import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
+import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
+import { useMemo } from "react"
 
 export interface CorresponsableData {
   _id: string;
@@ -31,13 +36,51 @@ interface CorresponsablesSectionProps {
   folderId: string
   onEdit: (corresponsable: CorresponsableData) => void
   onDelete: (corresponsableId: string) => Promise<void>
+  onCreateClick?: () => void
   clientId: string
   campaignId?: string
 }
 
-export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, campaignId }: CorresponsablesSectionProps) {
+// Function to censor origin for Telegram listeners
+const censorOrigin = (origin: string | null, showCensored: boolean = false): string => {
+  if (!origin || origin === "N/A") return "N/A"
+  if (showCensored) {
+    return origin // Show actual value when toggle is on
+  }
+  // Censor: show first 3 and last 3 characters with asterisks in between
+  if (origin.length <= 6) {
+    return "***" // Fully censor short values
+  }
+  const start = origin.substring(0, 3)
+  const end = origin.substring(origin.length - 3)
+  const middle = "*".repeat(Math.min(origin.length - 6, 8)) // Max 8 asterisks
+  return `${start}${middle}${end}`
+}
+
+// Helper to determine if a corresponsable is Telegram
+const isTelegramListener = (corresponsable: CorresponsableData): boolean => {
+  // Check type field first
+  if (corresponsable.type === "telegram") return true
+  // Fallback: Telegram tokens are usually longer and don't look like phone numbers
+  if (corresponsable.origin && 
+      corresponsable.origin.length > 20 && 
+      !/^\+?[0-9\s\-\(\)]+$/.test(corresponsable.origin)) {
+    return true
+  }
+  return false
+}
+
+export function CorresponsablesSection({ folderId, onEdit, onDelete, onCreateClick, clientId, campaignId }: CorresponsablesSectionProps) {
   const [activeTab, setActiveTab] = useState("usuarios")
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showCensoredOrigins, setShowCensoredOrigins] = useState(false) // Toggle for showing censored Telegram origins
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [shareDialogData, setShareDialogData] = useState<{
+    shareUrl: string;
+    clientName: string;
+    email?: string;
+    listenerType: "whatsapp" | "telegram";
+  } | null>(null)
   // translations scoped to messages/CORRESPONSABLES
   const t = useTranslations('CORRESPONSABLES')
   const router = useRouter()
@@ -50,13 +93,41 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
     error 
   } = useCorresponsables(folderId)
 
+  // Check if there are any Telegram listeners
+  const hasTelegramListeners = useMemo(() => {
+    return corresponsables.some((c: CorresponsableData) => isTelegramListener(c))
+  }, [corresponsables])
+
   const goToCorresponsalesList = () => {
     const route = routes.clients.getDashboardRoute(clientId, campaignId, 'corresponsables')
     const localizedRoute = getLocalizedRouteFromPathname(route, pathname || '/')
     router.push(localizedRoute)
   }
 
+  const handleShareCorresponsable = async (corresponsable: CorresponsableData) => {
+    try {
+      const result = await getShareUrlAction(corresponsable._id)
+      
+      if (result.success && result.data) {
+        const listenerType = corresponsable.type === "telegram" ? "telegram" : "whatsapp"
+        setShareDialogData({
+          shareUrl: result.data,
+          clientName: corresponsable.title || 'Corresponsable',
+          email: corresponsable.metadata?.email,
+          listenerType
+        })
+        setShowShareDialog(true)
+      } else {
+        toast.error(result.error || 'Failed to get share link')
+      }
+    } catch (error) {
+      console.error('Error getting share URL:', error)
+      toast.error('Failed to get share link. Please try again.')
+    }
+  }
+
   return (
+    <>
   <Card className="bg-white border border-gray-200 py-6 shadow-sm flex flex-col overflow-hidden max-h-[85vh] md:max-h-[75vh] lg:h-[600px] lg:max-h-none">
     <div className="px-4 mt-2 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0">
       <SectionHeader
@@ -145,21 +216,47 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
               - To change the dropdown look: update Checkbox + ChevronDown classes
               - To change Create button: edit Button variant/classes
           */}
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <div className="hidden lg:flex items-center">
                 {/* Select all checkbox - visible only on large screens */}
                 <Checkbox id="select-all" className="mr-2 h-4 w-4 rounded border-gray-300" />
                 {/* This ChevronDown is a visual dropdown icon in the original design */}
                 <ChevronDown className="h-4 w-4 text-gray-500" />
               </div>
-            {/* Create Corresponsal button - update color/size here */}
-            <Button
-              variant="outline"
-              className="w-full lg:w-auto h-9 px-3 py-2 text-sm font-semibold text-[#31499F] flex items-center gap-2 rounded-full bg-[#F7F9FF]  border-white mt-2 lg:mt-0 justify-center"
-            >
-              <Plus className="h-4 w-4 " />
-              <span className="ml-1">{t('create')}</span>
-            </Button>
+              
+              <div className="flex items-center gap-2">
+                {/* Toggle button for showing/hiding censored Telegram origins */}
+                {hasTelegramListeners && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCensoredOrigins(!showCensoredOrigins)}
+                    className="flex items-center gap-2 border-gray-300 hover:bg-gray-50 h-9 px-3 py-2 text-sm"
+                  >
+                    {showCensoredOrigins ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        <span className="hidden sm:inline">Hide Tokens</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        <span className="hidden sm:inline">Show Tokens</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {/* Create Corresponsal button - update color/size here */}
+                <Button
+                  variant="outline"
+                  className="w-full lg:w-auto h-9 px-3 py-2 text-sm font-semibold text-[#31499F] flex items-center gap-2 rounded-full bg-[#F7F9FF]  border-white mt-2 lg:mt-0 justify-center"
+                  onClick={onCreateClick}
+                >
+                  <Plus className="h-4 w-4 " />
+                  <span className="ml-1">{t('create')}</span>
+                </Button>
+              </div>
           </div>
 
           <div className="space-y-4">
@@ -184,7 +281,12 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
                         {/* Sources row: globe icon + number. To change color or spacing edit classes below */}
                         <div className="inline-flex bg-[#F7F9FF]  items-center text-xs text-blue-900 w-auto p-1">
                           <Globe className="h-3.5 w-3.5 mr-1" />
-                          <span>{corresponsable.origin || 'N/A'}</span>
+                          <span>
+                            {isTelegramListener(corresponsable) 
+                              ? censorOrigin(corresponsable.origin || null, showCensoredOrigins)
+                              : (corresponsable.origin || 'N/A')
+                            }
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -215,6 +317,9 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
                     <ShadcnRowActions
                       onEdit={() => {
                         onEdit(corresponsable)
+                      }}
+                      onShare={async () => {
+                        await handleShareCorresponsable(corresponsable)
                       }}
                       onDelete={async () => {
                         await onDelete(corresponsable._id)
@@ -261,5 +366,21 @@ export function CorresponsablesSection({ folderId, onEdit, onDelete, clientId, c
   )}
 
     </Card>
+
+      {/* Share Link Dialog */}
+      {shareDialogData && (
+        <ShareLinkDialog
+          isOpen={showShareDialog}
+          onClose={() => {
+            setShowShareDialog(false)
+            setShareDialogData(null)
+          }}
+          shareUrl={shareDialogData.shareUrl}
+          clientName={shareDialogData.clientName}
+          email={shareDialogData.email}
+          listenerType={shareDialogData.listenerType}
+        />
+      )}
+    </>
   )
 }

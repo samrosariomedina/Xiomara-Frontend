@@ -59,6 +59,7 @@ export interface DataTableProps {
   error?: Error | null
   onEditRow?: (rowId: string) => void
   onDeleteRow?: (rowId: string) => Promise<void>
+  onShareRow?: (rowId: string) => void | Promise<void>
 }
 
 // Helper function to get item type label based on card type
@@ -92,6 +93,7 @@ export function DataTable({
   error = null,
   onEditRow,
   onDeleteRow,
+  onShareRow,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -349,6 +351,7 @@ export function DataTable({
             </div>
             <ShadcnRowActions
               onEdit={() => handleEdit(String(row.id))}
+              onShare={cardType === "corresponsales" && onShareRow ? () => onShareRow(String(row.id)) : undefined}
               onDelete={() => handleDelete(String(row.id))}
               itemName={row.nombre || row.name || ""}
               itemType={getItemTypeLabel(cardType)}
@@ -599,6 +602,7 @@ export function DataTable({
                 <TableCell className="py-4 border-0">
                   <ShadcnRowActions
                     onEdit={() => handleEdit(String(row.id))}
+                    onShare={cardType === "corresponsales" && onShareRow ? () => onShareRow(String(row.id)) : undefined}
                     onDelete={() => handleDelete(String(row.id))}
                     itemName={row.nombre || row.name || ""}
                     itemType={getItemTypeLabel(cardType)}

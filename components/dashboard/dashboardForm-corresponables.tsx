@@ -20,6 +20,7 @@ import { ShareLinkDialog } from "@/components/dialogs/ShareLinkDialog"
 import { toast } from "sonner"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { getShareUrlAction } from "@/actions/corresponsables"
 
 interface CorresponsableData {
   _id: string;
@@ -51,9 +52,10 @@ interface CorresponsalesFormProps {
     };
   } | null
   onClose?: () => void // Callback to close the drawer
+  autoOpenForm?: boolean // If true, automatically show the form when component mounts/updates
 }
 
-export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = null, onClose }: CorresponsalesFormProps) {
+export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = null, onClose, autoOpenForm = false }: CorresponsalesFormProps) {
   // Debug logging
   console.log('🟣 CorresponsalesForm rendered with editCorresponsable:', editCorresponsable);
   
@@ -154,6 +156,32 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
       setShowForm(true);
     }
   }, [isEditMode, showForm])
+
+  // Auto-open form when autoOpenForm prop is true (for create mode from button click)
+  useEffect(() => {
+    if (autoOpenForm && !isEditMode && !showForm) {
+      console.log('🟣 autoOpenForm is true - automatically showing form');
+      // Clear any existing edit state
+      setLocalEditCorresponsable(null);
+      // Reset form to default values
+      form.reset({
+        clientName: "",
+        email: "",
+        listenerType: "whatsapp",
+        whatsapp: "",
+        telegramToken: "",
+        accountType: "basic",
+        invitationMethods: {
+          whatsapp: false,
+          telegram: false,
+          email: false,
+          copyLink: false,
+        },
+      });
+      // Show the form
+      setShowForm(true);
+    }
+  }, [autoOpenForm, isEditMode, showForm, form])
 
   // Convert corresponsables to SourceItem format for display
   const sources: SourceItem[] = corresponsables.map((corresponsable: CorresponsableData, ) => ({
@@ -471,15 +499,60 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     }
   };
 
+  const handleShareFromList = async (id: number | string) => {
+    try {
+      const corresponsable = corresponsables.find((c: CorresponsableData) => c._id === String(id))
+      if (!corresponsable) {
+        toast.error('Corresponsable not found')
+        return
+      }
+
+      const result = await getShareUrlAction(corresponsable._id)
+      
+      if (result.success && result.data) {
+        const listenerType = corresponsable.type === "telegram" ? "telegram" : "whatsapp"
+        setShareDialogData({
+          shareUrl: result.data,
+          clientName: corresponsable.title || 'Corresponsable',
+          email: corresponsable.metadata?.email,
+          listenerType
+        })
+        setShowShareDialog(true)
+      } else {
+        toast.error(result.error || 'Failed to get share link')
+      }
+    } catch (error) {
+      console.error('Error getting share URL:', error)
+      toast.error('Failed to get share link. Please try again.')
+    }
+  }
+
   // list view
   if (localSources.length > 0 && !showForm) {
     return (
-      <div className="h-full flex flex-col">
-  <HeaderControls title={tMain('title')} actions={headerActions} />
-        <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
-          <SourcesList sources={localSources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} />
+      <>
+        <div className="h-full flex flex-col">
+          <HeaderControls title={tMain('title')} actions={headerActions} />
+          <div className="bg-white rounded-lg p-6 flex-1 overflow-hidden">
+            <SourcesList sources={localSources} pageType="corresponsables" onEdit={handleEditFromList} onDelete={handleDeleteFromList} onShare={handleShareFromList} />
+          </div>
         </div>
-      </div>
+        
+        {/* Share Link Dialog */}
+        {shareDialogData && (
+          <ShareLinkDialog
+            isOpen={showShareDialog}
+            onClose={() => {
+              setShowShareDialog(false);
+              setShareDialogData(null);
+            }}
+            shareUrl={shareDialogData.shareUrl}
+            clientName={shareDialogData.clientName}
+            email={shareDialogData.email}
+            listenerType={shareDialogData.listenerType}
+          />
+        )}
+      </>
     )
   }
 
