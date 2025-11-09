@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Plus, Download, Eye, Users, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -118,8 +118,17 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
     isCreatingWithSharing
   } = useCorresponsables(folderId)
   
+  // Use a ref to track if we're canceling to prevent useEffect from re-triggering edit mode
+  const isCancelling = React.useRef(false);
+  
   // Reset form when editCorresponsable or localEditCorresponsable changes
   useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      isCancelling.current = false;
+      return;
+    }
+    
     console.log('🟣 currentEditCorresponsable changed:', currentEditCorresponsable);
     if (currentEditCorresponsable) {
       const listenerType = currentEditCorresponsable.type === "telegram" ? "telegram" : "whatsapp";
@@ -151,6 +160,10 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   
   // Ensure showForm is true whenever we're in edit mode (for tab switching)
   useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      return;
+    }
     if (isEditMode && !showForm) {
       console.log('🟣 isEditMode is true but showForm is false - setting showForm to true');
       setShowForm(true);
@@ -250,6 +263,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
 
   const handleCancel = () => {
+    // Set cancel flag to prevent useEffect from re-triggering edit mode
+    isCancelling.current = true;
     form.reset({
       clientName: "",
       email: "",
@@ -264,13 +279,8 @@ export function CorresponsalesForm({ onSubmit, folderId, editCorresponsable = nu
         copyLink: false,
       },
     })
-    setShowForm(false)
+    setShowForm(false) // Go back to list view instead of closing the drawer
     setLocalEditCorresponsable(null) // Clear edit state on cancel
-    
-    // Always close drawer on cancel
-    if (onClose) {
-      onClose()
-    }
   }
 
   // Form submission handler that matches the client form

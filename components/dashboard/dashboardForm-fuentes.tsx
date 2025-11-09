@@ -109,11 +109,19 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   // Reset form when editSource or localEditSource changes (but not when we just updated from sources prop)
   // Use a ref to track if we just updated from sources to prevent overwriting
   const justUpdatedFromSources = React.useRef(false);
+  // Use a ref to track if we're canceling to prevent useEffect from re-triggering edit mode
+  const isCancelling = React.useRef(false);
   
   React.useEffect(() => {
     if (justUpdatedFromSources.current) {
       // Skip this update cycle if we just updated from sources prop
       justUpdatedFromSources.current = false;
+      return;
+    }
+    
+    // Don't re-trigger edit mode if we're canceling
+    if (isCancelling.current) {
+      isCancelling.current = false;
       return;
     }
     
@@ -143,6 +151,10 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
 
   // Additional effect to watch localEditSource specifically
   React.useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      return;
+    }
     console.log('🟠 localEditSource changed:', localEditSource);
     if (localEditSource) {
       console.log('🟠 localEditSource effect - setting showForm to true');
@@ -152,6 +164,10 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   
   // Ensure showForm is true whenever we're in edit mode (for tab switching)
   React.useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      return;
+    }
     if (isEditMode && !showForm) {
       console.log('🟠 isEditMode is true but showForm is false - setting showForm to true');
       setShowForm(true);
@@ -440,15 +456,12 @@ export const FuentesGeneralesForm = forwardRef(function FuentesGeneralesForm(
   }
 
   const handleCancel = () => {
+    // Set cancel flag to prevent useEffect from re-triggering edit mode
+    isCancelling.current = true;
     setErrors({}) // Clear validation errors
     setFormData({ name: "", file: null, url: "", text: "" })
     setLocalEditSource(null) // Clear edit state on cancel
-    setShowForm(false) // Just close the form without creating a source
-    
-    // Always close drawer on cancel
-    if (onClose) {
-      onClose()
-    }
+    setShowForm(false) // Go back to list view instead of closing the drawer
   }
 
   const handleAddMore = () => {
