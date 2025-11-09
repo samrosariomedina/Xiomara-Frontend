@@ -2,7 +2,8 @@
 
 import {
   FileText,
-  BarChart3
+  BarChart3,
+  Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +38,9 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
     startDate: string;
     description?: string;
   } | null>(null)
+
+  // State for create dialog
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
 
   // Fetch campaigns data
@@ -129,6 +133,21 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
     handleCloseEditDialog()
   }
 
+  const handleCreateCampaign = () => {
+    setIsCreateDialogOpen(true)
+  }
+
+  const handleCloseCreateDialog = () => {
+    setIsCreateDialogOpen(false)
+  }
+
+  const handleCreateSuccess = () => {
+    // Invalidate and refetch campaigns data when create is successful
+    queryClient.invalidateQueries({ queryKey: ['all-campaigns'] })
+    queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+    handleCloseCreateDialog()
+  }
+
   if (clientCampaigns.length === 0) {
     return (
       <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -137,8 +156,24 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
             <BarChart3 className="h-8 w-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Campaigns Found</h3>
-            <p className="text-gray-500">This client doesn&apos;t have any campaigns yet.</p>
+          <p className="text-gray-500 mb-6">This client doesn&apos;t have any campaigns yet.</p>
+          <Button
+            onClick={handleCreateCampaign}
+            className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Campaign
+          </Button>
         </div>
+
+        {/* Create Campaign Dialog */}
+        <CreateCampaignDialog
+          isOpen={isCreateDialogOpen}
+          onClose={handleCloseCreateDialog}
+          clientId={clientId}
+          clientName={selectedClient?.title || 'Client'}
+          onSuccess={handleCreateSuccess}
+        />
       </div>
     )
   }
@@ -151,9 +186,19 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
             <h3 className="text-lg font-semibold text-gray-900">Campaigns</h3>
             <p className="text-sm text-gray-500">Manage and navigate to your campaigns</p>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {clientCampaigns.length} campaign{clientCampaigns.length !== 1 ? 's' : ''}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-xs">
+              {clientCampaigns.length} campaign{clientCampaigns.length !== 1 ? 's' : ''}
+            </Badge>
+            <Button
+              onClick={handleCreateCampaign}
+              className="bg-[#31499f] hover:bg-blue-700 text-white rounded-full px-4"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Campaign
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -299,6 +344,15 @@ export function CampaignTable({ clientId }: CampaignTableProps) {
           onSuccess={handleEditSuccess}
         />
       )}
+
+      {/* Create Campaign Dialog */}
+      <CreateCampaignDialog
+        isOpen={isCreateDialogOpen}
+        onClose={handleCloseCreateDialog}
+        clientId={clientId}
+        clientName={selectedClient?.title || 'Client'}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   )
 }
