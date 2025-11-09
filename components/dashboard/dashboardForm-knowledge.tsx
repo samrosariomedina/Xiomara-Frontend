@@ -147,9 +147,15 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   // Reset form when editReference or localEditReference changes (but not when we just updated from references prop)
   // Use a ref to track if we just updated from references to prevent overwriting
   const justUpdatedFromReferences = React.useRef(false);
+  // Use a ref to track if we're canceling to prevent useEffect from re-triggering edit mode
+  const isCancelling = React.useRef(false);
   
   // Ensure showForm is true when editReference prop is provided (from list page edit)
   React.useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      return;
+    }
     if (editReference) {
       setShowForm(true);
     }
@@ -157,6 +163,10 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   
   // Ensure showForm is true whenever we're in edit mode (for tab switching)
   React.useEffect(() => {
+    // Don't re-trigger if we're canceling
+    if (isCancelling.current) {
+      return;
+    }
     if (isEditMode && !showForm) {
       console.log('🔵 isEditMode is true but showForm is false - setting showForm to true');
       setShowForm(true);
@@ -167,6 +177,12 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
     if (justUpdatedFromReferences.current) {
       // Skip this update cycle if we just updated from references prop
       justUpdatedFromReferences.current = false;
+      return;
+    }
+    
+    // Don't re-trigger edit mode if we're canceling
+    if (isCancelling.current) {
+      isCancelling.current = false;
       return;
     }
     
@@ -226,15 +242,12 @@ export function KnowledgeBaseForm({ onSubmit, references, folderId, editReferenc
   const headerActionsPlain: { label: string; onClick?: () => void }[] = []
 
   const handleCancel = () => {
+    // Set cancel flag to prevent useEffect from re-triggering edit mode
+    isCancelling.current = true;
     form.reset()
     form.clearErrors()
     setLocalEditReference(null) // Clear edit state on cancel
-    setShowForm(false)
-    
-    // Always close drawer on cancel
-    if (onClose) {
-      onClose()
-    }
+    setShowForm(false) // Go back to list view instead of closing the drawer
   }
 
   const handleSubmit = form.handleSubmit((data) => {
